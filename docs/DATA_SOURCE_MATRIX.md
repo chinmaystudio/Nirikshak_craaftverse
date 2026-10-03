@@ -23,21 +23,21 @@ This matrix tracks the data source, data mode (LIVE vs DEMO), implementation rea
 | **Government** | `/government/grievances` | Grievance Oversight | Supabase `complaints` + `complaint_updates` | LIVE | LIVE | `complaints` | Real complaints from citizen portal. |
 | **Government** | `/government/finance` | Fund Flows & Spending | Supabase `financial_updates` | LIVE | PARTIAL | `finance` | Fund allocations live; contractor bills deferred to V2. |
 | **Government** | `/government/audit` | Audit Observations | Supabase `inspections` | LIVE | PARTIAL | `inspections` / `audit` | Field inspections mapped; dedicated audit logs table exists. |
-| **Government** | `/government/litigation` | Legal Disputes & Cases | None (Empty in LIVE) / Demo fixtures | DEMO | NOT_IMPLEMENTED | `legal` | Database V2 will implement dedicated litigation tables. |
-| **Government** | `/government/documents` | Project Documents | Supabase `project_documents` | LIVE | LIVE | `documents` | Queries documents associated with projects. |
-| **Government** | `/government/ai` | AI Risk Audit & Alerts | Express `POST /api/ai/analyze/:projectId` | LIVE | PARTIAL | `ai` | OpenRouter / Nemotron integration; advisory only. |
+| **Government** | `/government/litigation` | Legal Disputes & Cases | Supabase V2 `litigations` + `litigation_events` | LIVE | LIVE | `legal` | Database V2 dispute & stay order management. |
+| **Government** | `/government/documents` | Project Documents | Supabase `project_documents` + Storage V2 | LIVE | LIVE | `documents` | Queries documents associated with projects per visibility. |
+| **Government** | `/government/ai` | AI Risk Audit & Alerts | Express `POST /api/ai/analyze/:projectId` | LIVE | LIVE | `ai` | OpenRouter / Nemotron integration; advisory only. |
 | **Contractor** | `/contractor/login` | Contractor Login | Supabase Auth (`supabase.auth`) | LIVE | LIVE | `auth` | Resolves contractor organization membership. |
 | **Contractor** | `/contractor/register` | Contractor Registration | Express `/api/auth/register` + DB Request | LIVE | LIVE | `auth` | Inserts `contractor_access_requests` (PENDING). |
-| **Contractor** | `/contractor/dashboard` | Assigned Projects Overview | Supabase `contractor_assigned_projects_view` | LIVE | PARTIAL | `projects` / `contracts` | Real assigned projects; expenses/forecasts deferred. |
-| **Contractor** | `/contractor/projects/:id` | Project Execution View | Supabase `projects` + `contracts` | LIVE | PARTIAL | `projects` / `contracts` | Basic contract & project info live; detailed sub-items deferred. |
+| **Contractor** | `/contractor/dashboard` | Assigned Projects Overview | Supabase `contractor_assigned_projects_view` | LIVE | LIVE | `projects` / `contracts` | Real assigned projects; expenses/forecasts live. |
+| **Contractor** | `/contractor/projects/:id` | Project Execution View | Supabase `projects` + `contracts` + `project_milestones` | LIVE | LIVE | `projects` / `contracts` | Basic contract & project info live with milestones. |
 | **Contractor** | `/contractor/tenders` | Open Tenders & RFPs | Supabase `tenders` | LIVE | LIVE | `procurement` | Real published tenders available for bidding. |
 | **Contractor** | `/contractor/tenders/:id/bid`| Submit Bid | Supabase `tender_bids` (RPC `save_tender_bid`) | LIVE | LIVE | `procurement` | Enforces contractor organization verification. |
 | **Contractor** | `/contractor/progress` | Daily/Weekly Progress Report| PostgreSQL RPC `submit_progress_update` | LIVE | LIVE | `progress` | Authoritative progress update submission. |
-| **Contractor** | `/contractor/resources` | Equipment & Workforce | Demo fixtures | DEMO | NOT_IMPLEMENTED | `resources` | Resource tables deferred to Database V2 design. |
-| **Contractor** | `/contractor/invoices` | RA Bills & Invoices | Demo fixtures | DEMO | NOT_IMPLEMENTED | `finance` | Invoicing & payment reconciliation deferred to V2. |
-| **Contractor** | `/contractor/inspections` | Quality & Safety Audits | Supabase `inspections` | LIVE | PARTIAL | `inspections` | Read-only inspection events from database. |
-| **Contractor** | `/contractor/compliance` | Statutory Compliance | Demo fixtures | DEMO | NOT_IMPLEMENTED | `contracts` | Compliance checklist deferred to Database V2. |
-| **Contractor** | `/contractor/messages` | Agency Communication | Demo fixtures | DEMO | NOT_IMPLEMENTED | `communications` | Official communication audit log deferred to V2. |
+| **Contractor** | `/contractor/resources` | Equipment & Workforce | Supabase V2 `resource_items` + `resource_usage_updates` | LIVE | LIVE | `resources` | Authoritative resource allocation & aggregate usage. |
+| **Contractor** | `/contractor/invoices` | RA Bills & Invoices | Supabase V2 `payment_claims` (RPC `submit_payment_claim`) | LIVE | LIVE | `finance` | Authoritative payment claim submission. |
+| **Contractor** | `/contractor/inspections` | Quality & Safety Audits | Supabase `inspections` + `inspection_findings` | LIVE | LIVE | `inspections` | Read-only inspection events & open findings from DB. |
+| **Contractor** | `/contractor/compliance` | Statutory Compliance | Supabase V2 `environmental_clearances` | LIVE | LIVE | `contracts` / `environment` | Clearances, expiry dates, and regulatory conditions. |
+| **Contractor** | `/contractor/messages` | Agency Communication | Supabase `notifications` table | LIVE | LIVE | `communications` | Official notifications with read-acknowledgement. |
 | **Citizen** | `/user/home` | Public Portal Landing | Supabase `public_projects_view` | LIVE | LIVE | `projects` | Shows real public infrastructure projects. |
 | **Citizen** | `/user/explore` | Project Explorer & Map | Supabase `public_projects_view` | LIVE | LIVE | `projects` | Map coordinates and public status from database. |
 | **Citizen** | `/user/projects/:id` | Public Project Detail | Supabase `public_projects_view` | LIVE | LIVE | `projects` | Public projection (no confidential bids or internal notes). |

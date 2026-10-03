@@ -58,10 +58,28 @@ NIRIKSHAK Craftverse adheres to five foundational engineering principles:
            Progress, Grievance, AI)             │
                     │                           │
                     ▼                           ▼
-       SUPABASE POSTGRESQL (RLS / Auth / RPCs / Realtime / Storage)
+       SUPABASE POSTGRESQL V2 (Migrations 001-046: RLS / RPCs / Realtime / Storage)
                     │
                     ▼
-          AI ADVISORY ENGINE (OpenRouter / NVIDIA Nemotron)
+            EXPRESS AI CONTEXT BUILDER (Data Sanitization, Honest NULLs)
+                    │
+                    ▼
+       PYTHON AI MICROSERVICE (FastAPI, Port 8000)
+                    │
+        ┌───────────┼───────────┐
+        ▼           ▼           ▼
+  Historical ML   Online Drift  LinUCB RL Policy
+        │           │           │
+        └───────────┼───────────┘
+                    │
+                    ▼
+       OPENROUTER / NVIDIA NEMOTRON REASONING
+                    │
+                    ▼
+         GOVERNMENT HUMAN REVIEW & DECISION SUPPORT
+                    │
+                    ▼
+         DOWNSTREAM VERIFIED OUTCOME LEARNING LOOP
 ```
 
 ---

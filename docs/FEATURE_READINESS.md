@@ -35,18 +35,18 @@ This document provides a realistic, honest assessment of the readiness level of 
 | **AI Project Analysis Gateway**| **LIVE** | Express `/api/ai/analyze/:projectId` | Tenancy-checked authorized snapshot dispatched to AI microservice. |
 | **Government AI Feedback** | **LIVE** | Express `/api/ai/feedback` | Official reviews update bandit matrices and SQLite event state. |
 | **Verified Snapshot Learning** | **LIVE** | Express `progress.service` hook | Triggers post-approval verified learning without blocking DB tx. |
-| **Resources & Workforce** | **NOT_IMPLEMENTED** | UI only (Mock in Demo mode) | Dedicated labor/machinery tables deferred to V2. |
-| **Finance — Fund Allocations** | **PARTIAL** | Supabase `financial_updates` | Fund allocation & release tracking live; RA bills deferred. |
-| **Invoices / RA Bills** | **NOT_IMPLEMENTED** | UI only (Mock in Demo mode) | Electronic measurement book & bills deferred to V2. |
-| **Inspections** | **PARTIAL** | Supabase `inspections` | Inspection records live; multi-photo upload deferred. |
-| **Documents Storage** | **LIVE** | Supabase `project_documents` + Storage | Document catalog metadata linked to projects. |
-| **Complaints — Submission** | **LIVE** | Express `POST /api/complaints` | Citizen grievance filing with reference number. |
+| **Resources & Workforce** | **LIVE** | Supabase V2 (`resource_items`, `project_resource_allocations`, `resource_usage_updates`, `project_workforce_updates`) | Complete resource catalog, allocation, and aggregate workforce reporting. |
+| **Finance — Fund Allocations** | **LIVE** | Supabase V2 (`project_budget_heads`, `financial_updates`) | Fund allocations, planned vs actual expenditure, cost variance tracking. |
+| **Payment Claims / RA Bills** | **LIVE** | Supabase V2 (`payment_claims`, `payment_claim_documents`, `payments`, RPCs) | Electronic bill submission, verification, approval, and payment recording. |
+| **Inspections & Findings** | **LIVE** | Supabase V2 (`inspections`, `inspection_findings`, Storage) | Field inspections, severity-ranked findings, and verification. |
+| **Documents Storage** | **LIVE** | Supabase `project_documents` + V2 Storage Buckets & RLS | Document catalog metadata and secure storage bucket policies. |
+| **Complaints — Submission** | **LIVE** | Express `POST /api/complaints` + Supabase V2 | Citizen grievance filing with tracking token and resolution updates. |
 | **Complaints — Public Tracking** | **LIVE** | Express `GET /api/complaints/track/:ref` | Public grievance tracking with strict PII redaction. |
-| **Litigation Management** | **NOT_IMPLEMENTED** | UI only (Mock in Demo mode) | Legal arbitration & court case schema deferred to V2. |
-| **Environmental Compliance** | **PARTIAL** | Supabase `environmental_records` | Environmental table exists; monitoring dashboards partial. |
-| **Notifications** | **LIVE** | Supabase `notifications` table | Real-time and persistent alerts queryable. |
-| **Audit Logging** | **LIVE** | Supabase `audit_logs` table | System events recorded with actor ID, entity, & payload. |
-| **Realtime Updates** | **PARTIAL** | Supabase Realtime Channels | Configured in migration 019; client service normalized. |
+| **Litigation & Settlements** | **LIVE** | Supabase V2 (`litigations`, `litigation_events`, `settlements`) | Comprehensive court stay orders, hearings, disputes, and settlements. |
+| **Environmental Compliance** | **LIVE** | Supabase V2 (`environmental_clearances`, `environmental_baselines`, `environmental_observations`, `environmental_incidents`) | Statutory clearances, baseline parameters, observations, and incidents. |
+| **Notifications** | **LIVE** | Supabase `notifications` table + V2 RPC | Real-time and persistent alerts queryable with read-acknowledgement RPC. |
+| **Audit Logging** | **LIVE** | Supabase `audit_logs` table V2 | System events recorded with actor org, entity, old/new value, and ip hash. |
+| **Realtime Updates** | **LIVE** | Supabase Realtime Channels + Publication V2 | Realtime publication on notifications, progress, tenders, payment claims. |
 
 ---
 

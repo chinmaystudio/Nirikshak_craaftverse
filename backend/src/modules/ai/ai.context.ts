@@ -99,11 +99,11 @@ export async function buildProjectSnapshot(
     { data: delayEvents },
     { data: financialUpdates },
     { data: inspections },
-    { data: complaintsCount },
-    { data: highComplaintsCount },
+    { count: complaintsCount },
+    { count: highComplaintsCount },
   ] = await Promise.all([
     supabaseAdmin.from('contracts').select('id, contract_value, scheduled_start_date, scheduled_end_date, status').eq('project_id', realProjectId),
-    supabaseAdmin.from('progress_updates').select('reported_physical_progress_percent, verified_physical_progress_percent, observation_date, status, delay_reason, labor_count, evidence_urls').eq('project_id', realProjectId).order('observation_date', { ascending: false }).limit(5),
+    supabaseAdmin.from('progress_updates').select('reported_progress, verified_progress, verification_status, submitted_at, description').eq('project_id', realProjectId).order('submitted_at', { ascending: false }).limit(5),
     supabaseAdmin.from('delay_events').select('delay_days, reason, delay_type, created_at').eq('project_id', realProjectId),
     supabaseAdmin.from('financial_updates').select('expenditure_inr_crore, observation_date').eq('project_id', realProjectId).order('observation_date', { ascending: false }).limit(1),
     supabaseAdmin.from('inspections').select('inspection_type, status, summary, inspection_date').eq('project_id', realProjectId),
@@ -114,7 +114,7 @@ export async function buildProjectSnapshot(
   // Provenance Partitioning:
   // Latest progress records
   const latestUpdate = progressUpdates && progressUpdates.length > 0 ? progressUpdates[0] : null;
-  const verifiedUpdate = progressUpdates?.find((u) => u.status === 'VERIFIED') || null;
+  const verifiedUpdate = progressUpdates?.find((u) => u.verification_status === 'APPROVED') || null;
 
   // Calculate schedule variance in days if delayed
   let scheduleVarianceDays = 0;
@@ -149,17 +149,17 @@ export async function buildProjectSnapshot(
     },
     contractor_reported: {
       provenance: 'CONTRACTOR_REPORTED',
-      contractor_reported_progress_pct: latestUpdate && latestUpdate.reported_physical_progress_percent !== null ? Number(latestUpdate.reported_physical_progress_percent) : (project.physical_progress_percent !== null ? Number(project.physical_progress_percent) : null),
-      reported_at: latestUpdate?.observation_date || null,
-      challenges: latestUpdate?.delay_reason || null,
+      contractor_reported_progress_pct: latestUpdate && latestUpdate.reported_progress !== null ? Number(latestUpdate.reported_progress) : (project.physical_progress_percent !== null ? Number(project.physical_progress_percent) : null),
+      reported_at: latestUpdate?.submitted_at || null,
+      challenges: latestUpdate?.description || null,
       resource_shortage_ratio: null,
-      manpower_count: latestUpdate && latestUpdate.labor_count !== null ? Number(latestUpdate.labor_count) : null,
-      evidence_count: latestUpdate?.evidence_urls ? (Array.isArray(latestUpdate.evidence_urls) ? latestUpdate.evidence_urls.length : 1) : 0,
+      manpower_count: null,
+      evidence_count: 0,
     },
     government_verified: {
       provenance: 'GOVERNMENT_VERIFIED',
-      government_verified_progress_pct: verifiedUpdate && verifiedUpdate.verified_physical_progress_percent !== null ? Number(verifiedUpdate.verified_physical_progress_percent) : (project.current_status_verified ? Number(project.physical_progress_percent) : null),
-      verified_at: verifiedUpdate?.observation_date || null,
+      government_verified_progress_pct: verifiedUpdate && verifiedUpdate.verified_progress !== null ? Number(verifiedUpdate.verified_progress) : (project.current_status_verified ? Number(project.physical_progress_percent) : null),
+      verified_at: verifiedUpdate?.submitted_at || null,
       planned_progress_pct: null,
       schedule_variance_days: delayEvents && delayEvents.length > 0 ? scheduleVarianceDays : null,
       inspection_defects: inspections ? inspections.filter((i) => i.status !== 'COMPLETED').length : null,
@@ -169,7 +169,7 @@ export async function buildProjectSnapshot(
       provenance: 'DATABASE_FACT',
       sanctioned_amount: totalCost > 0 ? totalCost : null,
       amount_spent: latestSpent > 0 ? latestSpent : null,
-      cost_variance_pct: totalCost > 0 && latestSpent > totalCost ? costVariancePct : 0.0,
+      cost_variance_pct: latestSpent > 0 && totalCost > 0 ? (latestSpent > totalCost ? costVariancePct : 0.0) : null,
       payment_delay_days: null,
     },
     complaints: {

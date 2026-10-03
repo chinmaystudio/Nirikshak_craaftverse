@@ -325,7 +325,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const submitBid = useCallback((tenderId: string, bidValue: number, ref?: string) => {
-    const finalRef = ref || (demo ? `NRK-BID-2026-${Math.floor(3200 + Math.random() * 700)}` : 'NRK-BID-SUBMITTED');
+    if (!demo && !ref) {
+      throw new Error('Bid submission failed: authoritative bid reference must be returned by save_tender_bid RPC');
+    }
+    const finalRef = ref || `NRK-BID-2026-${Math.floor(3200 + Math.random() * 700)}`;
     setBids((bs) => ({
       ...bs,
       [tenderId]: {

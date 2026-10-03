@@ -2662,6 +2662,896 @@ export type Database = {
         ]
       }
     }
+
+      tender_documents: {
+        Row: {
+          id: string
+          tender_id: string
+          document_id: string | null
+          document_type: string
+          visibility: string
+          storage_path: string | null
+          uploaded_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          tender_id: string
+          document_id?: string | null
+          document_type: string
+          visibility?: string
+          storage_path?: string | null
+          uploaded_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          tender_id?: string
+          document_id?: string | null
+          document_type?: string
+          visibility?: string
+          storage_path?: string | null
+          uploaded_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      bid_documents: {
+        Row: {
+          id: string
+          bid_id: string
+          document_id: string | null
+          document_type: string
+          visibility: string
+          storage_path: string | null
+          uploaded_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          bid_id: string
+          document_id?: string | null
+          document_type: string
+          visibility?: string
+          storage_path?: string | null
+          uploaded_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          bid_id?: string
+          document_id?: string | null
+          document_type?: string
+          visibility?: string
+          storage_path?: string | null
+          uploaded_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      resource_items: {
+        Row: {
+          id: string
+          organization_id: string
+          resource_type: string
+          resource_code: string
+          name: string
+          description: string | null
+          unit: string
+          capacity: number | null
+          status: string
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          resource_type: string
+          resource_code: string
+          name: string
+          description?: string | null
+          unit: string
+          capacity?: number | null
+          status?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          resource_type?: string
+          resource_code?: string
+          name?: string
+          description?: string | null
+          unit?: string
+          capacity?: number | null
+          status?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      project_resource_allocations: {
+        Row: {
+          id: string
+          project_id: string
+          resource_item_id: string
+          contractor_organization_id: string
+          allocated_quantity: number
+          available_quantity: number
+          required_quantity: number
+          utilized_quantity: number
+          allocation_date: string | null
+          status: string
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          resource_item_id: string
+          contractor_organization_id: string
+          allocated_quantity?: number
+          available_quantity?: number
+          required_quantity?: number
+          utilized_quantity?: number
+          allocation_date?: string | null
+          status?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          resource_item_id?: string
+          contractor_organization_id?: string
+          allocated_quantity?: number
+          available_quantity?: number
+          required_quantity?: number
+          utilized_quantity?: number
+          allocation_date?: string | null
+          status?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      resource_usage_updates: {
+        Row: {
+          id: string
+          project_id: string
+          resource_allocation_id: string | null
+          observation_date: string
+          required_quantity: number | null
+          available_quantity: number | null
+          used_quantity: number | null
+          shortage_quantity: number | null
+          shortage_ratio: number | null
+          reported_by: string | null
+          verified_by: string | null
+          verification_status: string
+          notes: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          resource_allocation_id?: string | null
+          observation_date?: string
+          required_quantity?: number | null
+          available_quantity?: number | null
+          used_quantity?: number | null
+          shortage_quantity?: number | null
+          shortage_ratio?: number | null
+          reported_by?: string | null
+          verified_by?: string | null
+          verification_status?: string
+          notes?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          resource_allocation_id?: string | null
+          observation_date?: string
+          required_quantity?: number | null
+          available_quantity?: number | null
+          used_quantity?: number | null
+          shortage_quantity?: number | null
+          shortage_ratio?: number | null
+          reported_by?: string | null
+          verified_by?: string | null
+          verification_status?: string
+          notes?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      project_workforce_updates: {
+        Row: {
+          id: string
+          project_id: string
+          contractor_organization_id: string
+          observation_date: string
+          planned_workers: number | null
+          available_workers: number | null
+          skilled_workers: number | null
+          unskilled_workers: number | null
+          supervisors: number | null
+          safety_officers: number | null
+          worker_shortage_ratio: number | null
+          reported_by: string | null
+          verification_status: string
+          verified_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          contractor_organization_id: string
+          observation_date?: string
+          planned_workers?: number | null
+          available_workers?: number | null
+          skilled_workers?: number | null
+          unskilled_workers?: number | null
+          supervisors?: number | null
+          safety_officers?: number | null
+          worker_shortage_ratio?: number | null
+          reported_by?: string | null
+          verification_status?: string
+          verified_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          contractor_organization_id?: string
+          observation_date?: string
+          planned_workers?: number | null
+          available_workers?: number | null
+          skilled_workers?: number | null
+          unskilled_workers?: number | null
+          supervisors?: number | null
+          safety_officers?: number | null
+          worker_shortage_ratio?: number | null
+          reported_by?: string | null
+          verification_status?: string
+          verified_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      project_budget_heads: {
+        Row: {
+          id: string
+          project_id: string
+          budget_code: string
+          budget_head: string
+          description: string | null
+          sanctioned_amount_inr_crore: number
+          revised_amount_inr_crore: number
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          budget_code: string
+          budget_head: string
+          description?: string | null
+          sanctioned_amount_inr_crore?: number
+          revised_amount_inr_crore?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          budget_code?: string
+          budget_head?: string
+          description?: string | null
+          sanctioned_amount_inr_crore?: number
+          revised_amount_inr_crore?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      payment_claims: {
+        Row: {
+          id: string
+          claim_number: string
+          project_id: string
+          contract_id: string
+          contractor_organization_id: string
+          milestone_id: string | null
+          claim_type: string
+          claimed_amount: number
+          verified_amount: number | null
+          approved_amount: number | null
+          status: string
+          description: string | null
+          submitted_by: string | null
+          submitted_at: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          review_notes: string | null
+          approved_by: string | null
+          approved_at: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          claim_number: string
+          project_id: string
+          contract_id: string
+          contractor_organization_id: string
+          milestone_id?: string | null
+          claim_type?: string
+          claimed_amount: number
+          verified_amount?: number | null
+          approved_amount?: number | null
+          status?: string
+          description?: string | null
+          submitted_by?: string | null
+          submitted_at?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_notes?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          claim_number?: string
+          project_id?: string
+          contract_id?: string
+          contractor_organization_id?: string
+          milestone_id?: string | null
+          claim_type?: string
+          claimed_amount?: number
+          verified_amount?: number | null
+          approved_amount?: number | null
+          status?: string
+          description?: string | null
+          submitted_by?: string | null
+          submitted_at?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          review_notes?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      payment_claim_documents: {
+        Row: {
+          id: string
+          payment_claim_id: string
+          document_id: string | null
+          document_type: string
+          storage_path: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          payment_claim_id: string
+          document_id?: string | null
+          document_type?: string
+          storage_path?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          payment_claim_id?: string
+          document_id?: string | null
+          document_type?: string
+          storage_path?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          id: string
+          payment_claim_id: string
+          project_id: string
+          contractor_organization_id: string
+          amount_paid: number
+          payment_reference: string
+          payment_date: string | null
+          payment_method: string | null
+          recorded_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          payment_claim_id: string
+          project_id: string
+          contractor_organization_id: string
+          amount_paid: number
+          payment_reference: string
+          payment_date?: string | null
+          payment_method?: string | null
+          recorded_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          payment_claim_id?: string
+          project_id?: string
+          contractor_organization_id?: string
+          amount_paid?: number
+          payment_reference?: string
+          payment_date?: string | null
+          payment_method?: string | null
+          recorded_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      litigations: {
+        Row: {
+          id: string
+          project_id: string
+          case_number: string
+          case_title: string
+          court_or_forum: string
+          jurisdiction: string | null
+          litigation_type: string
+          filing_date: string | null
+          status: string
+          government_organization_id: string
+          contractor_organization_id: string | null
+          opposing_party: string | null
+          claimed_amount: number | null
+          risk_level: string | null
+          summary: string | null
+          next_hearing_date: string | null
+          created_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          case_number: string
+          case_title: string
+          court_or_forum: string
+          jurisdiction?: string | null
+          litigation_type?: string
+          filing_date?: string | null
+          status?: string
+          government_organization_id: string
+          contractor_organization_id?: string | null
+          opposing_party?: string | null
+          claimed_amount?: number | null
+          risk_level?: string | null
+          summary?: string | null
+          next_hearing_date?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          case_number?: string
+          case_title?: string
+          court_or_forum?: string
+          jurisdiction?: string | null
+          litigation_type?: string
+          filing_date?: string | null
+          status?: string
+          government_organization_id?: string
+          contractor_organization_id?: string | null
+          opposing_party?: string | null
+          claimed_amount?: number | null
+          risk_level?: string | null
+          summary?: string | null
+          next_hearing_date?: string | null
+          created_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      litigation_events: {
+        Row: {
+          id: string
+          litigation_id: string
+          event_type: string
+          event_date: string
+          summary: string
+          document_id: string | null
+          next_action: string | null
+          next_action_due_date: string | null
+          created_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          litigation_id: string
+          event_type: string
+          event_date: string
+          summary: string
+          document_id?: string | null
+          next_action?: string | null
+          next_action_due_date?: string | null
+          created_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          litigation_id?: string
+          event_type?: string
+          event_date?: string
+          summary?: string
+          document_id?: string | null
+          next_action?: string | null
+          next_action_due_date?: string | null
+          created_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      settlements: {
+        Row: {
+          id: string
+          litigation_id: string | null
+          project_id: string
+          settlement_number: string
+          settlement_type: string
+          proposed_amount: number | null
+          approved_amount: number | null
+          terms: string
+          status: string
+          proposed_by: string | null
+          proposed_at: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
+          approved_by: string | null
+          approved_at: string | null
+          effective_date: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          litigation_id?: string | null
+          project_id: string
+          settlement_number: string
+          settlement_type?: string
+          proposed_amount?: number | null
+          approved_amount?: number | null
+          terms: string
+          status?: string
+          proposed_by?: string | null
+          proposed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
+          effective_date?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          litigation_id?: string | null
+          project_id?: string
+          settlement_number?: string
+          settlement_type?: string
+          proposed_amount?: number | null
+          approved_amount?: number | null
+          terms?: string
+          status?: string
+          proposed_by?: string | null
+          proposed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
+          effective_date?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_analysis_runs: {
+        Row: {
+          id: string
+          analysis_id: string
+          project_id: string
+          requested_by: string | null
+          requested_by_organization_id: string | null
+          service_version: string | null
+          historical_model_version: string | null
+          online_model_version: string | null
+          rl_policy_version: string | null
+          llm_model: string | null
+          context_hash: string | null
+          input_completeness_score: number | null
+          status: string
+          started_at: string | null
+          completed_at: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          analysis_id: string
+          project_id: string
+          requested_by?: string | null
+          requested_by_organization_id?: string | null
+          service_version?: string | null
+          historical_model_version?: string | null
+          online_model_version?: string | null
+          rl_policy_version?: string | null
+          llm_model?: string | null
+          context_hash?: string | null
+          input_completeness_score?: number | null
+          status?: string
+          started_at?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          analysis_id?: string
+          project_id?: string
+          requested_by?: string | null
+          requested_by_organization_id?: string | null
+          service_version?: string | null
+          historical_model_version?: string | null
+          online_model_version?: string | null
+          rl_policy_version?: string | null
+          llm_model?: string | null
+          context_hash?: string | null
+          input_completeness_score?: number | null
+          status?: string
+          started_at?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_recommended_actions: {
+        Row: {
+          id: string
+          analysis_run_id: string
+          project_id: string
+          action_code: string
+          rank: number
+          policy_score: number | null
+          learned_mean_reward: number | null
+          uncertainty_bonus: number | null
+          explanation: string | null
+          status: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          analysis_run_id: string
+          project_id: string
+          action_code: string
+          rank?: number
+          policy_score?: number | null
+          learned_mean_reward?: number | null
+          uncertainty_bonus?: number | null
+          explanation?: string | null
+          status?: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          analysis_run_id?: string
+          project_id?: string
+          action_code?: string
+          rank?: number
+          policy_score?: number | null
+          learned_mean_reward?: number | null
+          uncertainty_bonus?: number | null
+          explanation?: string | null
+          status?: string
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_recommendation_feedback: {
+        Row: {
+          id: string
+          analysis_run_id: string
+          recommended_action_id: string
+          project_id: string
+          reviewed_by: string
+          feedback: string
+          note: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          analysis_run_id: string
+          recommended_action_id: string
+          project_id: string
+          reviewed_by: string
+          feedback: string
+          note?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          analysis_run_id?: string
+          recommended_action_id?: string
+          project_id?: string
+          reviewed_by?: string
+          feedback?: string
+          note?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_action_outcomes: {
+        Row: {
+          id: string
+          analysis_run_id: string
+          recommended_action_id: string
+          project_id: string
+          baseline_snapshot: Json | null
+          verified_outcome_snapshot: Json | null
+          reward: number
+          reward_components: Json | null
+          verified_by: string
+          verified_at: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          analysis_run_id: string
+          recommended_action_id: string
+          project_id: string
+          baseline_snapshot?: Json | null
+          verified_outcome_snapshot?: Json | null
+          reward: number
+          reward_components?: Json | null
+          verified_by: string
+          verified_at?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          analysis_run_id?: string
+          recommended_action_id?: string
+          project_id?: string
+          baseline_snapshot?: Json | null
+          verified_outcome_snapshot?: Json | null
+          reward?: number
+          reward_components?: Json | null
+          verified_by?: string
+          verified_at?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_context_snapshots: {
+        Row: {
+          id: string
+          analysis_run_id: string
+          project_id: string
+          snapshot: Json
+          snapshot_hash: string | null
+          provenance: Json | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          analysis_run_id: string
+          project_id: string
+          snapshot: Json
+          snapshot_hash?: string | null
+          provenance?: Json | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          analysis_run_id?: string
+          project_id?: string
+          snapshot?: Json
+          snapshot_hash?: string | null
+          provenance?: Json | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      external_data_sources: {
+        Row: {
+          id: string
+          source_code: string
+          name: string
+          source_type: string
+          base_url: string | null
+          is_active: boolean | null
+          refresh_frequency: string | null
+          metadata: Json | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          source_code: string
+          name: string
+          source_type: string
+          base_url?: string | null
+          is_active?: boolean | null
+          refresh_frequency?: string | null
+          metadata?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          source_code?: string
+          name?: string
+          source_type?: string
+          base_url?: string | null
+          is_active?: boolean | null
+          refresh_frequency?: string | null
+          metadata?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      external_observations: {
+        Row: {
+          id: string
+          project_id: string | null
+          data_source_id: string
+          observation_type: string
+          observed_at: string
+          value_numeric: number | null
+          value_text: string | null
+          unit: string | null
+          location: Json | null
+          raw_reference: Json | null
+          verified: boolean | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id?: string | null
+          data_source_id: string
+          observation_type: string
+          observed_at?: string
+          value_numeric?: number | null
+          value_text?: string | null
+          unit?: string | null
+          location?: Json | null
+          raw_reference?: Json | null
+          verified?: boolean | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string | null
+          data_source_id?: string
+          observation_type?: string
+          observed_at?: string
+          value_numeric?: number | null
+          value_text?: string | null
+          unit?: string | null
+          location?: Json | null
+          raw_reference?: Json | null
+          verified?: boolean | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+
     Views: {
       contractor_assigned_projects_view: {
         Row: {
@@ -2967,6 +3857,99 @@ export type Database = {
         Relationships: []
       }
     }
+
+      project_progress_summary_view: {
+        Row: {
+          id: string | null
+          nirikshak_project_id: string | null
+          project_name: string | null
+          government_organization_id: string | null
+          normalized_status: string | null
+          official_physical_progress_percent: number | null
+          planned_start_date: string | null
+          original_completion_date: string | null
+          revised_completion_date: string | null
+          latest_reported_progress: number | null
+          latest_reported_date: string | null
+          latest_approved_progress: number | null
+          pending_progress_reviews: number | null
+        }
+        Relationships: []
+      }
+      project_finance_summary_view: {
+        Row: {
+          id: string | null
+          nirikshak_project_id: string | null
+          project_name: string | null
+          government_organization_id: string | null
+          approved_cost_inr_crore: number | null
+          total_cost_inr_crore: number | null
+          financial_progress_percent: number | null
+          total_budget_sanctioned: number | null
+          latest_actual_expenditure: number | null
+          latest_planned_expenditure: number | null
+          latest_cost_variance: number | null
+          total_claimed_amount: number | null
+          total_approved_amount: number | null
+          total_paid_amount: number | null
+        }
+        Relationships: []
+      }
+      tender_catalog_view: {
+        Row: {
+          id: string | null
+          project_id: string | null
+          tender_number: string | null
+          government_organization_id: string | null
+          authority_name: string | null
+          project_name: string | null
+          sector: string | null
+          state: string | null
+          district: string | null
+          title: string | null
+          description: string | null
+          estimated_value_inr_crore: number | null
+          publication_date: string | null
+          bid_due_date: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
+      government_project_dashboard_view: {
+        Row: {
+          id: string | null
+          nirikshak_project_id: string | null
+          project_name: string | null
+          government_organization_id: string | null
+          sector: string | null
+          subsector: string | null
+          state: string | null
+          district: string | null
+          city: string | null
+          normalized_status: string | null
+          current_status_verified: boolean | null
+          priority: string | null
+          public_visibility: string | null
+          approved_cost_inr_crore: number | null
+          total_cost_inr_crore: number | null
+          physical_progress_percent: number | null
+          financial_progress_percent: number | null
+          planned_start_date: string | null
+          original_completion_date: string | null
+          revised_completion_date: string | null
+          active_contract_id: string | null
+          contract_number: string | null
+          contractor_name: string | null
+          pending_progress_reviews: number | null
+          open_complaints_count: number | null
+          pending_inspections_count: number | null
+          active_litigations_count: number | null
+          latest_ai_priority_band: string | null
+          latest_ai_review_score: number | null
+        }
+        Relationships: []
+      }
+
     Functions: {
       approve_contractor_access_request: {
         Args: {
@@ -3109,6 +4092,45 @@ export type Database = {
         }
       }
     }
+
+      submit_payment_claim: {
+        Args: {
+          p_project_id: string
+          p_contract_id: string
+          p_claim_number: string
+          p_claim_type: string
+          p_claimed_amount: number
+          p_milestone_id?: string
+          p_description?: string
+        }
+        Returns: Json
+      }
+      review_payment_claim: {
+        Args: {
+          p_claim_id: string
+          p_decision: string
+          p_verified_amount?: number
+          p_approved_amount?: number
+          p_review_notes?: string
+        }
+        Returns: Json
+      }
+      record_payment: {
+        Args: {
+          p_payment_claim_id: string
+          p_amount_paid: number
+          p_payment_reference: string
+          p_payment_method?: string
+        }
+        Returns: Json
+      }
+      mark_notification_read: {
+        Args: {
+          p_notification_id: string
+        }
+        Returns: boolean
+      }
+
     Enums: {
       app_role_enum:
         | "citizen"

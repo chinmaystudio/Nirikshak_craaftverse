@@ -57,7 +57,7 @@ export class ProgressService {
         try {
           const { data: updateRecord } = await scopedClient
             .from('progress_updates')
-            .select('project_id, verified_physical_progress_percent')
+            .select('project_id, verified_progress')
             .eq('id', input.progress_update_id)
             .single();
 

@@ -57,15 +57,23 @@ sequenceDiagram
     EX->>DB: Save audit log & ai_insights record
     EX-->>FE: Advisory Report
 
-    Note over G,AI: Phase 5: Human Feedback & Bandit Learning
+    Note over G,AI: Phase 5: Human Feedback Recording
     G->>FE: Selects specific action (e.g. REVIEW_RESOURCE_PLAN) & marks USEFUL
     FE->>EX: POST /api/ai/feedback (analysis_id, action, feedback)
+    EX->>DB: INSERT into ai_recommendation_feedback
     EX->>AI: POST /feedback (analysis_id, action, feedback)
     AI->>AI: Verify action was in recommended actions for analysis_id
-    AI->>AI: Check SQLite ledger to prevent duplicate feedback reward
-    AI->>AI: Update LinUCB covariance matrix for specified action only
-    AI-->>EX: Policy updated: true
+    AI->>AI: Record human judgment in SQLite ledger (does NOT prematurely lock outcome)
+    AI-->>EX: Feedback recorded: true
     EX-->>FE: Feedback Recorded
+
+    Note over G,DB: Phase 6: Downstream Verified Outcome Learning
+    G->>FE: Field verification of downstream milestone confirms progress recovery
+    EX->>DB: Record verified delta in ai_action_outcomes
+    EX->>AI: POST /learn/outcome (baseline vs verified outcome snapshot)
+    AI->>AI: Calculate final composite reward (Feedback + Verified delta)
+    AI->>AI: Update LinUCB policy covariance matrix ONCE
+    AI-->>EX: Final outcome learned: true
 ```
 
 ---
