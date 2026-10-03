@@ -1,0 +1,68 @@
+import { supabase } from '@/lib/supabase/client';
+import type { ProgressReport } from '../types/contractor.types';
+
+export class ContractorProgressService {
+  /**
+   * Authoritative progress submission via PostgreSQL RPC `submit_progress_update`.
+   * Never performs local state double-writes. Only returns when persisted successfully in the database.
+   */
+  static async submitProgress(payload: {
+    projectId: string;
+    reportedProgress: number;
+    description: string;
+    milestoneId?: string | null;
+  }): Promise<{ id: string; success: boolean }> {
+    const { projectId, reportedProgress, description, milestoneId } = payload;
+
+    const { data, error } = await supabase.rpc('submit_progress_update', {
+      p_project_id: projectId,
+      p_reported_progress: reportedProgress,
+      p_description: description,
+      p_milestone_id: milestoneId || null,
+    });
+
+    if (error) {
+      console.error('[ContractorProgressService] Progress submission failed:', error);
+      throw new Error(`Progress submission rejected: ${error.message}`);
+    }
+
+    return {
+      id: (data as any)?.id || 'submitted',
+      success: true,
+    };
+  }
+
+  /**
+   * Queries real progress update history for a project.
+   */
+  static async listProgress(projectId: string): Promise<ProgressReport[]> {
+    const { data, error } = await supabase
+      .from('progress_updates')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[ContractorProgressService] Error querying progress updates:', error);
+      throw error;
+    }
+
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      projectId: row.project_id,
+      milestone: row.milestone_id || 'General Execution',
+      progress: Number(row.reported_progress) || 0,
+      prevProgress: 0,
+      completed: row.description || '',
+      planned: '',
+      challenges: '',
+      photos: [],
+      docs: [],
+      submittedAt: row.created_at || '',
+      status: row.status === 'APPROVED' ? 'Approved' : row.status === 'REJECTED' ? 'Changes Requested' : 'Submitted',
+      reviewerNote: row.review_notes || undefined,
+    }));
+  }
+}
+
+export const contractorProgressService = ContractorProgressService;

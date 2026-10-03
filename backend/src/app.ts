@@ -5,13 +5,13 @@ import { rateLimit } from './core/security/rateLimit.js';
 import { safeErrorHandler } from './core/http/errorHandler.js';
 import { ApiResponseHelper } from './core/http/response.js';
 
-// Route imports
-import { authRouter } from './routes/auth.js';
-import { projectsRouter } from './routes/projects.js';
-import { tendersRouter } from './routes/tenders.js';
-import { progressRouter } from './routes/progress.js';
-import { complaintsRouter } from './routes/complaints.js';
-import { aiRouter } from './routes/ai.js';
+// Domain Module Route Imports
+import { authRouter } from './modules/auth/auth.routes.js';
+import { projectsRouter } from './modules/projects/projects.routes.js';
+import { procurementRouter } from './modules/procurement/procurement.routes.js';
+import { progressRouter } from './modules/progress/progress.routes.js';
+import { complaintsRouter } from './modules/complaints/complaints.routes.js';
+import { aiRouter } from './modules/ai/ai.routes.js';
 
 export const app = express();
 
@@ -52,10 +52,10 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-// 7. API Routes
+// 7. Domain Module API Routes
 app.use('/api/auth', authRouter);
 app.use('/api/projects', projectsRouter);
-app.use('/api/tenders', tendersRouter);
+app.use('/api/tenders', procurementRouter);
 app.use('/api/progress', progressRouter);
 app.use('/api/complaints', complaintsRouter);
 app.use('/api/ai', aiRouter);

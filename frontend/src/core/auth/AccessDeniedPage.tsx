@@ -8,7 +8,7 @@ export function AccessDeniedPage({
   pendingApproval,
 }: {
   currentRole: AppRole | null;
-  allowedRoles: AppRole[];
+  allowedRoles: readonly AppRole[] | AppRole[];
   pendingApproval?: {
     type: 'government' | 'contractor';
     status: string;

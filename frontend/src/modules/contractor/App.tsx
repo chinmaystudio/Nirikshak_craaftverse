@@ -63,7 +63,7 @@ function Router() {
     return <ContractorLoginPage />;
   }
 
-  if (!role || !CONTRACTOR_ROLES.includes(role)) {
+  if (!role || !(CONTRACTOR_ROLES as readonly string[]).includes(role)) {
     return <AccessDeniedPage currentRole={role} allowedRoles={CONTRACTOR_ROLES} pendingApproval={session.pendingApproval} />;
   }
 

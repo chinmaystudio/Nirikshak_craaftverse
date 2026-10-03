@@ -58,21 +58,9 @@ export default function ReportUpdate({ project }: { project: Project }) {
 
   const submit = async () => {
     if (!validate()) return;
-    addReport({
-      projectId: project.id,
-      milestone,
-      progress: Number(progress) || project.progress,
-      prevProgress: project.progress,
-      completed,
-      planned,
-      challenges,
-      photos: photos.map((p) => p.name),
-      docs: docs.map((d) => d.name),
-      status: 'Under Government Review',
-    });
 
     try {
-      const { supabase } = await import('@/core/supabase/client');
+      const { supabase } = await import('@/lib/supabase/client');
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(project.id);
       let targetProjectId = isUuid ? project.id : null;
       if (!targetProjectId) {
@@ -84,33 +72,48 @@ export default function ReportUpdate({ project }: { project: Project }) {
         if (projData) targetProjectId = (projData as any).id;
       }
 
-      if (targetProjectId) {
-        const summary = [
-          completed ? `Completed: ${completed}` : '',
-          planned ? `Planned: ${planned}` : '',
-          challenges ? `Challenges: ${challenges}` : '',
-        ].filter(Boolean).join('\n');
-
-        const { error: rpcErr } = await supabase.rpc('submit_progress_update', {
-          p_project_id: targetProjectId,
-          p_reported_progress: Number(progress) || project.progress,
-          p_description: summary || 'Physical progress update submitted via Contractor Portal.',
-          p_milestone_id: null,
-        });
-
-        if (rpcErr) {
-          console.warn('Live Supabase progress update notice:', rpcErr.message);
-        } else {
-          toast('success', 'Submitted to Government', 'Update has been submitted for official verification.');
-        }
+      if (!targetProjectId) {
+        toast('warn', 'Project record not found', 'Cannot submit progress for an unverified project identifier.');
+        return;
       }
-    } catch (e) {
-      console.warn('Supabase submit_progress_update dispatch notice:', e);
-    }
 
-    setConfirmOpen(false);
-    setSuccessOpen(true);
-    reset();
+      const summary = [
+        completed ? `Completed: ${completed}` : '',
+        planned ? `Planned: ${planned}` : '',
+        challenges ? `Challenges: ${challenges}` : '',
+      ].filter(Boolean).join('\n');
+
+      const { error: rpcErr } = await supabase.rpc('submit_progress_update', {
+        p_project_id: targetProjectId,
+        p_reported_progress: Number(progress) || project.progress,
+        p_description: summary || 'Physical progress update submitted via Contractor Portal.',
+        p_milestone_id: null,
+      });
+
+      if (rpcErr) {
+        toast('warn', 'Submission Rejected', rpcErr.message);
+        return;
+      }
+
+      toast('success', 'Submitted to Government', 'Update has been submitted for official verification.');
+      addReport({
+        projectId: project.id,
+        milestone,
+        progress: Number(progress) || project.progress,
+        prevProgress: project.progress,
+        completed,
+        planned,
+        challenges,
+        photos: photos.map((p) => p.name),
+        docs: docs.map((d) => d.name),
+        status: 'Under Government Review',
+      });
+      setConfirmOpen(false);
+      setSuccessOpen(true);
+      reset();
+    } catch (e: any) {
+      toast('warn', 'Submission Error', e?.message || 'Could not dispatch progress update.');
+    }
   };
 
   const statusTone = (s: string) => (s === 'Approved' ? 'Approved' : s === 'Changes Requested' ? 'Changes Requested' : s === 'Draft' ? 'Draft' : 'Under Government Review');

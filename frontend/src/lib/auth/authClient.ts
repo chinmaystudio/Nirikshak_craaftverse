@@ -14,6 +14,27 @@ export class AuthClient {
   }
 
   /**
+   * Sanitizes redirect path to ensure it is strictly internal.
+   * Rejects external URLs, protocol-relative URLs (//), backslash bypasses (/\ or \), and script schemes.
+   */
+  static sanitizeRedirectPath(path?: string): string {
+    if (!path || typeof path !== 'string') return '/';
+    const trimmed = path.trim().replace(/\0/g, '');
+    if (
+      trimmed.startsWith('http://') ||
+      trimmed.startsWith('https://') ||
+      trimmed.startsWith('//') ||
+      trimmed.startsWith('/\\') ||
+      trimmed.includes('\\') ||
+      trimmed.startsWith('javascript:') ||
+      trimmed.startsWith('data:')
+    ) {
+      return '/';
+    }
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  }
+
+  /**
    * Resolves authoritative user profile, organization, and role directly from Supabase DB.
    */
   static async resolveUserSession(user: User): Promise<AppSession> {
@@ -147,6 +168,47 @@ export class AuthClient {
     return await this.resolveUserSession(data.user);
   }
 
+  static async signInWithGoogle(redirectTo?: string): Promise<void> {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const safePath = this.sanitizeRedirectPath(
+      redirectTo || (typeof window !== 'undefined' ? window.location.pathname : '/')
+    );
+    const redirectUrl = `${origin}${safePath}`;
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  static async signUp(payload: {
+    email: string;
+    password: string;
+    fullName: string;
+    phone?: string;
+    metadata?: Record<string, any>;
+  }): Promise<{ user: User | null; session: Session | null }> {
+    return this.registerCitizen({
+      email: payload.email,
+      password: payload.password,
+      fullName: payload.fullName,
+      phone: payload.phone,
+      city: payload.metadata?.city,
+      ward: payload.metadata?.ward,
+      preferredLanguage: payload.metadata?.preferredLanguage,
+    });
+  }
+
   static async signOut(): Promise<void> {
     await supabase.auth.signOut();
   }
@@ -181,7 +243,7 @@ export class AuthClient {
     state: string;
     district: string;
     password: string;
-  }): Promise<{ message: string }> {
+  }): Promise<{ user: User | null; message: string }> {
     await apiClient.post('/api/auth/register', {
       accountType: 'government',
       email: payload.officialEmail,
@@ -194,6 +256,7 @@ export class AuthClient {
       district: payload.district,
     });
     return {
+      user: null,
       message: 'Registration request submitted. Your Government access is pending administrator approval.',
     };
   }
@@ -209,12 +272,13 @@ export class AuthClient {
     state: string;
     district: string;
     password: string;
-  }): Promise<{ message: string }> {
+  }): Promise<{ user: User | null; message: string }> {
     await apiClient.post('/api/auth/register', {
       accountType: 'contractor',
       ...payload,
     });
     return {
+      user: null,
       message: 'Your contractor organization verification is pending administrator approval.',
     };
   }

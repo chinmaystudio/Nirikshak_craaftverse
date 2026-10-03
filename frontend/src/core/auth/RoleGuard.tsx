@@ -10,7 +10,7 @@ export function RoleGuard({
   loginPath,
 }: {
   children: ReactNode;
-  allowedRoles: AppRole[];
+  allowedRoles: readonly AppRole[] | AppRole[];
   loginPath?: string;
 }) {
   const { session, role, loading } = useAuthContext();

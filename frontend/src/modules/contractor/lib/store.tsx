@@ -202,27 +202,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const id = uid('rep');
     const newRep = { ...r, id, submittedAt: new Date().toISOString() };
     setReports((rs) => [newRep, ...rs]);
-
-    // Send to Supabase via secure submit_progress_update RPC for authoritative verification (Rule 26)
-    try {
-      import('@/core/supabase/client').then(({ supabase }) => {
-        const project = projects.find((item) => item.id === r.projectId || item.code === r.projectId);
-        if (!project) return;
-        supabase.rpc('submit_progress_update', {
-          p_project_id: project.id,
-          p_reported_progress: r.progress,
-          p_description: r.completed || r.challenges || 'Contractor progress report submission',
-          p_milestone_id: null,
-        }).then(({ error }) => {
-          if (error) console.warn('Contractor progress submit_progress_update notice:', error.message);
-        });
-      });
-    } catch {
-      /* offline or mock */
-    }
-
     return id;
-  }, [projects]);
+  }, []);
   const setReportStatus = useCallback((id: string, status: ProgressReport['status'], note?: string) => {
     setReports((rs) => rs.map((r) => (r.id === id ? { ...r, status, reviewerNote: note ?? r.reviewerNote } : r)));
   }, []);
