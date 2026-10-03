@@ -2,7 +2,7 @@ import { Response, NextFunction } from 'express';
 import { aiService } from './ai.service.js';
 import { ApiResponseHelper } from '../../core/http/response.js';
 import { AuthenticatedRequest } from '../../core/auth/auth.middleware.js';
-import { AiFeedbackSchema } from './ai.validation.js';
+import { AiFeedbackSchema, AiOutcomeSchema } from './ai.validation.js';
 
 export class AiController {
   async analyze(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
@@ -19,6 +19,16 @@ export class AiController {
     try {
       const validated = AiFeedbackSchema.parse(req.body);
       const result = await aiService.submitRecommendationFeedback(validated, req.userContext!);
+      ApiResponseHelper.success(res, result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async outcome(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const validated = AiOutcomeSchema.parse(req.body);
+      const result = await aiService.recordVerifiedOutcome(validated, req.userContext!, req.token!);
       ApiResponseHelper.success(res, result);
     } catch (err) {
       next(err);

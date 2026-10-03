@@ -23,3 +23,11 @@ aiRouter.post(
   requireAuth,
   (req, res, next) => aiController.feedback(req, res, next)
 );
+
+// POST /api/ai/outcome - Record verified operational outcome and trigger single RL policy update
+aiRouter.post(
+  '/outcome',
+  rateLimit({ windowMs: 60 * 1000, max: 30 }),
+  requireAuth,
+  (req, res, next) => aiController.outcome(req, res, next)
+);

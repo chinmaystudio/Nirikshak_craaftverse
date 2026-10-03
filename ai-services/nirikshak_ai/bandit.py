@@ -128,35 +128,103 @@ class LinUCBPolicy:
         self.A = {k: np.asarray(v, dtype=float) for k, v in p["A"].items()}
         self.b = {k: np.asarray(v, dtype=float) for k, v in p["b"].items()}
 
-def outcome_reward(previous: dict, current: dict, government_feedback: str) -> float:
-    def f(d,k):
-        try:return float(d.get(k,0) or 0)
-        except Exception:return 0.0
+def outcome_reward_components(
+    previous: dict,
+    current: dict,
+    government_feedback: str | None = None,
+) -> tuple[float, dict[str, float]]:
+    """
+    Calculates LinUCB reward components normalized by the sum of available weights.
+    Only includes a component if both before and after values exist (or feedback is provided).
+    Does NOT treat missing data as zero improvement.
+    """
+    def to_float(d: dict, k: str) -> float | None:
+        val = d.get(k)
+        if val is None or val == "":
+            return None
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return None
 
-    feedback = {
-        "accepted": 0.8,
-        "useful": 1.0,
-        "neutral": 0.0,
-        "rejected": -0.6,
-        "harmful": -1.0,
-    }.get(str(government_feedback).lower(), 0.0)
+    components: dict[str, float] = {}
+    weights: dict[str, float] = {}
 
-    delay = np.clip((f(previous,"schedule_variance_days")-f(current,"schedule_variance_days"))/30,-1,1)
-    cost = np.clip((abs(f(previous,"cost_variance_pct"))-abs(f(current,"cost_variance_pct")))/20,-1,1)
-    prev_gap = abs(f(previous,"contractor_reported_progress_pct")-f(previous,"government_verified_progress_pct"))
-    curr_gap = abs(f(current,"contractor_reported_progress_pct")-f(current,"government_verified_progress_pct"))
-    gap = np.clip((prev_gap-curr_gap)/15,-1,1)
-    complaints = np.clip((f(previous,"high_severity_complaints")-f(current,"high_severity_complaints"))/5,-1,1)
-    resources = np.clip(f(previous,"resource_shortage_ratio")-f(current,"resource_shortage_ratio"),-1,1)
-    defects = np.clip((f(previous,"inspection_defects")-f(current,"inspection_defects"))/5,-1,1)
+    # 1. Human feedback (weight 0.28)
+    if government_feedback is not None and str(government_feedback).strip() != "":
+        fb_val = {
+            "accepted": 0.8,
+            "useful": 1.0,
+            "neutral": 0.0,
+            "reviewed": 0.5,
+            "rejected": -0.6,
+            "harmful": -1.0,
+        }.get(str(government_feedback).lower().strip())
+        if fb_val is not None:
+            components["human_feedback"] = fb_val
+            weights["human_feedback"] = 0.28
 
-    reward = (
-        0.28*feedback +
-        0.22*delay +
-        0.18*gap +
-        0.14*cost +
-        0.07*complaints +
-        0.06*resources +
-        0.05*defects
-    )
-    return float(np.clip(reward,-1,1))
+    # 2. Schedule improvement (weight 0.22)
+    prev_sched = to_float(previous, "schedule_variance_days")
+    curr_sched = to_float(current, "schedule_variance_days")
+    if prev_sched is not None and curr_sched is not None:
+        sched_imp = float(np.clip((prev_sched - curr_sched) / 30.0, -1.0, 1.0))
+        components["schedule_improvement"] = sched_imp
+        weights["schedule_improvement"] = 0.22
+
+    # 3. Progress gap improvement (weight 0.18)
+    prev_c_prog = to_float(previous, "contractor_reported_progress_pct")
+    prev_g_prog = to_float(previous, "government_verified_progress_pct")
+    curr_c_prog = to_float(current, "contractor_reported_progress_pct")
+    curr_g_prog = to_float(current, "government_verified_progress_pct")
+    if prev_c_prog is not None and prev_g_prog is not None and curr_c_prog is not None and curr_g_prog is not None:
+        prev_gap = abs(prev_c_prog - prev_g_prog)
+        curr_gap = abs(curr_c_prog - curr_g_prog)
+        gap_imp = float(np.clip((prev_gap - curr_gap) / 15.0, -1.0, 1.0))
+        components["progress_gap_improvement"] = gap_imp
+        weights["progress_gap_improvement"] = 0.18
+
+    # 4. Cost variance improvement (weight 0.14)
+    prev_cost = to_float(previous, "cost_variance_pct")
+    curr_cost = to_float(current, "cost_variance_pct")
+    if prev_cost is not None and curr_cost is not None:
+        cost_imp = float(np.clip((abs(prev_cost) - abs(curr_cost)) / 20.0, -1.0, 1.0))
+        components["cost_variance_improvement"] = cost_imp
+        weights["cost_variance_improvement"] = 0.14
+
+    # 5. High-severity complaints improvement (weight 0.07)
+    prev_comp = to_float(previous, "high_severity_complaints")
+    curr_comp = to_float(current, "high_severity_complaints")
+    if prev_comp is not None and curr_comp is not None:
+        comp_imp = float(np.clip((prev_comp - curr_comp) / 5.0, -1.0, 1.0))
+        components["high_severity_complaint_improvement"] = comp_imp
+        weights["high_severity_complaint_improvement"] = 0.07
+
+    # 6. Resource shortage improvement (weight 0.06)
+    prev_res = to_float(previous, "resource_shortage_ratio")
+    curr_res = to_float(current, "resource_shortage_ratio")
+    if prev_res is not None and curr_res is not None:
+        res_imp = float(np.clip(prev_res - curr_res, -1.0, 1.0))
+        components["resource_shortage_improvement"] = res_imp
+        weights["resource_shortage_improvement"] = 0.06
+
+    # 7. Inspection defect improvement (weight 0.05)
+    prev_def = to_float(previous, "inspection_defects")
+    curr_def = to_float(current, "inspection_defects")
+    if prev_def is not None and curr_def is not None:
+        def_imp = float(np.clip((prev_def - curr_def) / 5.0, -1.0, 1.0))
+        components["inspection_defect_improvement"] = def_imp
+        weights["inspection_defect_improvement"] = 0.05
+
+    total_weight = sum(weights.values())
+    if total_weight > 0:
+        weighted_sum = sum(components[k] * weights[k] for k in components)
+        normalized_reward = float(np.clip(weighted_sum / total_weight, -1.0, 1.0))
+    else:
+        normalized_reward = 0.0
+
+    return round(normalized_reward, 4), components
+
+def outcome_reward(previous: dict, current: dict, government_feedback: str | None = None) -> float:
+    reward, _ = outcome_reward_components(previous, current, government_feedback)
+    return reward

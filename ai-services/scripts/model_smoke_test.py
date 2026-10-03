@@ -97,7 +97,7 @@ async def run_tests():
     assert accepted["seen_verified_snapshots"] >= 1
     print("[PASS] Verified government snapshot successfully learned")
 
-    # 5. Recommendation Feedback
+    # 5. Recommendation Feedback (stores feedback, does NOT update policy)
     analysis_id = result["analysis_id"]
     target_action = actions[0]["action"]
     fb_res = ai.submit_recommendation_feedback(
@@ -106,9 +106,33 @@ async def run_tests():
         government_feedback="useful",
         note="Inspection scheduled per recommendation.",
     )
-    assert fb_res["updated"] is True
+    assert fb_res["stored"] is True
+    assert fb_res["policy_updated"] is False
     assert fb_res["action"] == target_action
-    print("[PASS] Government feedback successfully updated policy matrices")
+    print("[PASS] Government feedback successfully stored without premature policy update")
+
+    # 5b. Verified Outcome Learning (updates LinUCB policy exactly once)
+    outcome_res = ai.learn_action_outcome(
+        analysis_id=analysis_id,
+        action=target_action,
+        current_snapshot_input=snapshot,
+        current_snapshot_verified=True,
+    )
+    assert outcome_res["updated"] is True
+    assert outcome_res["action"] == target_action
+    assert "reward_components" in outcome_res
+    print("[PASS] Verified outcome successfully updated LinUCB policy once")
+
+    # 5c. Idempotency test (duplicate outcome update rejected)
+    dup_res = ai.learn_action_outcome(
+        analysis_id=analysis_id,
+        action=target_action,
+        current_snapshot_input=snapshot,
+        current_snapshot_verified=True,
+    )
+    assert dup_res["updated"] is False
+    assert dup_res.get("already_recorded") is True
+    print("[PASS] Duplicate outcome call idempotently skipped without second policy update")
 
     # 6. SQLite State Store Verification
     history = ai.state_store.get_analysis(analysis_id)

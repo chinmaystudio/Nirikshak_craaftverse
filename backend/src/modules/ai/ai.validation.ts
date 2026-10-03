@@ -8,3 +8,13 @@ export const AiFeedbackSchema = z.object({
 });
 
 export type AiFeedbackInput = z.infer<typeof AiFeedbackSchema>;
+
+export const AiOutcomeSchema = z.object({
+  analysis_id: z.string().min(1, 'analysis_id is required'),
+  action: z.string().min(1, 'action is required'),
+  government_feedback: z.enum(['accepted', 'useful', 'neutral', 'rejected', 'harmful']).optional(),
+  current_snapshot_verified: z.boolean().default(true),
+});
+
+export type AiOutcomeInput = z.infer<typeof AiOutcomeSchema>;
+

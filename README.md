@@ -58,7 +58,7 @@ Nirikshak_craaftverse/
 │   │       ├── contractor/ # Contractor project management & e-Tenders
 │   │       └── user/       # Citizen public transparency & grievances
 │
-├── backend/                # Express, TypeScript, Supabase Admin
+├── backend/                # Express, TypeScript, Supabase Database V2
 │   ├── src/
 │   │   ├── core/           # Auth middleware, tenancy, errors, rate limiting
 │   │   └── modules/
@@ -66,15 +66,23 @@ Nirikshak_craaftverse/
 │   │       ├── projects/   # Tenancy-checked project management
 │   │       ├── procurement/# Tenders & bidding gateway
 │   │       ├── progress/   # Milestone verification & AI online learning hooks
-│   │       ├── complaints/ # Citizen grievance intake & tracking
+│   │       ├── contracts/  # Contract state management & awards
+│   │       ├── milestones/ # Project milestone CRUD & sequence validation
+│   │       ├── resources/  # Resource tracking & aggregate workforce
+│   │       ├── finance/    # Budget heads, payment claims & disbursements
+│   │       ├── inspections/# Quality audits & severity findings
+│   │       ├── documents/  # Secure document indexing & metadata
+│   │       ├── environment/# Environmental compliance & baseline tracking
+│   │       ├── legal/      # Litigation tracking & court settlements
+│   │       ├── notifications/# System & alert notifications
 │   │       └── ai/         # AI security gateway, context builder, client
-│   └── supabase/           # PostgreSQL migrations 001–028 (immutable baseline)
+│   └── supabase/           # PostgreSQL migrations 001–056 (Database V2 production schema)
 │
 ├── ai-services/            # First-Class Python AI Microservice
 │   ├── nirikshak_ai/       # Core Python package
 │   │   ├── engine.py       # IsolationForest, LOF, MiniBatchKMeans, Cost Cohort
-│   │   ├── online.py       # Incremental StandardScaler & MiniBatchKMeans
-│   │   ├── bandit.py       # LinUCB Contextual Bandit action ranker
+│   │   ├── online.py       # Incremental StandardScaler & MiniBatchKMeans (Verified Gated)
+│   │   ├── bandit.py       # LinUCB Contextual Bandit action ranker (Normalized Signal Weights)
 │   │   ├── openrouter/     # Async client, prompts, schemas, PII sanitizer
 │   │   ├── security.py     # X-Nirikshak-AI-Key verification
 │   │   ├── state_store.py  # SQLite thread-safe event persistence
@@ -85,7 +93,7 @@ Nirikshak_craaftverse/
 │   ├── run_api.py          # Microservice launcher
 │   └── Dockerfile          # Production container specification
 │
-├── docs/                   # Architecture, Data Flow, Model Card, Matrix
+├── docs/                   # Architecture, Data Flow, Model Card, Matrix, Production Certification
 └── tests/                  # Cross-cutting integration tests
 ```
 
@@ -170,17 +178,16 @@ VITE_DATA_MODE=LIVE
 ### 1. Python AI Unit & Pipeline Tests
 ```bash
 cd ai-services
-python -m pytest
+python -m pytest -v
 python scripts/model_smoke_test.py
 ```
 
-### 2. Backend Typecheck, Build & Integration Tests
+### 2. Backend Typecheck, Build, Security & AI Gateway Tests
 ```bash
 cd backend
 npm run typecheck
 npm run build
-npx tsx tests/ai-gateway.test.ts
-npx tsx tests/e2e-integration.test.ts
+npm test
 ```
 
 ### 3. Frontend Typecheck & Production Build
@@ -188,6 +195,13 @@ npx tsx tests/e2e-integration.test.ts
 cd frontend
 npm run typecheck
 npm run build
+npm test
+```
+
+### 4. Full Realistic Infrastructure Lifecycle Automation (3 Live Runs)
+```bash
+cd backend
+npx tsx scripts/run-full-lifecycle-e2e.ts
 ```
 
 ---

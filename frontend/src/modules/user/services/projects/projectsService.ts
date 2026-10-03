@@ -68,7 +68,7 @@ function mapDbRowToProject(row: any): Project {
     progress,
     physicalProgress: progress,
     financialProgress: Math.min(100, Math.round((spent / (cost || 1)) * 100)),
-    phase: progress >= 100 ? 'Commissioned & Maintenance' : progress >= 75 ? 'Final Electromechanical & Testing' : progress >= 40 ? 'Superstructure & Paving' : 'Substructure & Site Clearance',
+    phase: row.current_stage || row.stage || row.execution_phase || 'Not available',
     distanceKm: null,
     mapPoint: {
       x: Math.min(92, Math.max(8, Math.round(35 + ((lng - 73.7) * 200)))),
@@ -99,10 +99,10 @@ function mapDbRowToProject(row: any): Project {
       start: startDate,
       duration: '',
       performance: {
-        onTime: 'Verified on ledger',
-        quality: 'Standard',
-        safety: 'Compliant',
-        disputes: 'None reported'
+        onTime: row.schedule_performance || 'Not available',
+        quality: row.quality_rating ? `${row.quality_rating}/5` : 'Not available',
+        safety: row.safety_status || 'Not available',
+        disputes: row.disputes_status || 'Not available'
       },
       prevProjects: [],
       currentStatus: status === 'delayed' ? 'Behind schedule' : 'Under execution'

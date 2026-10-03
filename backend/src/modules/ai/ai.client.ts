@@ -186,7 +186,7 @@ export class AiServiceClient {
     action: string;
     government_feedback: 'accepted' | 'useful' | 'neutral' | 'rejected' | 'harmful';
     note?: string;
-  }): Promise<{ updated: boolean; analysis_id: string; action: string; reward: number }> {
+  }): Promise<{ stored: boolean; policy_updated: boolean; analysis_id: string; action: string; already_recorded?: boolean }> {
     const res = await this.fetchWithTimeout('/feedback', {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -204,9 +204,9 @@ export class AiServiceClient {
     analysis_id: string;
     action: string;
     current_snapshot: Record<string, any>;
-    government_feedback: string;
+    government_feedback?: string;
     current_snapshot_verified: boolean;
-  }): Promise<{ updated: boolean; action: string; reward: number }> {
+  }): Promise<{ updated: boolean; analysis_id?: string; action: string; reward?: number; reward_components?: Record<string, number>; already_recorded?: boolean; policy_updates?: number }> {
     const res = await this.fetchWithTimeout('/learn/outcome', {
       method: 'POST',
       body: JSON.stringify(payload),

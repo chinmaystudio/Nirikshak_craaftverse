@@ -12,6 +12,15 @@ import { procurementRouter } from './modules/procurement/procurement.routes.js';
 import { progressRouter } from './modules/progress/progress.routes.js';
 import { complaintsRouter } from './modules/complaints/complaints.routes.js';
 import { aiRouter } from './modules/ai/ai.routes.js';
+import { contractsRouter } from './modules/contracts/contracts.routes.js';
+import { milestonesRouter } from './modules/milestones/milestones.routes.js';
+import { resourcesRouter } from './modules/resources/resources.routes.js';
+import { financeRouter } from './modules/finance/finance.routes.js';
+import { inspectionsRouter } from './modules/inspections/inspections.routes.js';
+import { documentsRouter } from './modules/documents/documents.routes.js';
+import { environmentRouter } from './modules/environment/environment.routes.js';
+import { legalRouter } from './modules/legal/legal.routes.js';
+import { notificationsRouter } from './modules/notifications/notifications.routes.js';
 
 export const app = express();
 
@@ -59,6 +68,15 @@ app.use('/api/tenders', procurementRouter);
 app.use('/api/progress', progressRouter);
 app.use('/api/complaints', complaintsRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/contracts', contractsRouter);
+app.use('/api/milestones', milestonesRouter);
+app.use('/api/resources', resourcesRouter);
+app.use('/api/finance', financeRouter);
+app.use('/api/inspections', inspectionsRouter);
+app.use('/api/documents', documentsRouter);
+app.use('/api/environment', environmentRouter);
+app.use('/api/legal', legalRouter);
+app.use('/api/notifications', notificationsRouter);
 
 // 8. Safe 404 Handler (no internal routing leaks)
 app.use((_req, res) => {

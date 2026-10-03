@@ -8,7 +8,7 @@ from typing import Any
 
 from .engine import HistoricalUnsupervisedEngine
 from .online import OnlineDriftLearner
-from .bandit import LinUCBPolicy, outcome_reward
+from .bandit import LinUCBPolicy, outcome_reward, outcome_reward_components
 from .state_store import StateStore
 from .openrouter import OpenRouterClient, sanitize_context_data
 from .schemas import (
@@ -137,54 +137,48 @@ class NirikshakAI:
         government_feedback: str,
         note: str | None = None,
     ) -> dict[str, Any]:
-        """Feedback on specific recommended action. Updates LinUCB policy and logs to SQLite."""
+        """
+        Feedback on specific recommended action.
+        Government feedback (POST /feedback) MUST ONLY:
+        - validate analysis
+        - validate action belongs to analysis
+        - store feedback in state store
+        - return success with policy_updated=False
+        It must NOT update LinUCB or create final outcome records.
+        """
         prior = self.state_store.get_analysis(analysis_id)
         if not prior:
             return {
-                "updated": False,
+                "stored": False,
+                "policy_updated": False,
                 "reason": f"Analysis ID {analysis_id} not found in state store.",
             }
 
         valid_actions = [a["action"] for a in prior.get("actions", [])]
         if action not in valid_actions:
             return {
-                "updated": False,
+                "stored": False,
+                "policy_updated": False,
                 "reason": f"Action '{action}' was not among the recommendations for analysis {analysis_id}: {valid_actions}",
             }
 
         if self.state_store.has_feedback_for_action(analysis_id, action):
             return {
-                "updated": False,
-                "reason": f"Feedback already recorded for action '{action}' on analysis {analysis_id}.",
+                "stored": True,
+                "policy_updated": False,
+                "already_recorded": True,
+                "analysis_id": analysis_id,
+                "action": action,
             }
 
-        # Calculate reward directly from government feedback rating
-        feedback_val = str(government_feedback).lower()
-        reward_map = {
-            "useful": 1.0,
-            "accepted": 0.8,
-            "neutral": 0.0,
-            "rejected": -0.6,
-            "harmful": -1.0,
-        }
-        reward = reward_map.get(feedback_val, 0.0)
-
-        # Get context from the original analysis
-        flat_p, _ = extract_flat_features(prior["snapshot"])
-        unsup = prior["historical_result"]
-
         with self.lock:
-            ctx = self.policy.context(flat_p, unsup)
-            self.policy.update(action, ctx, reward)
             self.state_store.record_feedback(analysis_id, action, government_feedback, note)
-            self.state_store.record_outcome(analysis_id, action, reward, {"feedback": government_feedback, "immediate_feedback": True})
 
         return {
-            "updated": True,
+            "stored": True,
+            "policy_updated": False,
             "analysis_id": analysis_id,
             "action": action,
-            "reward": round(reward, 4),
-            "policy_updates": self.policy.updates,
         }
 
     def learn_action_outcome(
@@ -192,9 +186,21 @@ class NirikshakAI:
         analysis_id: str,
         action: str,
         current_snapshot_input: dict[str, Any] | ProjectSnapshot,
-        government_feedback: str,
-        current_snapshot_verified: bool,
+        government_feedback: str | None = None,
+        current_snapshot_verified: bool = False,
     ) -> dict[str, Any]:
+        """
+        Only POST /learn/outcome performs final RL policy update.
+        Flow:
+        - load baseline analysis
+        - load recommended action
+        - load stored Government feedback (or use provided feedback)
+        - receive later Government-verified snapshot
+        - compare verified before/after metrics
+        - calculate reward components
+        - update LinUCB ONCE
+        - record verified outcome (idempotent per analysis_id + action)
+        """
         if not current_snapshot_verified:
             return {
                 "updated": False,
@@ -215,12 +221,24 @@ class NirikshakAI:
                 "reason": f"Action '{action}' was not among the recommendations for analysis {analysis_id}.",
             }
 
+        # Idempotency check: unique final outcome per analysis_id + action
         if self.state_store.has_outcome_for_action(analysis_id, action):
-            # Check if non-immediate outcome already recorded
+            existing = self.state_store.get_outcome_for_action(analysis_id, action)
             return {
                 "updated": False,
+                "already_recorded": True,
+                "analysis_id": analysis_id,
+                "action": action,
+                "reward": existing["reward"] if existing else None,
                 "reason": f"Outcome already recorded for action '{action}' on analysis {analysis_id}.",
             }
+
+        # If government_feedback is not explicitly passed in this call, load prior stored feedback
+        effective_feedback = government_feedback
+        if not effective_feedback:
+            stored_fb = self.state_store.get_feedback_for_action(analysis_id, action)
+            if stored_fb:
+                effective_feedback = stored_fb.get("feedback")
 
         prev_flat, _ = extract_flat_features(prior["snapshot"])
         curr_flat, curr_prov = extract_flat_features(current_snapshot_input)
@@ -228,15 +246,21 @@ class NirikshakAI:
 
         with self.lock:
             ctx = self.policy.context(prev_flat, unsup)
-            reward = outcome_reward(prev_flat, curr_flat, government_feedback)
+            reward, components = outcome_reward_components(prev_flat, curr_flat, effective_feedback)
             self.policy.update(action, ctx, reward)
-            self.state_store.record_outcome(analysis_id, action, reward, curr_prov)
+            outcome_payload = {
+                "outcome_snapshot": curr_prov,
+                "reward_components": components,
+                "effective_feedback": effective_feedback,
+            }
+            self.state_store.record_outcome(analysis_id, action, reward, outcome_payload)
 
         return {
             "updated": True,
             "analysis_id": analysis_id,
             "action": action,
             "reward": round(reward, 4),
+            "reward_components": components,
             "policy_updates": self.policy.updates,
         }
 

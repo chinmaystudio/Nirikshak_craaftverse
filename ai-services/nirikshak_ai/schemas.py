@@ -218,7 +218,7 @@ class OutcomeRequest(BaseModel):
     analysis_id: str
     action: str
     current_snapshot: dict[str, Any] | ProjectSnapshot
-    government_feedback: Literal["accepted", "useful", "neutral", "rejected", "harmful"]
+    government_feedback: Literal["accepted", "useful", "neutral", "rejected", "harmful"] | None = None
     current_snapshot_verified: bool = False
 
 class HistoricalAnalysis(BaseModel):

@@ -21,6 +21,20 @@ LIVE_FEATURES = [
     "evidence_count",
 ]
 
+VERIFIED_TRAINING_FIELDS = [
+    "government_verified_progress_pct",
+    "planned_progress_pct",
+    "schedule_variance_days",
+    "cost_variance_pct",
+    "open_complaints",
+    "high_severity_complaints",
+    "inspection_defects",
+    "resource_shortage_ratio",
+    "pending_approval_days",
+    "payment_delay_days",
+    "evidence_count",
+]
+
 class OnlineDriftLearner:
     def __init__(self, state_path: str | Path, n_clusters: int = 6, bootstrap_samples: int = 30):
         self.state_path = Path(state_path)
@@ -36,6 +50,14 @@ class OnlineDriftLearner:
         self.distance_history = []
         if self.state_path.exists():
             self._load()
+
+    def calculate_verified_completeness(self, snapshot: dict) -> float:
+        available = 0
+        for k in VERIFIED_TRAINING_FIELDS:
+            v = snapshot.get(k)
+            if v is not None and v != "":
+                available += 1
+        return available / len(VERIFIED_TRAINING_FIELDS)
 
     def vectorize(self, s: dict) -> np.ndarray:
         def f(k, default_val=0.0):
@@ -74,10 +96,18 @@ class OnlineDriftLearner:
             return {"learned": False, "reason": "Snapshot is not Government-verified. Unverified contractor submissions cannot train the model."}
         
         gov_progress = snapshot.get("government_verified_progress_pct")
-        if gov_progress is None:
+        if gov_progress is None or gov_progress == "":
             return {
                 "learned": False,
                 "reason": "Missing required government_verified_progress_pct. Verified progress is mandatory for learning.",
+            }
+
+        completeness = self.calculate_verified_completeness(snapshot)
+        if completeness < 0.60:
+            return {
+                "learned": False,
+                "reason": "Insufficient verified operational data",
+                "completeness_score": round(completeness, 3),
             }
 
         x = self.vectorize(snapshot)

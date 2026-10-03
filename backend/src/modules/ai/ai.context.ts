@@ -99,14 +99,18 @@ export async function buildProjectSnapshot(
     { data: delayEvents },
     { data: financialUpdates },
     { data: inspections },
+    { count: unresolvedFindingsCount },
+    { data: latestVerifiedResource },
     { count: complaintsCount },
     { count: highComplaintsCount },
   ] = await Promise.all([
     supabaseAdmin.from('contracts').select('id, contract_value, scheduled_start_date, scheduled_end_date, status').eq('project_id', realProjectId),
     supabaseAdmin.from('progress_updates').select('reported_progress, verified_progress, verification_status, submitted_at, description').eq('project_id', realProjectId).order('submitted_at', { ascending: false }).limit(5),
     supabaseAdmin.from('delay_events').select('delay_days, reason, delay_type, created_at').eq('project_id', realProjectId),
-    supabaseAdmin.from('financial_updates').select('expenditure_inr_crore, observation_date').eq('project_id', realProjectId).order('observation_date', { ascending: false }).limit(1),
-    supabaseAdmin.from('inspections').select('inspection_type, status, summary, inspection_date').eq('project_id', realProjectId),
+    supabaseAdmin.from('financial_updates').select('planned_expenditure_inr_crore, actual_expenditure_inr_crore, cost_variance_percent, observation_date, verification_status').eq('project_id', realProjectId).order('observation_date', { ascending: false }).limit(1),
+    supabaseAdmin.from('inspections').select('id, inspection_type, status, summary, inspection_date').eq('project_id', realProjectId),
+    supabaseAdmin.from('inspection_findings').select('id', { count: 'exact', head: true }).eq('project_id', realProjectId).in('status', ['OPEN', 'ACTION_REQUIRED']),
+    supabaseAdmin.from('resource_usage_updates').select('shortage_ratio, verification_status, created_at').eq('project_id', realProjectId).eq('verification_status', 'VERIFIED').order('created_at', { ascending: false }).limit(1),
     supabaseAdmin.from('complaints').select('id', { count: 'exact', head: true }).eq('project_id', realProjectId).neq('status', 'RESOLVED'),
     supabaseAdmin.from('complaints').select('id', { count: 'exact', head: true }).eq('project_id', realProjectId).eq('severity', 'CRITICAL'),
   ]);
@@ -122,10 +126,33 @@ export async function buildProjectSnapshot(
     scheduleVarianceDays = delayEvents.reduce((acc, d) => acc + (Number(d.delay_days) || 0), 0);
   }
 
-  // Cost variance
-  const latestSpent = financialUpdates && financialUpdates.length > 0 ? Number(financialUpdates[0].expenditure_inr_crore) || 0 : 0;
+  // Cost variance: planned cumulative expenditure vs actual cumulative expenditure at equivalent observation date
+  let costVariancePct: number | null = null;
+  const latestFin = financialUpdates && financialUpdates.length > 0 ? financialUpdates[0] : null;
+  if (latestFin) {
+    if (latestFin.cost_variance_percent !== null && latestFin.cost_variance_percent !== undefined) {
+      costVariancePct = Number(latestFin.cost_variance_percent);
+    } else if (latestFin.planned_expenditure_inr_crore !== null && Number(latestFin.planned_expenditure_inr_crore) > 0 && latestFin.actual_expenditure_inr_crore !== null) {
+      const planned = Number(latestFin.planned_expenditure_inr_crore);
+      const actual = Number(latestFin.actual_expenditure_inr_crore);
+      costVariancePct = ((actual - planned) / planned) * 100;
+    }
+  }
+
   const totalCost = Number(project.total_cost_inr_crore) || 0;
-  const costVariancePct = totalCost > 0 && latestSpent > totalCost ? ((latestSpent - totalCost) / totalCost) * 100 : 0;
+  const latestSpent = latestFin?.actual_expenditure_inr_crore !== null && latestFin?.actual_expenditure_inr_crore !== undefined
+    ? Number(latestFin.actual_expenditure_inr_crore)
+    : 0;
+
+  // Verified resource shortage
+  const verifiedResourceShortage = latestVerifiedResource && latestVerifiedResource.length > 0 && latestVerifiedResource[0].shortage_ratio !== null
+    ? Number(latestVerifiedResource[0].shortage_ratio)
+    : null;
+
+  // Inspection defects: count of unresolved findings (OPEN, ACTION_REQUIRED), not inspection visits
+  const inspectionDefectsCount = unresolvedFindingsCount !== null && unresolvedFindingsCount !== undefined
+    ? unresolvedFindingsCount
+    : null;
 
   // Snapshot conforming to nirikshak_ai.schemas.ProjectSnapshot
   const snapshot: Record<string, any> = {
@@ -152,7 +179,7 @@ export async function buildProjectSnapshot(
       contractor_reported_progress_pct: latestUpdate && latestUpdate.reported_progress !== null ? Number(latestUpdate.reported_progress) : (project.physical_progress_percent !== null ? Number(project.physical_progress_percent) : null),
       reported_at: latestUpdate?.submitted_at || null,
       challenges: latestUpdate?.description || null,
-      resource_shortage_ratio: null,
+      resource_shortage_ratio: verifiedResourceShortage,
       manpower_count: null,
       evidence_count: 0,
     },
@@ -162,14 +189,14 @@ export async function buildProjectSnapshot(
       verified_at: verifiedUpdate?.submitted_at || null,
       planned_progress_pct: null,
       schedule_variance_days: delayEvents && delayEvents.length > 0 ? scheduleVarianceDays : null,
-      inspection_defects: inspections ? inspections.filter((i) => i.status !== 'COMPLETED').length : null,
+      inspection_defects: inspectionDefectsCount,
       approval_delay_days: null,
     },
     finance: {
       provenance: 'DATABASE_FACT',
       sanctioned_amount: totalCost > 0 ? totalCost : null,
       amount_spent: latestSpent > 0 ? latestSpent : null,
-      cost_variance_pct: latestSpent > 0 && totalCost > 0 ? (latestSpent > totalCost ? costVariancePct : 0.0) : null,
+      cost_variance_pct: costVariancePct,
       payment_delay_days: null,
     },
     complaints: {

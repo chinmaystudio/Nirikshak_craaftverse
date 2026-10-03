@@ -102,7 +102,7 @@ def learn_snapshot(req: SnapshotRequest):
 def submit_feedback(req: FeedbackRequest):
     """
     Receives Government official rating on recommendation usefulness.
-    Updates LinUCB policy matrices in the state store.
+    Stores feedback in state store. Does NOT update LinUCB policy directly.
     """
     try:
         res = ai.submit_recommendation_feedback(
@@ -111,7 +111,7 @@ def submit_feedback(req: FeedbackRequest):
             government_feedback=req.government_feedback,
             note=req.note,
         )
-        if not res.get("updated"):
+        if not res.get("stored"):
             reason = res.get("reason", "")
             code = status.HTTP_404_NOT_FOUND if "not found" in reason.lower() else status.HTTP_400_BAD_REQUEST
             raise HTTPException(status_code=code, detail=reason)
@@ -139,7 +139,7 @@ def learn_outcome(req: OutcomeRequest):
             government_feedback=req.government_feedback,
             current_snapshot_verified=req.current_snapshot_verified,
         )
-        if not res.get("updated"):
+        if not res.get("updated") and not res.get("already_recorded"):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=res.get("reason"))
         return res
     except HTTPException:

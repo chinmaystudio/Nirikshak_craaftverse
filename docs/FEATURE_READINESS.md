@@ -25,7 +25,7 @@ This document provides a realistic, honest assessment of the readiness level of 
 | **Tenders — Public View** | **LIVE** | Supabase `tenders` table | Real published tenders listed for bidding. |
 | **Bids — Submission** | **LIVE** | PostgreSQL RPC `save_tender_bid` | Validates contractor assignment and deadline. |
 | **Tender Award / Contracting** | **LIVE** | PostgreSQL RPC `award_contract` | Transactional contract creation from selected bid. |
-| **Milestones Management** | **PARTIAL** | Supabase `project_milestones` | Milestones table exists; CRUD UI partially wired. |
+| **Milestones Management** | **LIVE** | Supabase `project_milestones` + Express `/api/milestones` | Complete milestone lifecycle, unique sequence constraints, weight totals, and frontend CRUD. |
 | **Progress Submission** | **LIVE** | PostgreSQL RPC `submit_progress_update` | Contractor submits reported progress & evidence paths. |
 | **Progress Verification** | **LIVE** | PostgreSQL RPC `approve_progress_update` | Government official reviews, accepts, or rejects update. |
 | **Historical Unsupervised ML** | **LIVE** | Python FastAPI (`ai-services`) | IsolationForest, LOF, MiniBatchKMeans, Robust Cost Anomaly. |

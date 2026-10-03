@@ -4,6 +4,8 @@ import { Card, SectionTitle, StatusBadge, Spinner, AIRecommendation } from '../.
 import { Link } from '../../lib/router';
 import type { Project } from '../../lib/data';
 import { cr, fmtDate } from '../../lib/utils';
+import { isDemoMode } from '@/lib/config/dataMode';
+import { contractorAiService, type ContractorAiAnalysis } from '../../services/ai.service';
 
 interface Msg {
   role: 'user' | 'ai';
@@ -30,6 +32,7 @@ export default function AIGuide({ project }: { project: Project }) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
+  const [liveAnalysis, setLiveAnalysis] = useState<ContractorAiAnalysis | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
 
   const current = project.milestones.find((m) => m.state === 'current');
@@ -38,6 +41,45 @@ export default function AIGuide({ project }: { project: Project }) {
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: 'smooth' });
   }, [msgs, thinking]);
+
+  const fetchLiveAnswer = async (q: string): Promise<GuideAnswer> => {
+    try {
+      let analysis = liveAnalysis;
+      if (!analysis) {
+        analysis = await contractorAiService.analyzeAssignedProject(project.id);
+        setLiveAnalysis(analysis);
+      }
+
+      const reviewBand = analysis.historical_analysis?.review_band || 'TYPICAL';
+      const actions = (analysis.recommended_actions || []).map((ra) => ({
+        label: ra.action,
+        impact: `Bandit Policy Score: ${Math.round(ra.score * 100)}`,
+      }));
+
+      const l = q.toLowerCase();
+      if (l.includes('faster') || l.includes('milestone') || l.includes('prioritize')) {
+        return {
+          title: `Action Guidance (${reviewBand})`,
+          recommendation: {
+            intro: analysis.llm?.summary || `Operational assessment indicates a ${reviewBand} review priority. Verified LinUCB policy prioritizes the following corrective actions:`,
+            actions: actions.length > 0 ? actions : [{ label: 'Reconcile physical progress with department engineer', impact: 'high' }],
+            recovery: analysis.operational_drift?.available ? `Operational drift: ${Math.round(analysis.operational_drift.drift_percentile || 0)}th percentile` : undefined,
+          },
+        };
+      }
+
+      return {
+        title: `AI Intelligence Assessment (${reviewBand})`,
+        text: analysis.llm?.summary || `Assessed with NIRIKSHAK model v${analysis.model_version}. Review priority: ${reviewBand}. Structural anomaly: ${Math.round((analysis.historical_analysis?.structural_anomaly_score || 0) * 100)}%. Cost anomaly: ${Math.round((analysis.historical_analysis?.cost_anomaly_score || 0) * 100)}%.`,
+        list: (analysis.historical_analysis?.signals || []).map((sig) => ({ label: 'Operational Signal', value: sig })),
+      };
+    } catch (err: any) {
+      return {
+        title: 'Live AI Service Notice',
+        text: `Live AI evaluation could not be completed (${err?.message || 'Service unavailable'}). Ensure backend and AI microservice are running with assigned project access.`,
+      };
+    }
+  };
 
   const answerFor = (q: string): GuideAnswer => {
     const l = q.toLowerCase();
@@ -111,16 +153,23 @@ export default function AIGuide({ project }: { project: Project }) {
     };
   };
 
-  const ask = (q: string) => {
+  const ask = async (q: string) => {
     if (!q.trim() || thinking) return;
     setMsgs((m) => [...m, { role: 'user', text: q }]);
     setInput('');
     setThinking(true);
-    window.setTimeout(() => {
-      setMsgs((m) => [...m, { role: 'ai', answer: answerFor(q) }]);
+    if (!isDemoMode()) {
+      const answer = await fetchLiveAnswer(q);
+      setMsgs((m) => [...m, { role: 'ai', answer }]);
       setThinking(false);
-    }, 850);
+    } else {
+      window.setTimeout(() => {
+        setMsgs((m) => [...m, { role: 'ai', answer: answerFor(q) }]);
+        setThinking(false);
+      }, 850);
+    }
   };
+
 
   return (
     <div className="space-y-5">

@@ -56,7 +56,6 @@ export function WorkspaceAiInsightsPage() {
   const complianceRisk = Math.min(100, 10 + insights.length * 9)
   const health = Math.max(0, Math.round(100 - (scheduleRisk + financialRisk + qualityRisk + contractorRisk + complianceRisk) / 5))
 
-  const predictedCostCr = Math.round((project.sanctionedAmountCr * (1 + (project.delayDays > 0 ? 0.073 : 0.012))) * 100) / 100
   const flaggedBills = bills.filter((b) => b.flag)
 
   return (
@@ -112,40 +111,48 @@ export function WorkspaceAiInsightsPage() {
         </Panel>
       </div>
 
-      {/* Predictive warnings */}
+      {/* Operational Intelligence Signals (truthful AI metrics without synthetic forecasts) */}
       <KpiRow>
         <Card className="flex items-start gap-2.5 p-3">
-          <span className="material-symbols-outlined text-[20px] text-warning-strong" aria-hidden="true">trending_up</span>
+          <span className="material-symbols-outlined text-[20px] text-warning-strong" aria-hidden="true">priority_high</span>
           <div>
-            <p className="nk-label">Cost Overrun Risk</p>
-            <p className="tabular-nums text-body-small text-fg">Predicted final cost {formatCr(predictedCostCr)}</p>
-            <p className="text-caption text-fg-subtle">Sanctioned {formatCr(project.sanctionedAmountCr)}</p>
-          </div>
-        </Card>
-        <Card className="flex items-start gap-2.5 p-3">
-          <span className="material-symbols-outlined text-[20px] text-warning-strong" aria-hidden="true">schedule</span>
-          <div>
-            <p className="nk-label">Schedule Risk</p>
-            <p className="text-body-small text-fg">
-              Predicted completion {formatDate(project.expectedCompletion)}{project.delayDays > 0 ? ` (+${project.delayDays + 14}d)` : ''}
+            <p className="nk-label">Review Priority</p>
+            <p className="tabular-nums text-body-small text-fg">
+              {aiResult?.review_priority_band || (project.riskLevel === 'high' ? 'VERY_UNUSUAL' : project.delayDays > 30 ? 'UNUSUAL' : 'TYPICAL')}
             </p>
-            <p className="text-caption text-fg-subtle">Current target {formatDate(project.expectedCompletion)}</p>
+            <p className="text-caption text-fg-subtle">
+              {aiResult?.review_priority_score !== undefined ? `Score: ${Math.round(aiResult.review_priority_score * 100)}/100` : 'Calibrated ML classification'}
+            </p>
           </div>
         </Card>
         <Card className="flex items-start gap-2.5 p-3">
-          <span className="material-symbols-outlined text-[20px] text-success-strong" aria-hidden="true">engineering</span>
+          <span className="material-symbols-outlined text-[20px] text-warning-strong" aria-hidden="true">analytics</span>
           <div>
-            <p className="nk-label">Contractor Performance</p>
-            <p className="text-body-small text-fg">{project.contractor ?? 'Not appointed'}</p>
-            <p className="text-caption text-fg-subtle">{project.contractor ? 'Current score 78/100' : 'Evaluation after award'}</p>
+            <p className="nk-label">Structural Anomaly</p>
+            <p className="text-body-small text-fg">
+              {aiResult?.structural_anomaly_score !== undefined ? `${Math.round(aiResult.structural_anomaly_score * 100)}% anomaly load` : 'Operational pattern'}
+            </p>
+            <p className="text-caption text-fg-subtle">Isolation Forest pattern evaluation</p>
           </div>
         </Card>
         <Card className="flex items-start gap-2.5 p-3">
-          <span className="material-symbols-outlined text-[20px] text-danger-strong" aria-hidden="true">flag</span>
+          <span className="material-symbols-outlined text-[20px] text-warning-strong" aria-hidden="true">payments</span>
           <div>
-            <p className="nk-label">Flagged Bills</p>
-            <p className="text-body-small text-fg">{flaggedBills.length} on register</p>
-            <p className="text-caption text-fg-subtle">{flaggedBills.length ? 'Officer review required' : 'All clear'}</p>
+            <p className="nk-label">Cost Anomaly</p>
+            <p className="text-body-small text-fg">
+              {aiResult?.cost_anomaly_score !== undefined ? `${Math.round(aiResult.cost_anomaly_score * 100)}% variance signal` : 'Financial trajectory'}
+            </p>
+            <p className="text-caption text-fg-subtle">Expenditure vs verified progress</p>
+          </div>
+        </Card>
+        <Card className="flex items-start gap-2.5 p-3">
+          <span className="material-symbols-outlined text-[20px] text-primary-strong" aria-hidden="true">history</span>
+          <div>
+            <p className="nk-label">Operational Drift</p>
+            <p className="text-body-small text-fg">
+              {aiResult?.drift_percentile !== undefined ? `${Math.round(aiResult.drift_percentile)}th percentile` : 'Baseline cohort'}
+            </p>
+            <p className="text-caption text-fg-subtle">Streaming drift monitoring</p>
           </div>
         </Card>
       </KpiRow>
@@ -249,10 +256,13 @@ export function WorkspaceAiInsightsPage() {
             </ul>
           </div>
           <div>
-            <p className="nk-label">5. Predictions</p>
+            <p className="nk-label">5. Intelligence Model Signals</p>
             <p className="mt-1 text-fg">
-              Predicted completion {formatDate(project.expectedCompletion)}{project.delayDays > 0 ? ` (+${project.delayDays + 14} days)` : ''};
-              predicted final cost {formatCr(predictedCostCr)} vs sanctioned {formatCr(project.sanctionedAmountCr)}.
+              Review Priority Band: <strong>{aiResult?.review_priority_band || (project.riskLevel === 'high' ? 'VERY_UNUSUAL' : project.delayDays > 30 ? 'UNUSUAL' : 'TYPICAL')}</strong>
+              {aiResult?.input_quality ? ` • Input Completeness: ${Math.round(aiResult.input_quality.completeness_score * 100)}%` : ''}
+            </p>
+            <p className="mt-1 text-fg-muted">
+              {aiResult?.explanation || 'Deterministic ML models evaluate multi-dimensional anomalies and drift without synthetic date forecasts.'}
             </p>
           </div>
           <div>

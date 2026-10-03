@@ -104,13 +104,24 @@ def test_online_learner_rejects_unverified_snapshot(ai_service, sample_snapshot_
     assert rejected["learned"] is False
     assert "not Government-verified" in rejected["reason"]
 
-# 5. Online Learner: Accept Verified Snapshot
+# 5. Online Learner: Accept Verified Snapshot with Sufficient Completeness
 def test_online_learner_accepts_verified_snapshot(ai_service, sample_snapshot_dict):
     accepted = ai_service.learn_verified_snapshot(sample_snapshot_dict, verified=True)
     assert accepted["learned"] is True
     assert accepted["seen_verified_snapshots"] >= 1
 
-# 6. RL Recommendation Output and Feedback Test
+# 5b. Online Learner Guardrail: Reject Insufficient Verified Operational Data (< 60% completeness)
+def test_online_learner_rejects_insufficient_verified_data(ai_service):
+    sparse_verified = {
+        "government_verified_progress_pct": 45.0,
+        # All other 10 verified fields missing (completeness = 1/11 = 9% < 60%)
+    }
+    rejected = ai_service.learn_verified_snapshot(sparse_verified, verified=True)
+    assert rejected["learned"] is False
+    assert "Insufficient verified operational data" in rejected["reason"]
+    assert rejected["completeness_score"] < 0.60
+
+# 6. RL Recommendation Output and Feedback Test (Feedback stores only; outcome updates LinUCB)
 def test_rl_recommendation_and_feedback(ai_service, sample_snapshot_dict):
     result = asyncio.run(ai_service.analyze(sample_snapshot_dict, top_k_actions=3, include_explanation=False))
     actions = result["recommended_actions"]
@@ -120,25 +131,26 @@ def test_rl_recommendation_and_feedback(ai_service, sample_snapshot_dict):
     analysis_id = result["analysis_id"]
     target_action = actions[0]["action"]
 
-    # 1. Successful action-specific feedback
+    # 1. Successful action-specific feedback: stores feedback, policy_updated is FALSE
     fb_res = ai_service.submit_recommendation_feedback(
         analysis_id=analysis_id,
         action=target_action,
         government_feedback="useful",
         note="Field team deployed as recommended.",
     )
-    assert fb_res["updated"] is True
+    assert fb_res["stored"] is True
+    assert fb_res["policy_updated"] is False
     assert fb_res["action"] == target_action
-    assert fb_res["reward"] == 1.0
 
-    # 2. Reject duplicate feedback for the same action
+    # 2. Duplicate feedback returns already_recorded=True, policy_updated=False
     dup_res = ai_service.submit_recommendation_feedback(
         analysis_id=analysis_id,
         action=target_action,
         government_feedback="useful",
     )
-    assert dup_res["updated"] is False
-    assert "already recorded" in dup_res["reason"].lower()
+    assert dup_res["stored"] is True
+    assert dup_res["policy_updated"] is False
+    assert dup_res.get("already_recorded") is True
 
     # 3. Reject invalid action not in original recommendations
     invalid_res = ai_service.submit_recommendation_feedback(
@@ -146,8 +158,33 @@ def test_rl_recommendation_and_feedback(ai_service, sample_snapshot_dict):
         action="INVALID_UNRECOMMENDED_ACTION_XYZ",
         government_feedback="useful",
     )
-    assert invalid_res["updated"] is False
+    assert invalid_res["stored"] is False
+    assert invalid_res["policy_updated"] is False
     assert "was not among the recommendations" in invalid_res["reason"].lower()
+
+    # 4. Verified Outcome Learning updates LinUCB policy ONCE
+    initial_updates = ai_service.policy.updates
+    outcome_res = ai_service.learn_action_outcome(
+        analysis_id=analysis_id,
+        action=target_action,
+        current_snapshot_input=sample_snapshot_dict,
+        current_snapshot_verified=True,
+    )
+    assert outcome_res["updated"] is True
+    assert outcome_res["action"] == target_action
+    assert ai_service.policy.updates == initial_updates + 1
+    assert "reward_components" in outcome_res
+
+    # 5. Idempotent duplicate outcome does not update LinUCB again
+    dup_outcome = ai_service.learn_action_outcome(
+        analysis_id=analysis_id,
+        action=target_action,
+        current_snapshot_input=sample_snapshot_dict,
+        current_snapshot_verified=True,
+    )
+    assert dup_outcome["updated"] is False
+    assert dup_outcome.get("already_recorded") is True
+    assert ai_service.policy.updates == initial_updates + 1
 
 # 7. SQLite State Store Persistence Test
 def test_sqlite_state_persistence(ai_service, sample_snapshot_dict):

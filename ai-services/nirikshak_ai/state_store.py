@@ -134,6 +134,26 @@ class StateStore:
                     "llm": json.loads(row["llm_json"]),
                 }
 
+    def get_feedback_for_action(self, analysis_id: str, action: str) -> dict[str, Any] | None:
+        with self.lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT * FROM feedback WHERE analysis_id = ? AND action = ?",
+                    (analysis_id, action),
+                )
+                row = cursor.fetchone()
+                if not row:
+                    return None
+                return {
+                    "id": row["id"],
+                    "analysis_id": row["analysis_id"],
+                    "action": row["action"],
+                    "feedback": row["feedback"],
+                    "note": row["note"],
+                    "timestamp": row["timestamp"],
+                }
+
     def has_feedback_for_action(self, analysis_id: str, action: str) -> bool:
         with self.lock:
             with self._get_connection() as conn:
@@ -175,6 +195,26 @@ class StateStore:
                     (analysis_id, action),
                 )
                 return cursor.fetchone() is not None
+
+    def get_outcome_for_action(self, analysis_id: str, action: str) -> dict[str, Any] | None:
+        with self.lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT * FROM outcomes WHERE analysis_id = ? AND action = ?",
+                    (analysis_id, action),
+                )
+                row = cursor.fetchone()
+                if not row:
+                    return None
+                return {
+                    "id": row["id"],
+                    "analysis_id": row["analysis_id"],
+                    "action": row["action"],
+                    "reward": row["reward"],
+                    "timestamp": row["timestamp"],
+                    "outcome_snapshot": json.loads(row["outcome_snapshot_json"]),
+                }
 
     def record_outcome(
         self,
