@@ -8,6 +8,8 @@ export interface AiProjectAnalysisResponse {
   analysis_id: string;
   project_id: string;
   model_version: string;
+  versions?: AiClientAnalysisResult['versions'];
+  input_quality?: AiClientAnalysisResult['input_quality'];
   historical_analysis: AiClientAnalysisResult['historical_analysis'];
   operational_drift: AiClientAnalysisResult['operational_drift'];
   recommended_actions: AiClientAnalysisResult['recommended_actions'];
@@ -104,11 +106,11 @@ export class AiService {
         .from('ai_insights')
         .insert({
           project_id: project.id,
-          insight_type: 'schedule_risk',
+          insight_type: 'PROJECT_REVIEW_PRIORITY',
           title: `${result.historical_analysis.review_band} Review Priority: ${project.project_name}`,
           summary: result.llm?.summary || result.historical_analysis.signals.join('; '),
           severity: result.historical_analysis.review_band === 'VERY_UNUSUAL' ? 'CRITICAL' : result.historical_analysis.review_band === 'UNUSUAL' ? 'HIGH' : 'LOW',
-          confidence: 0.92,
+          confidence: null,
           evidence: result.historical_analysis.signals,
           recommended_actions: result.recommended_actions.map((a) => a.action),
           status: 'ACTIVE',
@@ -144,6 +146,8 @@ export class AiService {
       analysis_id: result.analysis_id,
       project_id: project.id,
       model_version: result.model_version,
+      versions: result.versions,
+      input_quality: result.input_quality,
       historical_analysis: result.historical_analysis,
       operational_drift: result.operational_drift,
       recommended_actions: result.recommended_actions,
@@ -156,6 +160,7 @@ export class AiService {
   async submitRecommendationFeedback(
     payload: {
       analysis_id: string;
+      action: string;
       government_feedback: 'accepted' | 'useful' | 'neutral' | 'rejected' | 'harmful';
       note?: string;
     },

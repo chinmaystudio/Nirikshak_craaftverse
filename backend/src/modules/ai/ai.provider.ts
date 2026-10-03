@@ -10,6 +10,13 @@ export interface LLMProvider {
   analyzeProject(prompt: string, context: Record<string, unknown>): Promise<ProjectRiskAnalysis>;
 }
 
+/**
+ * Compatibility wrapper for legacy LLMProvider callers.
+ * @deprecated Legacy-compatible adapter. The field `risk_score` is a legacy alias for `review_priority_score`
+ * and represents an unsupervised anomaly review priority relative to the historical baseline; it is NOT
+ * a probability of failure, delay, or fraud.
+ * Modern callers should consume the canonical Express AI endpoints directly.
+ */
 export class PythonServiceLLMAdapter implements LLMProvider {
   readonly name = 'NIRIKSHAK AI (ML + OpenRouter)';
 
@@ -26,6 +33,11 @@ export class PythonServiceLLMAdapter implements LLMProvider {
     return {
       risk_score: score,
       risk_level: riskLevel,
+      review_priority_score: score,
+      review_priority_band: band,
+      structural_anomaly_score: res.historical_analysis.structural_anomaly_score,
+      cost_anomaly_score: res.historical_analysis.cost_anomaly_score,
+      operational_drift: res.operational_drift,
       summary: res.llm?.summary || res.historical_analysis.signals.join('; '),
       schedule: {
         risk: res.operational_drift.available ? `Drift percentile ${res.operational_drift.drift_percentile}%` : 'Historical baseline review',

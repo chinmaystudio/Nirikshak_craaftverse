@@ -31,10 +31,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return {
       id: session.user.id,
-      name: session.profile?.full_name || session.user.email?.split('@')[0] || 'Government Officer',
-      designation: roleName,
-      department: session.organization?.name || 'Pune Infrastructure Monitoring Authority',
-      employeeNo: (session.user.user_metadata?.employee_id as string) || `GOV-${session.user.id.slice(0, 6).toUpperCase()}`,
+      name: session.profile?.full_name || session.user.email?.split('@')[0] || 'Officer',
+      designation: roleName || 'Not available',
+      department: session.organization?.name || 'Not available',
+      employeeNo: (session.user.user_metadata?.employee_id as string) || (session.profile as any)?.employee_id || 'Not available',
       roles: [session.role],
     };
   }, [session, isAuthenticated]);

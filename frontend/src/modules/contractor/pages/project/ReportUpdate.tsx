@@ -1,13 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FileUp, Info, Send, Save } from 'lucide-react';
 import { Card, SectionTitle, StatusBadge, Field, Select, DocumentUploader, ConfirmModal, Modal } from '../../components/ui';
 import type { UploadDoc } from '../../components/ui';
 import { useStore } from '../../lib/store';
 import type { Project } from '../../lib/data';
+import type { ProgressReport } from '../../types/contractor.types';
+import { ContractorProgressService } from '../../services/progress.service';
+import { isDemoMode } from '@/lib/config/dataMode';
 import { cls, fmtDate, timeAgo } from '../../lib/utils';
 
 export default function ReportUpdate({ project }: { project: Project }) {
   const { reports, addReport, toast } = useStore();
+  const demo = isDemoMode();
   const current = project.milestones.find((m) => m.state === 'current');
   const [milestone, setMilestone] = useState(current?.name ?? project.milestones[0]?.name ?? '');
   const [progress, setProgress] = useState(String(Math.max(project.progress, 1)));
@@ -19,7 +23,32 @@ export default function ReportUpdate({ project }: { project: Project }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
 
-  const mine = reports.filter((r) => r.projectId === project.id).sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+  // Server history for official submissions in LIVE mode
+  const [serverReports, setServerReports] = useState<ProgressReport[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const fetchServerHistory = useCallback(async () => {
+    if (demo) return;
+    try {
+      setLoadingHistory(true);
+      const list = await ContractorProgressService.listProgress(project.id);
+      setServerReports(list);
+    } catch (err) {
+      console.warn('Could not query authoritative progress history:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [demo, project.id]);
+
+  useEffect(() => {
+    void fetchServerHistory();
+  }, [fetchServerHistory]);
+
+  const localDrafts = reports.filter((r) => r.projectId === project.id && r.status === 'Draft');
+  const officialSubmissions = demo
+    ? reports.filter((r) => r.projectId === project.id && r.status !== 'Draft').sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
+    : serverReports;
+
   const sinceLast = Number(progress) - project.progress;
 
   const reset = () => {
@@ -52,7 +81,7 @@ export default function ReportUpdate({ project }: { project: Project }) {
       docs: docs.map((d) => d.name),
       status: 'Draft',
     });
-    toast('success', 'Draft saved', 'The progress update is saved as a draft. Submit when ready.');
+    toast('success', 'Draft saved', 'The progress update is saved locally as a draft. Submit when ready.');
     reset();
   };
 
@@ -60,54 +89,38 @@ export default function ReportUpdate({ project }: { project: Project }) {
     if (!validate()) return;
 
     try {
-      const { supabase } = await import('@/lib/supabase/client');
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(project.id);
-      let targetProjectId = isUuid ? project.id : null;
-      if (!targetProjectId) {
-        const { data: projData } = await supabase
-          .from('projects')
-          .select('id')
-          .eq('nirikshak_project_id', project.code || project.id)
-          .maybeSingle();
-        if (projData) targetProjectId = (projData as any).id;
-      }
-
-      if (!targetProjectId) {
-        toast('warn', 'Project record not found', 'Cannot submit progress for an unverified project identifier.');
-        return;
-      }
-
       const summary = [
         completed ? `Completed: ${completed}` : '',
         planned ? `Planned: ${planned}` : '',
         challenges ? `Challenges: ${challenges}` : '',
       ].filter(Boolean).join('\n');
 
-      const { error: rpcErr } = await supabase.rpc('submit_progress_update', {
-        p_project_id: targetProjectId,
-        p_reported_progress: Number(progress) || project.progress,
-        p_description: summary || 'Physical progress update submitted via Contractor Portal.',
-        p_milestone_id: null,
-      });
+      if (demo) {
+        addReport({
+          projectId: project.id,
+          milestone,
+          progress: Number(progress) || project.progress,
+          prevProgress: project.progress,
+          completed,
+          planned,
+          challenges,
+          photos: photos.map((p) => p.name),
+          docs: docs.map((d) => d.name),
+          status: 'Under Government Review',
+        });
+      } else {
+        await ContractorProgressService.submitProgress({
+          projectId: project.id,
+          reportedProgress: Number(progress) || project.progress,
+          description: summary || 'Physical progress update submitted via Contractor Portal.',
+          milestoneId: null,
+        });
 
-      if (rpcErr) {
-        toast('warn', 'Submission Rejected', rpcErr.message);
-        return;
+        // Refresh authoritative database history without creating local drafts
+        await fetchServerHistory();
       }
 
       toast('success', 'Submitted to Government', 'Update has been submitted for official verification.');
-      addReport({
-        projectId: project.id,
-        milestone,
-        progress: Number(progress) || project.progress,
-        prevProgress: project.progress,
-        completed,
-        planned,
-        challenges,
-        photos: photos.map((p) => p.name),
-        docs: docs.map((d) => d.name),
-        status: 'Under Government Review',
-      });
       setConfirmOpen(false);
       setSuccessOpen(true);
       reset();
@@ -199,14 +212,16 @@ export default function ReportUpdate({ project }: { project: Project }) {
       {/* History & guidance */}
       <div className="space-y-6">
         <Card className="p-5">
-          <SectionTitle icon={Info} title="Submission Status" />
-          {mine.length === 0 ? (
+          <SectionTitle icon={Info} title="Official Submissions" />
+          {loadingHistory ? (
+            <p className="text-sm text-slate-500 font-medium py-4 text-center dark:text-slate-400">Loading submission history…</p>
+          ) : officialSubmissions.length === 0 ? (
             <p className="text-sm text-slate-500 font-medium py-6 text-center dark:text-slate-400">
               No updates submitted for this project yet. Weekly submission is expected per contract clause 14.
             </p>
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {mine.map((r) => (
+              {officialSubmissions.map((r) => (
                 <div key={r.id} className="py-3.5 first:pt-0 last:pb-0">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -215,7 +230,7 @@ export default function ReportUpdate({ project }: { project: Project }) {
                     <StatusBadge status={statusTone(r.status)} />
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1 font-medium dark:text-slate-400">
-                    {timeAgo(r.submittedAt)} • {r.docs.length} docs, {r.photos.length} photos
+                    {timeAgo(r.submittedAt)} {r.completed ? `• ${r.completed.slice(0, 60)}…` : ''}
                   </p>
                   {r.reviewerNote && (
                     <p className="text-[11px] text-amber-700 bg-amber-50 rounded-md px-2.5 py-1.5 mt-2 font-semibold dark:bg-amber-950/40 dark:text-amber-300">
@@ -224,6 +239,20 @@ export default function ReportUpdate({ project }: { project: Project }) {
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {localDrafts.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2 dark:text-slate-400">Local Drafts</p>
+              <div className="space-y-2">
+                {localDrafts.map((d) => (
+                  <div key={d.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs dark:bg-slate-900/50 dark:border-slate-800">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{d.progress}% • {d.milestone}</span>
+                    <StatusBadge status="Draft" />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </Card>

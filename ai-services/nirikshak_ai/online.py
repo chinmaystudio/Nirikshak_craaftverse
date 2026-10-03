@@ -38,28 +38,48 @@ class OnlineDriftLearner:
             self._load()
 
     def vectorize(self, s: dict) -> np.ndarray:
-        def f(k):
-            try: return float(s.get(k, 0.0) or 0.0)
-            except Exception: return 0.0
+        def f(k, default_val=0.0):
+            val = s.get(k)
+            if val is None or val == "":
+                return default_val
+            try:
+                return float(val)
+            except Exception:
+                return default_val
+
+        contractor = f("contractor_reported_progress_pct", 0.0)
+        government = f("government_verified_progress_pct", contractor)
+        # If planned progress schedule is missing, align with government progress so missing schedule doesn't fake a massive delay
+        planned = f("planned_progress_pct", government)
+
         x = np.array([
-            f("contractor_reported_progress_pct")/100.0,
-            f("government_verified_progress_pct")/100.0,
-            f("planned_progress_pct")/100.0,
-            np.clip(f("schedule_variance_days")/90.0, -2, 2),
-            np.clip(f("cost_variance_pct")/50.0, -2, 2),
-            np.clip(f("open_complaints")/20.0, 0, 2),
-            np.clip(f("high_severity_complaints")/10.0, 0, 2),
-            np.clip(f("inspection_defects")/10.0, 0, 2),
-            np.clip(f("resource_shortage_ratio"), 0, 1),
-            np.clip(f("pending_approval_days")/60.0, 0, 2),
-            np.clip(f("payment_delay_days")/60.0, 0, 2),
-            np.clip(f("evidence_count")/20.0, 0, 2),
+            contractor / 100.0,
+            government / 100.0,
+            planned / 100.0,
+            np.clip(f("schedule_variance_days", 0.0) / 90.0, -2, 2),
+            np.clip(f("cost_variance_pct", 0.0) / 50.0, -2, 2),
+            np.clip(f("open_complaints", 0.0) / 20.0, 0, 2),
+            np.clip(f("high_severity_complaints", 0.0) / 10.0, 0, 2),
+            np.clip(f("inspection_defects", 0.0) / 10.0, 0, 2),
+            # Missing resource shortage is not zero shortage; treat as baseline neutral
+            np.clip(f("resource_shortage_ratio", 0.05), 0, 1),
+            np.clip(f("pending_approval_days", 0.0) / 60.0, 0, 2),
+            np.clip(f("payment_delay_days", 0.0) / 60.0, 0, 2),
+            np.clip(f("evidence_count", 0.0) / 20.0, 0, 2),
         ], dtype=float)
         return x
 
     def learn(self, snapshot: dict, verified: bool) -> dict:
         if not verified:
-            return {"learned": False, "reason": "Snapshot is not Government-verified."}
+            return {"learned": False, "reason": "Snapshot is not Government-verified. Unverified contractor submissions cannot train the model."}
+        
+        gov_progress = snapshot.get("government_verified_progress_pct")
+        if gov_progress is None:
+            return {
+                "learned": False,
+                "reason": "Missing required government_verified_progress_pct. Verified progress is mandatory for learning.",
+            }
+
         x = self.vectorize(snapshot)
         self.buffer.append(x)
         self.seen += 1

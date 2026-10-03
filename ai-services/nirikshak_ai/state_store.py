@@ -17,6 +17,11 @@ class StateStore:
     def _get_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self.db_path), timeout=30.0, check_same_thread=False)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        try:
+            conn.execute("PRAGMA journal_mode = WAL")
+        except Exception:
+            pass
         return conn
 
     def _init_db(self) -> None:
@@ -40,12 +45,19 @@ class StateStore:
                     CREATE TABLE IF NOT EXISTS feedback (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         analysis_id TEXT NOT NULL,
+                        action TEXT NOT NULL DEFAULT 'MONITOR_ONLY',
                         feedback TEXT NOT NULL,
                         note TEXT,
                         timestamp TEXT NOT NULL,
                         FOREIGN KEY (analysis_id) REFERENCES analyses(analysis_id)
                     )
                 """)
+                # Handle schema migration if action was missing
+                try:
+                    cursor.execute("ALTER TABLE feedback ADD COLUMN action TEXT NOT NULL DEFAULT 'MONITOR_ONLY'")
+                except sqlite3.OperationalError:
+                    pass
+
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS outcomes (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,8 +70,8 @@ class StateStore:
                     )
                 """)
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_analyses_project ON analyses(project_id)")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_analysis ON feedback(analysis_id)")
-                cursor.execute("CREATE INDEX IF NOT EXISTS idx_outcomes_analysis ON outcomes(analysis_id)")
+                cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_feedback_analysis_action ON feedback(analysis_id, action)")
+                cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_outcomes_analysis_action ON outcomes(analysis_id, action)")
                 conn.commit()
 
     def save_analysis(
@@ -79,7 +91,7 @@ class StateStore:
                 now = datetime.now(timezone.utc).isoformat()
                 cursor.execute(
                     """
-                    INSERT INTO analyses (
+                    INSERT OR REPLACE INTO analyses (
                         analysis_id, project_id, timestamp, model_version,
                         snapshot_json, historical_result_json, drift_result_json,
                         actions_json, llm_json
@@ -103,7 +115,10 @@ class StateStore:
         with self.lock:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM analyses WHERE analysis_id = ?", (analysis_id,))
+                cursor.execute(
+                    "SELECT * FROM analyses WHERE analysis_id = ?",
+                    (analysis_id,),
+                )
                 row = cursor.fetchone()
                 if not row:
                     return None
@@ -119,16 +134,47 @@ class StateStore:
                     "llm": json.loads(row["llm_json"]),
                 }
 
-    def record_feedback(self, analysis_id: str, feedback: str, note: str | None = None) -> None:
+    def has_feedback_for_action(self, analysis_id: str, action: str) -> bool:
+        with self.lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT id FROM feedback WHERE analysis_id = ? AND action = ?",
+                    (analysis_id, action),
+                )
+                return cursor.fetchone() is not None
+
+    def record_feedback(
+        self,
+        analysis_id: str,
+        action: str,
+        feedback: str,
+        note: str | None = None,
+    ) -> bool:
+        """Records feedback; returns True if newly recorded, False if duplicate."""
         with self.lock:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 now = datetime.now(timezone.utc).isoformat()
+                try:
+                    cursor.execute(
+                        "INSERT INTO feedback (analysis_id, action, feedback, note, timestamp) VALUES (?, ?, ?, ?, ?)",
+                        (analysis_id, action, feedback, note, now),
+                    )
+                    conn.commit()
+                    return True
+                except sqlite3.IntegrityError:
+                    return False
+
+    def has_outcome_for_action(self, analysis_id: str, action: str) -> bool:
+        with self.lock:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
                 cursor.execute(
-                    "INSERT INTO feedback (analysis_id, feedback, note, timestamp) VALUES (?, ?, ?, ?)",
-                    (analysis_id, feedback, note, now),
+                    "SELECT id FROM outcomes WHERE analysis_id = ? AND action = ?",
+                    (analysis_id, action),
                 )
-                conn.commit()
+                return cursor.fetchone() is not None
 
     def record_outcome(
         self,
@@ -136,19 +182,24 @@ class StateStore:
         action: str,
         reward: float,
         outcome_snapshot: dict[str, Any],
-    ) -> None:
+    ) -> bool:
+        """Records outcome; returns True if newly recorded, False if duplicate."""
         with self.lock:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
                 now = datetime.now(timezone.utc).isoformat()
-                cursor.execute(
-                    """
-                    INSERT INTO outcomes (analysis_id, action, reward, timestamp, outcome_snapshot_json)
-                    VALUES (?, ?, ?, ?, ?)
-                    """,
-                    (analysis_id, action, reward, now, json.dumps(outcome_snapshot, default=str)),
-                )
-                conn.commit()
+                try:
+                    cursor.execute(
+                        """
+                        INSERT INTO outcomes (analysis_id, action, reward, timestamp, outcome_snapshot_json)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (analysis_id, action, reward, now, json.dumps(outcome_snapshot, default=str)),
+                    )
+                    conn.commit()
+                    return True
+                except sqlite3.IntegrityError:
+                    return False
 
     def get_project_history(self, project_id: str, limit: int = 10) -> list[dict[str, Any]]:
         with self.lock:

@@ -8,6 +8,19 @@ import { ServiceUnavailableError, BadRequestError } from '../../core/http/errors
 export interface AiClientAnalysisResult {
   analysis_id: string;
   model_version: string;
+  versions?: {
+    service: string;
+    historical_model: string;
+    online_model: string;
+    rl_policy: string;
+    llm_model: string;
+  };
+  input_quality?: {
+    available_fields: number;
+    missing_fields: string[];
+    imputed_historical_fields: string[];
+    completeness_score: number;
+  };
   project_id: string | null;
   historical_analysis: {
     archetype_cluster: number;
@@ -170,6 +183,7 @@ export class AiServiceClient {
 
   async submitFeedback(payload: {
     analysis_id: string;
+    action: string;
     government_feedback: 'accepted' | 'useful' | 'neutral' | 'rejected' | 'harmful';
     note?: string;
   }): Promise<{ updated: boolean; analysis_id: string; action: string; reward: number }> {

@@ -62,11 +62,11 @@ export const authApi = {
       (o) =>
         o || {
           id: data.user.id,
-          name: data.user.user_metadata?.full_name || 'Government Officer',
-          designation: 'Officer',
-          department: 'Government Department',
-          employeeNo: data.user.id.slice(0, 8),
-          roles: ['EXECUTIVE_ENGINEER'],
+          name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Officer',
+          designation: (data.user.user_metadata?.designation as string) || 'Not available',
+          department: 'Not available',
+          employeeNo: (data.user.user_metadata?.employee_id as string) || 'Not available',
+          roles: ['government_engineer'],
         }
     );
   },
@@ -90,10 +90,10 @@ export const authApi = {
 
     return {
       id: data.user.id,
-      name: profile?.full_name || data.user.user_metadata?.full_name || 'Government Officer',
-      designation: (data.user.user_metadata?.designation as string) || 'Authorized Officer',
-      department: org?.department || org?.name || 'Department of Public Works',
-      employeeNo: (data.user.user_metadata?.employee_id as string) || data.user.id.slice(0, 8),
+      name: profile?.full_name || data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Officer',
+      designation: (data.user.user_metadata?.designation as string) || (profile as any)?.designation || 'Not available',
+      department: org?.department || org?.name || 'Not available',
+      employeeNo: (data.user.user_metadata?.employee_id as string) || (profile as any)?.employee_id || 'Not available',
       roles: [activeMember?.role || 'government_engineer'],
     };
   },

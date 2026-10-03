@@ -80,42 +80,107 @@ class ProjectSnapshot(BaseModel):
         p = self.project
         flat["project_id"] = p.project_id or p.nirikshak_project_id
         flat["nirikshak_project_id"] = p.nirikshak_project_id
-        flat["project_name"] = p.project_name or ""
-        flat["project_authority"] = p.authority or ""
-        flat["sector"] = p.sector or "UNKNOWN"
-        flat["subsector"] = p.subsector or "UNKNOWN"
-        flat["normalized_status"] = p.normalized_status or "UNKNOWN"
-        flat["reported_status"] = p.reported_status or ""
+        flat["project_name"] = p.project_name
+        flat["project_authority"] = p.authority
+        flat["sector"] = p.sector
+        flat["subsector"] = p.subsector
+        flat["normalized_status"] = p.normalized_status
+        flat["reported_status"] = p.reported_status
         flat["record_scope"] = p.record_scope or "Project"
-        flat["total_cost_inr_crore"] = p.total_cost_inr_crore or 0.0
-        flat["award_date"] = p.award_date or ""
-        flat["quality_score"] = p.quality_score if p.quality_score is not None else 0.85
+        flat["total_cost_inr_crore"] = p.total_cost_inr_crore
+        flat["award_date"] = p.award_date
+        flat["quality_score"] = p.quality_score
 
         # Contractor fields
         c = self.contractor_reported
-        flat["contractor_reported_progress_pct"] = c.contractor_reported_progress_pct or 0.0
-        flat["resource_shortage_ratio"] = c.resource_shortage_ratio or 0.0
-        flat["evidence_count"] = c.evidence_count or 0
+        flat["contractor_reported_progress_pct"] = c.contractor_reported_progress_pct
+        flat["resource_shortage_ratio"] = c.resource_shortage_ratio
+        flat["evidence_count"] = c.evidence_count
 
         # Government verified fields
         g = self.government_verified
-        flat["government_verified_progress_pct"] = g.government_verified_progress_pct or 0.0
-        flat["planned_progress_pct"] = g.planned_progress_pct or 0.0
-        flat["schedule_variance_days"] = g.schedule_variance_days or 0.0
-        flat["inspection_defects"] = g.inspection_defects or 0
-        flat["pending_approval_days"] = g.approval_delay_days or 0.0
+        flat["government_verified_progress_pct"] = g.government_verified_progress_pct
+        flat["planned_progress_pct"] = g.planned_progress_pct
+        flat["schedule_variance_days"] = g.schedule_variance_days
+        flat["inspection_defects"] = g.inspection_defects
+        flat["pending_approval_days"] = g.approval_delay_days
 
         # Finance
         f = self.finance
-        flat["cost_variance_pct"] = f.cost_variance_pct or 0.0
-        flat["payment_delay_days"] = f.payment_delay_days or 0.0
+        flat["cost_variance_pct"] = f.cost_variance_pct
+        flat["payment_delay_days"] = f.payment_delay_days
 
         # Complaints
         comp = self.complaints
-        flat["open_complaints"] = comp.open_complaints or 0
-        flat["high_severity_complaints"] = comp.high_severity_complaints or 0
+        flat["open_complaints"] = comp.open_complaints
+        flat["high_severity_complaints"] = comp.high_severity_complaints
 
         return flat
+
+TRACKED_INPUT_FIELDS = [
+    "project_name",
+    "sector",
+    "subsector",
+    "authority",
+    "total_cost_inr_crore",
+    "award_date",
+    "quality_score",
+    "normalized_status",
+    "contractor_reported_progress_pct",
+    "government_verified_progress_pct",
+    "planned_progress_pct",
+    "schedule_variance_days",
+    "cost_variance_pct",
+    "resource_shortage_ratio",
+    "inspection_defects",
+    "approval_delay_days",
+    "payment_delay_days",
+    "evidence_count",
+]
+
+class InputQuality(BaseModel):
+    available_fields: int
+    missing_fields: list[str] = Field(default_factory=list)
+    imputed_historical_fields: list[str] = Field(default_factory=list)
+    completeness_score: float
+
+class VersionMetadata(BaseModel):
+    service: str = "1.0.0"
+    historical_model: str = "nirikshak-historical-v1.0.0"
+    online_model: str = "nirikshak-online-v1.0.0"
+    rl_policy: str = "linucb-v1.0.0"
+    llm_model: str = "nvidia/nemotron-4-340b-instruct"
+
+def calculate_input_quality(
+    flat_data: dict[str, Any],
+    imputed_historical_fields: list[str] | None = None,
+) -> InputQuality:
+    """Evaluates input completeness against tracked project and operational fields."""
+    missing = []
+    available_count = 0
+    for key in TRACKED_INPUT_FIELDS:
+        val = flat_data.get(key)
+        if key == "authority" and val is None:
+            val = flat_data.get("project_authority")
+        if key == "approval_delay_days" and val is None:
+            val = flat_data.get("pending_approval_days")
+
+        if val is None:
+            missing.append(key)
+        elif isinstance(val, str) and (val.strip() == "" or val.strip().upper() in ("UNKNOWN", "NULL", "NONE")):
+            missing.append(key)
+        else:
+            available_count += 1
+
+    total = len(TRACKED_INPUT_FIELDS)
+    completeness = round(available_count / total, 2) if total > 0 else 0.0
+
+    return InputQuality(
+        available_fields=available_count,
+        missing_fields=missing,
+        imputed_historical_fields=imputed_historical_fields or [],
+        completeness_score=completeness,
+    )
 
 def extract_flat_features(data: dict[str, Any] | ProjectSnapshot) -> tuple[dict[str, Any], dict[str, Any]]:
     """Returns (flat_feature_dict, provenance_dict)."""
@@ -145,6 +210,7 @@ class SnapshotRequest(BaseModel):
 
 class FeedbackRequest(BaseModel):
     analysis_id: str
+    action: str
     government_feedback: Literal["accepted", "useful", "neutral", "rejected", "harmful"]
     note: str | None = None
 
@@ -184,11 +250,13 @@ class RecommendedAction(BaseModel):
 
 class AnalyzeResponse(BaseModel):
     analysis_id: str
-    model_version: str
+    model_version: str = "nirikshak-ai-v1.0.0"
+    versions: VersionMetadata = Field(default_factory=VersionMetadata)
     project_id: str | None = None
     historical_analysis: HistoricalAnalysis
     operational_drift: OperationalDrift
     recommended_actions: list[RecommendedAction]
+    input_quality: InputQuality
     llm: dict[str, Any] = Field(default_factory=dict)
     provenance: dict[str, Any] = Field(default_factory=dict)
     decision_guardrail: str = (
@@ -203,3 +271,4 @@ class HealthResponse(BaseModel):
     rl_policy: str
     openrouter: str
     model_version: str
+

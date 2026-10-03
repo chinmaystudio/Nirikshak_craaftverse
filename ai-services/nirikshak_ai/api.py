@@ -9,8 +9,9 @@ from dotenv import load_dotenv
 # Load environment variables if .env exists
 load_dotenv()
 
+from contextlib import asynccontextmanager
 from .service import NirikshakAI
-from .security import verify_ai_service_key
+from .security import verify_ai_service_key, validate_security_configuration
 from .schemas import (
     AnalyzeRequest,
     AnalyzeResponse,
@@ -27,12 +28,18 @@ ROOT = Path(os.getenv("NIRIKSHAK_MODEL_ROOT", Path(__file__).resolve().parents[1
 # Singleton AI Coordinator loaded once at startup
 ai = NirikshakAI(ROOT)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    validate_security_configuration()
+    yield
+
 app = FastAPI(
     title="NIRIKSHAK AI Service",
     version="1.0.0",
     description="Deterministic ML anomaly scoring + verified online drift learning + LinUCB recommendation policy + OpenRouter explanation layer.",
     docs_url="/docs" if os.getenv("ENABLE_SWAGGER", "true").lower() in ("1", "true") else None,
     redoc_url=None,
+    lifespan=lifespan,
 )
 
 @app.get("/health", response_model=HealthResponse)
@@ -100,11 +107,14 @@ def submit_feedback(req: FeedbackRequest):
     try:
         res = ai.submit_recommendation_feedback(
             analysis_id=req.analysis_id,
+            action=req.action,
             government_feedback=req.government_feedback,
             note=req.note,
         )
         if not res.get("updated"):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=res.get("reason"))
+            reason = res.get("reason", "")
+            code = status.HTTP_404_NOT_FOUND if "not found" in reason.lower() else status.HTTP_400_BAD_REQUEST
+            raise HTTPException(status_code=code, detail=reason)
         return res
     except HTTPException:
         raise

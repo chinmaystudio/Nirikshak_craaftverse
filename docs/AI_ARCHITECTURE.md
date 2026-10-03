@@ -113,9 +113,21 @@ Recommends targeted administrative interventions:
 - Python FastAPI validates this header via constant-time comparison (`secrets.compare_digest`).
 
 ### SQLite Local State Store
-- Located at `ai-services/state/nirikshak_ai_state.sqlite3`.
+- Located at `ai-services/state/nirikshak_state.sqlite3`.
+- Enforces relational referential integrity via `PRAGMA foreign_keys = ON` and concurrency resilience via `PRAGMA journal_mode = WAL`.
 - Safely manages thread-safe analysis events, Government feedback, and outcome updates via `threading.RLock()`.
+- Single worker concurrency (`workers=1`) is maintained in deployment to preserve SQLite atomicity.
 - Gitignored to prevent accidental exposure of operational state.
 
+### Action-Specific Feedback & Duplicate Prevention
+- LinUCB updates occur for the exact `action` reviewed by the Government official, not automatically for the top recommendation.
+- Feedback stores are indexed by `(analysis_id, action)` to prevent duplicate reward application.
+- Initial policy baseline is loaded from immutable seed `models/rl_policy_seed.json`, keeping runtime policy `state/rl_policy.json` strictly untracked.
+
+### Input Quality & Missing Data Transparency
+- Missing operational metrics are never converted to zero; they retain `null` value provenance.
+- Model features internally imputed using training medians are explicitly reported via `input_quality` (completeness score, missing fields list, imputed fields list).
+- Anomaly scores (`review_priority_score`) represent statistical deviation from historical baseline, **not** delay probability or failure risk.
+
 ### Privacy & Sanitization
-- The `sanitizer.py` utility scrubs Aadhaar numbers, PAN, email addresses, phone numbers, JWT tokens, and internal keys before generating prompts for external LLMs.
+- The `sanitizer.py` utility scrubs Aadhaar numbers, Indian mobile numbers, PAN, email addresses, phone numbers, JWT tokens, Supabase keys, OpenRouter keys, competitor bid figures, and internal keys before generating prompts for external LLMs.

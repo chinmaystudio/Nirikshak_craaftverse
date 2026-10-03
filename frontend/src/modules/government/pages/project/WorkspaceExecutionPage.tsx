@@ -13,7 +13,7 @@ import { PageHeader, KpiRow, FilterBar, ConfirmDialog, DetailField, KpiCard } fr
 import { DualProgress } from '@/components/ui/Progress'
 import { formatCr, formatDate } from '@/utils/format'
 import { AI_CLASSIFICATION, AI_CONFIDENCE, INSPECTION_OUTCOME, LITIGATION_STATUS, WORK_ORDER_STATUS } from '@/utils/status'
-import type { ProgressUpdate } from '@/data/workspace'
+import { HEARINGS, type ProgressUpdate } from '@/data/workspace'
 import type { LitigationCase } from '@/types'
 
 

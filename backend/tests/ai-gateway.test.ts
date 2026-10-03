@@ -70,6 +70,7 @@ async function runAiTests() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           analysis_id: 'test-123',
+          action: 'REVIEW_RESOURCE_PLAN',
           government_feedback: 'useful',
         }),
       });
@@ -88,6 +89,7 @@ async function runAiTests() {
     await test('Validation: AiFeedbackSchema accepts valid feedback enums', async () => {
       const valid = AiFeedbackSchema.safeParse({
         analysis_id: '123e4567-e89b-12d3-a456-426614174000',
+        action: 'REVIEW_RESOURCE_PLAN',
         government_feedback: 'accepted',
         note: 'Sound recommendation',
       });
@@ -97,6 +99,7 @@ async function runAiTests() {
     await test('Validation: AiFeedbackSchema rejects invalid feedback strings', async () => {
       const invalid = AiFeedbackSchema.safeParse({
         analysis_id: '123e4567-e89b-12d3-a456-426614174000',
+        action: 'REVIEW_RESOURCE_PLAN',
         government_feedback: 'bogus_value',
       });
       assert.strictEqual(invalid.success, false);
@@ -104,6 +107,15 @@ async function runAiTests() {
 
     await test('Validation: AiFeedbackSchema rejects missing analysis_id', async () => {
       const missing = AiFeedbackSchema.safeParse({
+        action: 'REVIEW_RESOURCE_PLAN',
+        government_feedback: 'useful',
+      });
+      assert.strictEqual(missing.success, false);
+    });
+
+    await test('Validation: AiFeedbackSchema rejects missing action', async () => {
+      const missing = AiFeedbackSchema.safeParse({
+        analysis_id: '123e4567-e89b-12d3-a456-426614174000',
         government_feedback: 'useful',
       });
       assert.strictEqual(missing.success, false);

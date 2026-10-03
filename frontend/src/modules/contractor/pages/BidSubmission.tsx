@@ -166,7 +166,7 @@ export default function BidSubmission({ tenderId }: { tenderId: string }) {
         bidAmount: amountNum,
         technicalProposal: data.methodology,
       });
-      submitBid(tender.id, amountNum);
+      submitBid(tender.id, amountNum, bid.bid_reference);
       setSubmittedRef(bid.bid_reference);
       setConfirmOpen(false);
       toast('success', 'Bid submitted successfully', `Reference: ${bid.bid_reference}`);
@@ -176,6 +176,7 @@ export default function BidSubmission({ tenderId }: { tenderId: string }) {
           const serverBids = await ContractorTenderService.getMyBids();
           const serverBid = serverBids.find((bid) => bid.tender_id === tender.id && bid.status === 'SUBMITTED');
           if (serverBid?.bid_reference) {
+            submitBid(tender.id, amountNum, serverBid.bid_reference);
             setSubmittedRef(serverBid.bid_reference);
             setServerSubmittedAt(serverBid.submitted_at || null);
             setConfirmOpen(false);

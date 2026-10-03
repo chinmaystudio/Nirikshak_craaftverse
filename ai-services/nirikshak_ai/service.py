@@ -11,7 +11,12 @@ from .online import OnlineDriftLearner
 from .bandit import LinUCBPolicy, outcome_reward
 from .state_store import StateStore
 from .openrouter import OpenRouterClient, sanitize_context_data
-from .schemas import extract_flat_features, ProjectSnapshot
+from .schemas import (
+    extract_flat_features,
+    calculate_input_quality,
+    VersionMetadata,
+    ProjectSnapshot,
+)
 
 class NirikshakAI:
     def __init__(self, root: str | Path):
@@ -46,6 +51,7 @@ class NirikshakAI:
         with self.lock:
             # Step 1: Historical unsupervised anomaly & archetype evaluation
             unsup = self.engine.assess(flat_p)
+            imputed_fields = unsup.get("imputed_fields", [])
             
             # Step 2: Online drift scoring
             drift = self.online.score(flat_p)
@@ -53,6 +59,16 @@ class NirikshakAI:
             # Step 3: LinUCB contextual bandit recommendation ranking
             ctx = self.policy.context(flat_p, unsup)
             actions = self.policy.rank(ctx, top_k=top_k_actions)
+
+            # Step 3b: Input quality & completeness tracking
+            input_quality = calculate_input_quality(flat_p, imputed_fields)
+            versions = VersionMetadata(
+                service="1.0.0",
+                historical_model="nirikshak-historical-v1.0.0",
+                online_model="nirikshak-online-v1.0.0",
+                rl_policy="linucb-v1.0.0",
+                llm_model=self.openrouter.model,
+            )
 
         # Step 4: OpenRouter explanation layer (async, non-blocking lock)
         llm_result: dict[str, Any]
@@ -87,11 +103,13 @@ class NirikshakAI:
         return {
             "analysis_id": analysis_id,
             "model_version": "nirikshak-ai-v1.0.0",
+            "versions": versions.model_dump(),
             "project_id": project_id,
             "historical_analysis": unsup,
             "unsupervised": unsup,
             "operational_drift": drift,
             "recommended_actions": actions,
+            "input_quality": input_quality.model_dump(),
             "llm": llm_result,
             "provenance": sanitized_provenance,
             "decision_guardrail": (
@@ -115,15 +133,29 @@ class NirikshakAI:
     def submit_recommendation_feedback(
         self,
         analysis_id: str,
+        action: str,
         government_feedback: str,
         note: str | None = None,
     ) -> dict[str, Any]:
-        """Feedback on recommended actions. Updates LinUCB policy and logs to SQLite."""
+        """Feedback on specific recommended action. Updates LinUCB policy and logs to SQLite."""
         prior = self.state_store.get_analysis(analysis_id)
         if not prior:
             return {
                 "updated": False,
                 "reason": f"Analysis ID {analysis_id} not found in state store.",
+            }
+
+        valid_actions = [a["action"] for a in prior.get("actions", [])]
+        if action not in valid_actions:
+            return {
+                "updated": False,
+                "reason": f"Action '{action}' was not among the recommendations for analysis {analysis_id}: {valid_actions}",
+            }
+
+        if self.state_store.has_feedback_for_action(analysis_id, action):
+            return {
+                "updated": False,
+                "reason": f"Feedback already recorded for action '{action}' on analysis {analysis_id}.",
             }
 
         # Calculate reward directly from government feedback rating
@@ -140,18 +172,17 @@ class NirikshakAI:
         # Get context from the original analysis
         flat_p, _ = extract_flat_features(prior["snapshot"])
         unsup = prior["historical_result"]
-        top_action = prior["actions"][0]["action"] if prior.get("actions") else "MONITOR_ONLY"
 
         with self.lock:
             ctx = self.policy.context(flat_p, unsup)
-            self.policy.update(top_action, ctx, reward)
-            self.state_store.record_feedback(analysis_id, government_feedback, note)
-            self.state_store.record_outcome(analysis_id, top_action, reward, {"feedback": government_feedback})
+            self.policy.update(action, ctx, reward)
+            self.state_store.record_feedback(analysis_id, action, government_feedback, note)
+            self.state_store.record_outcome(analysis_id, action, reward, {"feedback": government_feedback, "immediate_feedback": True})
 
         return {
             "updated": True,
             "analysis_id": analysis_id,
-            "action": top_action,
+            "action": action,
             "reward": round(reward, 4),
             "policy_updates": self.policy.updates,
         }
@@ -175,6 +206,20 @@ class NirikshakAI:
             return {
                 "updated": False,
                 "reason": f"Original analysis {analysis_id} not found in state store.",
+            }
+
+        valid_actions = [a["action"] for a in prior.get("actions", [])]
+        if action not in valid_actions:
+            return {
+                "updated": False,
+                "reason": f"Action '{action}' was not among the recommendations for analysis {analysis_id}.",
+            }
+
+        if self.state_store.has_outcome_for_action(analysis_id, action):
+            # Check if non-immediate outcome already recorded
+            return {
+                "updated": False,
+                "reason": f"Outcome already recorded for action '{action}' on analysis {analysis_id}.",
             }
 
         prev_flat, _ = extract_flat_features(prior["snapshot"])

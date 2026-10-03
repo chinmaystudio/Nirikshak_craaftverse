@@ -5,15 +5,16 @@ from typing import Any
 
 # Regex patterns for sensitive data
 EMAIL_REGEX = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")
-PHONE_REGEX = re.compile(r"(?:\+?91[\-\s]?)?[6-9]\d{9}\b")
-AADHAAR_REGEX = re.compile(r"\b\d{4}\s\d{4}\s\d{4}\b")
+PHONE_REGEX = re.compile(r"(?:\+?91[\-\s]?)?[6-9]\d{4}[\-\s]?\d{5}\b|(?:\+?91[\-\s]?)?[6-9]\d{9}\b")
+AADHAAR_REGEX = re.compile(r"\b\d{4}\s\d{4}\s\d{4}\b|\b\d{12}\b")
 PAN_REGEX = re.compile(r"\b[A-Z]{5}[0-9]{4}[A-Z]{1}\b")
 JWT_REGEX = re.compile(r"eyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+")
-KEY_REGEX = re.compile(r"(?:sbp_|sk-|eyJh)[a-zA-Z0-9_\-\.]{20,}")
+KEY_REGEX = re.compile(r"(?:sbp_|sk-|eyJh)[a-zA-Z0-9_\-\.]{15,}")
 
 SENSITIVE_KEY_PATTERNS = [
     "password", "secret", "token", "auth", "jwt", "key",
-    "aadhaar", "pan", "ssn", "competitor_bid", "confidential"
+    "aadhaar", "pan", "ssn", "competitor_bid", "confidential",
+    "phone", "mobile", "contact_no", "citizen_name", "technical_proposal", "commercial_bid"
 ]
 
 def sanitize_text(text: str) -> str:

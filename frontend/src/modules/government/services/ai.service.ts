@@ -70,10 +70,11 @@ export const aiService = {
   },
 
   /**
-   * Submit Government official feedback on recommendation efficacy.
+   * Submit Government official feedback on recommendation efficacy for a specific action.
    */
   async submitFeedback(payload: {
     analysis_id: string;
+    action: string;
     government_feedback: 'accepted' | 'useful' | 'neutral' | 'rejected' | 'harmful';
     note?: string;
   }): Promise<{ updated: boolean; action: string; reward: number }> {
@@ -84,39 +85,43 @@ export const aiService = {
    * List historical persisted AI insights from Supabase.
    */
   async all(): Promise<AiInsight[]> {
-    try {
-      const { data, error } = await supabase
-        .from('ai_insights')
-        .select('*')
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('ai_insights')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        return data.map((item: any) => ({
-          id: item.id,
-          area:
-            item.insight_type === 'schedule_risk'
-              ? 'Schedule & Delay Prediction'
-              : item.insight_type === 'complaint_cluster'
-              ? 'Public Grievance Correlation'
-              : 'Cost & Material Anomaly',
-          title: item.title,
-          insight: item.summary,
-          supportingData: Array.isArray(item.evidence) ? item.evidence.join('; ') : item.evidence || '',
-          confidencePct: Math.round((Number(item.confidence) || 0.85) * 100),
-          confidenceBand:
-            Number(item.confidence) >= 0.85 ? 'high' : Number(item.confidence) >= 0.65 ? 'medium' : ('low' as any),
-          recommendedAction: Array.isArray(item.recommended_actions)
-            ? item.recommended_actions.join('; ')
-            : item.recommended_actions || '',
-          relatedProjectIds: item.project_id ? [item.project_id] : [],
-          generatedOn: (item.created_at || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
-          classification: 'ai_insight' as const,
-        }));
-      }
-    } catch (err) {
-      console.warn('Error fetching AI insights from Supabase:', err);
+    if (error) {
+      console.error('Error fetching AI insights from Supabase:', error);
+      throw error;
     }
-    return [];
+
+    return (data || []).map((item: any) => ({
+      id: item.id,
+      area:
+        item.insight_type === 'PROJECT_REVIEW_PRIORITY'
+          ? 'Infrastructure Anomaly & Review Priority'
+          : item.insight_type === 'schedule_risk'
+          ? 'Schedule & Review Priority'
+          : item.insight_type === 'complaint_cluster'
+          ? 'Public Grievance Correlation'
+          : 'Cost & Anomaly Review',
+      title: item.title,
+      insight: item.summary,
+      supportingData: Array.isArray(item.evidence) ? item.evidence.join('; ') : item.evidence || '',
+      confidencePct: item.confidence != null ? Math.round(Number(item.confidence) * 100) : 0,
+      confidenceBand:
+        item.confidence != null && Number(item.confidence) >= 0.85
+          ? 'high'
+          : item.confidence != null && Number(item.confidence) >= 0.65
+          ? 'medium'
+          : ('low' as any),
+      recommendedAction: Array.isArray(item.recommended_actions)
+        ? item.recommended_actions.join('; ')
+        : item.recommended_actions || '',
+      relatedProjectIds: item.project_id ? [item.project_id] : [],
+      generatedOn: (item.created_at || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
+      classification: 'ai_insight' as const,
+    }));
   },
 
   async evaluateContractor(_id: string): Promise<undefined> {

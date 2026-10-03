@@ -1,7 +1,11 @@
+// Set mock environment variables for test execution if not provided
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
+process.env.SUPABASE_URL = process.env.SUPABASE_URL || 'https://mock-test.supabase.co';
+process.env.SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'mock-anon-key-for-test-suite';
+process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'mock-service-role-key-for-test-suite';
+process.env.AI_SERVICE_SHARED_SECRET = process.env.AI_SERVICE_SHARED_SECRET || 'test-ai-shared-secret';
+
 import assert from 'assert';
-import { supabaseAdmin, createAuthenticatedClient } from '../src/services/supabase.js';
-import { sanitizeContext } from '../src/ai/provider.js';
-import { app } from '../src/index.js';
 
 // Colorful test reporter
 function reportPass(name: string) {
@@ -17,6 +21,10 @@ async function runTestSuite() {
   console.log('\n============================================================');
   console.log('NIRIKSHAK AUTOMATED SECURITY & ATTACK REGRESSION SUITE');
   console.log('============================================================\n');
+
+  const { supabaseAdmin } = await import('../src/services/supabase.js');
+  const { sanitizeContext } = await import('../src/ai/provider.js');
+  const { app } = await import('../src/index.js');
 
   let passed = 0;
   let failed = 0;

@@ -49,17 +49,36 @@ class HistoricalUnsupervisedEngine:
         self.refs = np.load(model_dir / "score_reference.npz")
         self.cost_stats = json.loads((model_dir / "cost_cohort_stats.json").read_text(encoding="utf-8"))
 
-    def _transform(self, p: dict) -> np.ndarray:
+    def _transform(self, p: dict) -> tuple[np.ndarray, list[str]]:
         med = self.pre["medians"]
-        try:
-            cost = float(p.get("total_cost_inr_crore"))
-        except Exception:
+        imputed = []
+        cost_val = p.get("total_cost_inr_crore")
+        if cost_val is None or cost_val == "":
             cost = float(med["cost"])
-        try:
-            quality = float(p.get("quality_score"))
-        except Exception:
+            imputed.append("total_cost_inr_crore")
+        else:
+            try:
+                cost = float(cost_val)
+            except Exception:
+                cost = float(med["cost"])
+                imputed.append("total_cost_inr_crore")
+
+        q_val = p.get("quality_score")
+        if q_val is None or q_val == "":
             quality = float(med["quality"])
-        year = _year(p.get("award_date")) or float(med["year"])
+            imputed.append("quality_score")
+        else:
+            try:
+                quality = float(q_val)
+            except Exception:
+                quality = float(med["quality"])
+                imputed.append("quality_score")
+
+        award_val = p.get("award_date")
+        year = _year(award_val)
+        if year is None:
+            year = float(med["year"])
+            imputed.append("award_date")
 
         num = np.array([[math.log1p(max(cost, 0.0)), float(year), quality]], dtype=float)
         X_num = self.pre["numeric_scaler"].transform(num)
@@ -71,14 +90,15 @@ class HistoricalUnsupervisedEngine:
         ]], dtype=object)
         X_cat = self.pre["categorical_encoder"].transform(cat)
         X_name = self.pre["name_vectorizer"].transform([str(p.get("project_name") or "")])
-        X_auth = self.pre["authority_vectorizer"].transform([str(p.get("project_authority") or "")])
+        auth_val = str(p.get("project_authority") or p.get("authority") or "")
+        X_auth = self.pre["authority_vectorizer"].transform([auth_val])
         X_status = self.pre["status_vectorizer"].transform([str(p.get("reported_status") or "")])
 
         X = sparse.hstack(
             [sparse.csr_matrix(X_num), X_cat, X_name, X_auth, X_status],
             format="csr"
         )
-        return self.pre["svd"].transform(X)
+        return self.pre["svd"].transform(X), imputed
 
     def _cost_z(self, p: dict) -> float:
         try:
@@ -93,7 +113,7 @@ class HistoricalUnsupervisedEngine:
         return 0.6745 * ((math.log1p(cost) - stats["median_log_cost"]) / stats["mad_log_cost"])
 
     def assess(self, p: dict) -> dict:
-        z = self._transform(p)
+        z, imputed = self._transform(p)
         cluster = int(self.kmeans.predict(z)[0])
         iso_raw = float(-self.iso.score_samples(z)[0])
         lof_raw = float(-self.lof.score_samples(z)[0])
@@ -118,7 +138,14 @@ class HistoricalUnsupervisedEngine:
         if not signals:
             signals.append("No extreme structural anomaly was detected against the historical baseline.")
 
-        return asdict(Assessment(
+        limitations = [
+            "This is an unsupervised review-priority signal, not a calibrated probability of delay, fraud, or cost overrun.",
+            "Government verification remains authoritative."
+        ]
+        if "quality_score" in imputed:
+            limitations.append("Quality score was not provided; baseline historical median was used internally for archetype alignment.")
+
+        res = asdict(Assessment(
             project_id=p.get("project_id"),
             archetype_cluster=cluster,
             structural_anomaly_score=round(structural, 2),
@@ -128,8 +155,7 @@ class HistoricalUnsupervisedEngine:
             review_priority_score=round(review, 2),
             review_band=band,
             signals=signals,
-            limitations=[
-                "This is an unsupervised review-priority signal, not a calibrated probability of delay, fraud, or cost overrun.",
-                "Government verification remains authoritative."
-            ]
+            limitations=limitations,
         ))
+        res["imputed_fields"] = imputed
+        return res

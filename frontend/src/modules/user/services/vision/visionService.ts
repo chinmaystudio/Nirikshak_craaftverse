@@ -40,13 +40,24 @@ function buildResult(profile: VisionProfile, opts: AnalyzeOptions): VisionAnalys
       infrastructureType: "Civic Infrastructure",
       confidence: 85,
       description: "Photo recorded for verification. Live advisory computer-vision service is currently integrating.",
-      details: ["Image registered on ledger", "Citizen verification pending officer review"],
-      condition: "Recorded for Review",
-      authority: "Municipal Works Agency",
+      details: {
+        ageEstimate: "Under evaluation",
+        usage: "Civic infrastructure",
+        materials: "Field photographic evidence",
+      },
+      condition: {
+        label: "Recorded for Review",
+        observations: ["Image registered on ledger", "Citizen verification pending officer review"],
+      },
+      authority: {
+        organization: "Municipal Works Agency",
+        department: "Public Infrastructure Oversight",
+        contact: "helpdesk@nirikshak.gov.in",
+      },
       relatedProject: opts.preferredProjectId
         ? { projectId: opts.preferredProjectId, matchConfidence: 90 }
         : null,
-      reportCategory: "Roads & Pavements",
+      reportCategory: "road-damage",
       saved: true,
       infoSubmitted: false,
     };

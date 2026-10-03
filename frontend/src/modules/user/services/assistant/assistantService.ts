@@ -2,6 +2,7 @@ import type { AssistantReply, ChatMessage } from "@/types/api";
 import type { Project } from "@/types/project";
 import { latency } from "@/services/api/client";
 import { nearbyProjects, projectsData, findProject } from "@/services/projects/projectsService";
+import { ward as wardStats } from "@/data/ward";
 import { getMyComplaints } from "@/services/complaints/complaintsService";
 import { criticalUnreadAlerts } from "@/services/alerts/alertsService";
 import { isLoggedIn, currentUser } from "@/services/auth/authService";

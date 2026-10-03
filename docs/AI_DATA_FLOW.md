@@ -58,11 +58,12 @@ sequenceDiagram
     EX-->>FE: Advisory Report
 
     Note over G,AI: Phase 5: Human Feedback & Bandit Learning
-    G->>FE: Marks recommendation as ACCEPTED / USEFUL
-    FE->>EX: POST /api/ai/feedback
-    EX->>AI: POST /feedback (analysis_id, feedback)
-    AI->>AI: Retrieve original context from SQLite
-    AI->>AI: Calculate reward & update LinUCB covariance matrices
+    G->>FE: Selects specific action (e.g. REVIEW_RESOURCE_PLAN) & marks USEFUL
+    FE->>EX: POST /api/ai/feedback (analysis_id, action, feedback)
+    EX->>AI: POST /feedback (analysis_id, action, feedback)
+    AI->>AI: Verify action was in recommended actions for analysis_id
+    AI->>AI: Check SQLite ledger to prevent duplicate feedback reward
+    AI->>AI: Update LinUCB covariance matrix for specified action only
     AI-->>EX: Policy updated: true
     EX-->>FE: Feedback Recorded
 ```

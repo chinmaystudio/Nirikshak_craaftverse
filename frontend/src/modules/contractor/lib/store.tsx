@@ -65,7 +65,7 @@ interface Store {
 
   bids: Record<string, Bid>;
   saveBidDraft: (tenderId: string, step: number, data: Record<string, unknown>) => void;
-  submitBid: (tenderId: string, bidValue: number) => string;
+  submitBid: (tenderId: string, bidValue: number, ref?: string) => string;
 
   savedTenders: string[];
   toggleSaveTender: (id: string) => void;
@@ -280,6 +280,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [documents, setDocuments] = useState<Record<string, ProjectDoc[]>>(() => (demo ? INITIAL_DOCS : {}));
   const addDocument = useCallback(
     (projectId: string, d: Omit<ProjectDoc, 'id' | 'uploaded' | 'by'>) => {
+      if (!demo) {
+        toast('info', 'Feature in Development', 'Document upload backend not yet implemented.');
+        return;
+      }
       const orgName = session?.organization?.name || 'Contractor Entity';
       setDocuments((ds) => ({
         ...ds,
@@ -289,7 +293,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ],
       }));
     },
-    [session?.organization?.name]
+    [demo, session?.organization?.name, toast]
   );
 
   const [bids, setBids] = useState<Record<string, Bid>>(() => {
@@ -320,8 +324,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const submitBid = useCallback((tenderId: string, bidValue: number) => {
-    const ref = `NRK-BID-2026-${Math.floor(3200 + Math.random() * 700)}`;
+  const submitBid = useCallback((tenderId: string, bidValue: number, ref?: string) => {
+    const finalRef = ref || (demo ? `NRK-BID-2026-${Math.floor(3200 + Math.random() * 700)}` : 'NRK-BID-SUBMITTED');
     setBids((bs) => ({
       ...bs,
       [tenderId]: {
@@ -331,12 +335,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         step: 7,
         updatedAt: new Date().toISOString(),
         submittedAt: new Date().toISOString(),
-        ref,
+        ref: finalRef,
         bidValue,
       },
     }));
-    return ref;
-  }, []);
+    return finalRef;
+  }, [demo]);
 
   const [savedTenders, setSavedTenders] = useState<string[]>([]);
   const toggleSaveTender = useCallback((id: string) => {

@@ -13,6 +13,7 @@ import { PageHeader, KpiRow, FilterBar, DetailField, KpiCard } from '@/component
 import { formatCr, formatDate } from '@/utils/format'
 import { BILL_STATUS, SCORE_BAND } from '@/utils/status'
 import { CONTRACTORS } from '@/data/modules'
+import { CONTRACTOR_EXTRA } from '@/data/workspace'
 import { isDemoMode } from '@/lib/config/dataMode'
 import type { Contractor } from '@/types'
 
@@ -36,17 +37,19 @@ export function WorkspaceContractorsPage() {
         name: project.contractor,
         registrationNo: 'REG-PWD-VERIFIED',
         class: 'Class A' as const,
+        empanelledSince: '2024-01-01',
+        districts: [],
         activeProjects: 1,
         completedProjects: 0,
         totalValueCr: project.financials?.sanctionedAmountCr ?? 0,
-        onTimeCompletionPct: 100,
-        scoreBand: 'good' as const,
         aiScore: 85,
+        scoreBand: 'good' as const,
+        onTimeCompletionPct: 100,
+        qualityRating: 4.5,
         pendingDefects: 0,
         litigationCount: 0,
-        paymentDelayDays: 0,
-        bankGuaranteeValidTill: '2026-12-31',
-        blacklisted: false,
+        strengths: [],
+        risks: [],
       } as Contractor]
     }
     return []

@@ -73,6 +73,7 @@ class OpenRouterClient:
         url = f"{self.base_url}/chat/completions"
 
         for attempt in range(2):  # initial + 1 retry for transient server codes
+            resp = None
             try:
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
                     resp = await client.post(url, headers=headers, json=payload)
@@ -92,11 +93,16 @@ class OpenRouterClient:
             except httpx.TimeoutException:
                 logger.warning("OpenRouter timed out after %ss; fast-failing to preserve ML response", self.timeout)
                 raise
-            except (httpx.HTTPStatusError, httpx.RequestError) as exc:
-                if attempt == 0 and resp.status_code in (429, 500, 502, 503, 504):
-                    logger.warning("OpenRouter request error (%s), retrying once...", exc)
+            except httpx.HTTPStatusError as exc:
+                status_code = exc.response.status_code
+                if attempt == 0 and status_code in (429, 500, 502, 503, 504):
+                    logger.warning("OpenRouter HTTP %s, retrying once...", status_code)
                     await asyncio.sleep(0.5)
                     continue
+                # Do not retry 400, 401, 403, 404
+                raise
+            except (httpx.ConnectError, httpx.RequestError) as exc:
+                logger.warning("OpenRouter network request error (%s)", exc)
                 raise
 
         raise RuntimeError("OpenRouter failed after retries")

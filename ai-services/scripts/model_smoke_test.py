@@ -99,12 +99,15 @@ async def run_tests():
 
     # 5. Recommendation Feedback
     analysis_id = result["analysis_id"]
+    target_action = actions[0]["action"]
     fb_res = ai.submit_recommendation_feedback(
         analysis_id=analysis_id,
+        action=target_action,
         government_feedback="useful",
         note="Inspection scheduled per recommendation.",
     )
     assert fb_res["updated"] is True
+    assert fb_res["action"] == target_action
     print("[PASS] Government feedback successfully updated policy matrices")
 
     # 6. SQLite State Store Verification

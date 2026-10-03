@@ -45,15 +45,18 @@ PRIOR = {
 }
 
 class LinUCBPolicy:
-    def __init__(self, state_path: str | Path, alpha: float = 0.45):
+    def __init__(self, state_path: str | Path, seed_path: str | Path | None = None, alpha: float = 0.45):
         self.state_path = Path(state_path)
+        self.seed_path = Path(seed_path) if seed_path else self.state_path.parent.parent / "models" / "rl_policy_seed.json"
         self.alpha = alpha
         self.d = len(FEATURES)
         self.A = {a: np.eye(self.d) for a in ACTIONS}
         self.b = {a: np.asarray(PRIOR[a], dtype=float).copy() for a in ACTIONS}
         self.updates = 0
         if self.state_path.exists():
-            self._load()
+            self._load(self.state_path)
+        elif self.seed_path.exists():
+            self._load(self.seed_path)
 
     def context(self, p: dict, unsup: dict) -> np.ndarray:
         def f(k):
@@ -117,12 +120,13 @@ class LinUCBPolicy:
         tmp.write_text(json.dumps(payload), encoding="utf-8")
         os.replace(tmp, self.state_path)
 
-    def _load(self):
-        p = json.loads(self.state_path.read_text(encoding="utf-8"))
-        self.alpha = float(p["alpha"])
+    def _load(self, path: Path | None = None):
+        target = path or self.state_path
+        p = json.loads(target.read_text(encoding="utf-8"))
+        self.alpha = float(p.get("alpha", self.alpha))
         self.updates = int(p.get("updates", 0))
-        self.A = {k:np.asarray(v, dtype=float) for k,v in p["A"].items()}
-        self.b = {k:np.asarray(v, dtype=float) for k,v in p["b"].items()}
+        self.A = {k: np.asarray(v, dtype=float) for k, v in p["A"].items()}
+        self.b = {k: np.asarray(v, dtype=float) for k, v in p["b"].items()}
 
 def outcome_reward(previous: dict, current: dict, government_feedback: str) -> float:
     def f(d,k):
