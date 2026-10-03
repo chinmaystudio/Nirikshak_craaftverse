@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import { aiService } from './ai.service.js';
 import { ApiResponseHelper } from '../../core/http/response.js';
 import { AuthenticatedRequest } from '../../core/auth/auth.middleware.js';
+import { AiFeedbackSchema } from './ai.validation.js';
 
 export class AiController {
   async analyze(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
@@ -9,6 +10,25 @@ export class AiController {
       const { projectId } = req.params;
       const result = await aiService.analyzeProject(projectId, req.userContext!, req.token!);
       ApiResponseHelper.success(res, result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async feedback(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const validated = AiFeedbackSchema.parse(req.body);
+      const result = await aiService.submitRecommendationFeedback(validated, req.userContext!);
+      ApiResponseHelper.success(res, result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async health(_req: any, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const health = await aiService.getHealth();
+      ApiResponseHelper.success(res, health);
     } catch (err) {
       next(err);
     }

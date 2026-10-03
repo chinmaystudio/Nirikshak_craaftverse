@@ -65,12 +65,12 @@ export interface Project {
   spent: number;
   received: number;
   progress: number;
-  planned: number;
+  planned: number | null;
   start: string;
   deadline: string;
   months: number;
   status: ProjectStatus;
-  risk: RiskLevel;
+  risk: RiskLevel | null;
   lastUpdate: string;
   lastUpdateNote: string;
   workOrder: string;
@@ -92,8 +92,15 @@ export interface Project {
     score: number;
     scores: { label: string; value: number }[];
     risks: RiskItem[];
-  };
+  } | null;
   expenses: { label: string; budget: number; spent: number }[];
+  reviewPriorityScore?: number | null;
+  reviewBand?: string | null;
+  structuralAnomaly?: number | null;
+  costAnomaly?: number | null;
+  driftPercentile?: number | null;
+  recommendedActions?: Array<{ action: string; score: number; reason?: string }> | null;
+  llmSummary?: string | null;
 }
 
 export interface Worker {

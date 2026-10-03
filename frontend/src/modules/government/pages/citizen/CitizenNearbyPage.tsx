@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/Progress'
 import { formatPct } from '@/utils/format'
 import { PROJECT_STATUS } from '@/utils/status'
 import { CITIZEN_GEO } from '@/data/modules'
+import { isDemoMode } from '@/lib/config/dataMode'
 import { useToast } from '@/context/ToastContext'
 
 /** Haversine distance in km between two coordinates. */
@@ -126,13 +127,15 @@ export function CitizenNearbyPage() {
             <StatusBadge descriptor={PROJECT_STATUS.in_execution} size="sm" />
             Most works near a town centre are in execution phase.
           </li>
-          <li className="flex items-center gap-2">
-            <Progress value={62.4} label="Sample average progress" size="sm" className="min-w-40" showValue={false} />
-            <span className="text-caption text-fg-subtle">{formatPct(62.4)} average across demo portfolio</span>
-          </li>
+          {isDemoMode() && (
+            <li className="flex items-center gap-2">
+              <Progress value={62.4} label="Sample average progress" size="sm" className="min-w-40" showValue={false} />
+              <span className="text-caption text-fg-subtle">{formatPct(62.4)} average across demo portfolio</span>
+            </li>
+          )}
         </ul>
       </Card>
-      <p className="text-caption text-fg-subtle">{t('common.mockDataNote')}</p>
+      {isDemoMode() && <p className="text-caption text-fg-subtle">{t('common.mockDataNote')}</p>}
     </div>
   )
 }

@@ -101,9 +101,13 @@ export default function AIGuide({ project }: { project: Project }) {
         },
       };
     }
+    const riskLabel = project.risk ? `${project.risk} risk` : 'Risk pending AI review';
+    const healthLabel = project.health
+      ? `Health score is ${project.health.score}/100 (${project.health.overall})`
+      : 'Health score pending verified analysis';
     return {
       title: 'Project snapshot',
-      text: `${project.name} is ${project.progress}% complete (${project.status}, ${project.risk} risk) with contract value ${cr(project.value)}. Health score is ${project.health.score}/100 (${project.health.overall}). Ask me about milestones, delays, costs, resources or this week's priorities.`,
+      text: `${project.name} is ${project.progress}% complete (${project.status}, ${riskLabel}) with contract value ${cr(project.value)}. ${healthLabel}. Ask me about milestones, delays, costs, resources or this week's priorities.`,
     };
   };
 
@@ -137,7 +141,7 @@ export default function AIGuide({ project }: { project: Project }) {
           <CtxChip icon={Wallet} label={`${cr(project.value)} contract`} />
           <CtxChip icon={Users} label="resources tracked" />
           <CtxChip icon={CalendarClock} label={`deadline ${fmtDate(project.deadline)}`} />
-          <CtxChip icon={TrendingUp} label={`health ${project.health.score}/100`} />
+          {project.health && <CtxChip icon={TrendingUp} label={`health ${project.health.score}/100`} />}
         </div>
       </Card>
 
@@ -148,9 +152,9 @@ export default function AIGuide({ project }: { project: Project }) {
             <dl className="space-y-3">
               <CtxRow k="Current milestone" v={current?.name ?? '—'} />
               <CtxRow k="Milestone progress" v={current?.progress ? `${current.progress}%` : '—'} />
-              <CtxRow k="Planned vs actual" v={`${project.planned}% / ${project.progress}%`} />
+              <CtxRow k="Planned vs actual" v={project.planned !== null ? `${project.planned}% / ${project.progress}%` : `— / ${project.progress}%`} />
               <CtxRow k="Spent" v={`₹ ${project.spent.toFixed(2)} Cr`} />
-              <CtxRow k="Open risks" v={`${project.health.risks.length}`} />
+              <CtxRow k="Open risks" v={project.health ? `${project.health.risks.length}` : '—'} />
               <CtxRow k="Compliance" v={`${project.complianceScore}%`} />
             </dl>
           </Card>

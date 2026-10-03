@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/blocks/Page'
 import { useApiData } from '@/hooks/useApiData'
 import { insightsApi } from '@/api'
 import { CONTRACTORS } from '@/data/modules'
+import { isDemoMode } from '@/lib/config/dataMode'
 import { SCORE_BAND } from '@/utils/status'
 import type { Contractor } from '@/types'
 
@@ -31,12 +32,13 @@ export function WorkspaceContractorEvalPage() {
   const { project } = useProjectWorkspace()
   const [expanded, setExpanded] = useState<string | null>(null)
 
-  const assigned = CONTRACTORS.find((c) => c.name === project?.contractor)
+  const contractorPool = useMemo(() => (isDemoMode() ? CONTRACTORS : []), [])
+  const assigned = contractorPool.find((c) => c.name === project?.contractor)
   const evaluation = useApiData(
     () => (assigned ? insightsApi.evaluateContractor(assigned.id) : Promise.resolve(undefined)),
     [assigned?.id],
   )
-  const ranked = useMemo(() => [...CONTRACTORS].sort((a, b) => b.aiScore - a.aiScore), [])
+  const ranked = useMemo(() => [...contractorPool].sort((a, b) => b.aiScore - a.aiScore), [contractorPool])
 
   if (!project) return null
   if (assigned && evaluation.loading) return <LoadingBlock />

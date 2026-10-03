@@ -1,10 +1,14 @@
 import { createAuthenticatedClient } from '../../core/database/supabase.js';
 import { SubmitProgressInput, ReviewProgressInput } from './progress.validation.js';
 import { ValidationError } from '../../core/http/errors.js';
+import { aiClient } from '../ai/ai.client.js';
+import { buildProjectSnapshot } from '../ai/ai.context.js';
 
 export class ProgressService {
   async submitProgress(input: SubmitProgressInput, token: string): Promise<any> {
     const scopedClient = await createAuthenticatedClient(token);
+    // Unverified contractor submission - Authoritative RPC execution
+    // Unverified contractor data does NOT train the online model.
     const { data: updateData, error: updateErr } = await scopedClient.rpc('submit_progress_update', {
       p_project_id: input.project_id,
       p_reported_progress: input.reported_progress,
@@ -33,6 +37,8 @@ export class ProgressService {
 
   async reviewProgress(input: ReviewProgressInput, token: string): Promise<any> {
     const scopedClient = await createAuthenticatedClient(token);
+    
+    // 1. Authoritative PostgreSQL RPC execution happens FIRST
     const { data, error } = await scopedClient.rpc('approve_progress_update', {
       p_update_id: input.progress_update_id,
       p_decision: input.decision,
@@ -42,6 +48,29 @@ export class ProgressService {
 
     if (error) {
       throw new ValidationError(`Progress review failed: ${error.message}`);
+    }
+
+    // 2. Continuous Online Drift Learning for verified milestones
+    // AI learning failure MUST NOT roll back a valid Government approval.
+    if (input.decision === 'APPROVED') {
+      (async () => {
+        try {
+          const { data: updateRecord } = await scopedClient
+            .from('progress_updates')
+            .select('project_id, verified_physical_progress_percent')
+            .eq('id', input.progress_update_id)
+            .single();
+
+          if (updateRecord?.project_id) {
+            const snapshot = await buildProjectSnapshot(updateRecord.project_id, scopedClient, {
+              isContractor: false,
+            });
+            await aiClient.learnVerifiedSnapshot(snapshot);
+          }
+        } catch (aiErr: any) {
+          console.warn('[AI LEARNING WARNING] Continuous learning update skipped:', aiErr.message || aiErr);
+        }
+      })();
     }
 
     return data;

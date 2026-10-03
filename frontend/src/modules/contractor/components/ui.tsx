@@ -68,7 +68,15 @@ export function StatusBadge({ status, className }: { status: string; className?:
   );
 }
 
-export function RiskBadge({ risk, className }: { risk: string; className?: string }) {
+export function RiskBadge({ risk, className }: { risk?: string | null; className?: string }) {
+  if (!risk) {
+    return (
+      <span className={cls('inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 px-2 py-0.5 text-[11px] font-semibold text-slate-500 whitespace-nowrap', className)}>
+        <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+        AI: Not Calculated
+      </span>
+    );
+  }
   const tone: Tone = risk === 'High' ? 'red' : risk === 'Medium' ? 'amber' : 'green';
   return (
     <span className={cls('inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap', TONE_CLASSES[tone], className)}>

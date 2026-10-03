@@ -11,10 +11,9 @@ import type {
 } from './data';
 import { uid } from './utils';
 import { PROJECTS } from './data';
-import { normalizeProjectStatus } from '@/core/status/projectStatus';
 import { useAuth } from '@/core/auth/useAuth';
-
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.VITE_USE_MOCK_API === 'true';
+import { isDemoMode } from '@/lib/config/dataMode';
+import { contractorProjectsService } from '../services/projects.service';
 
 interface A11y {
   hc: boolean;
@@ -80,10 +79,10 @@ export function useStore(): Store {
   return c;
 }
 
-const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
-
 export function StoreProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
+  const demo = isDemoMode();
+
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('nrk-theme');
     if (saved === 'dark' || saved === 'light') return saved;
@@ -93,7 +92,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle('dark', theme === 'dark');
     localStorage.setItem('nrk-theme', theme);
     return () => {
-      // Clean up when navigating away from contractor portal
       document.documentElement.classList.remove('dark');
     };
   }, [theme]);
@@ -104,7 +102,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('nrk-font', String(fontScale));
   }, [fontScale]);
 
-  const [a11y, setA11y] = useState<A11y>(() => (localStorage.getItem('nrk-a11y') ? JSON.parse(localStorage.getItem('nrk-a11y')!) : { hc: false, rm: false, ul: false }));
+  const [a11y, setA11y] = useState<A11y>(() =>
+    localStorage.getItem('nrk-a11y') ? JSON.parse(localStorage.getItem('nrk-a11y')!) : { hc: false, rm: false, ul: false }
+  );
   useEffect(() => {
     document.body.classList.toggle('hc', a11y.hc);
     document.body.classList.toggle('rm', a11y.rm);
@@ -125,149 +125,201 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>(() =>
+    demo ? INITIAL_NOTIFICATIONS : []
+  );
   const markRead = useCallback((id: string) => setNotifications((ns) => ns.map((n) => (n.id === id ? { ...n, read: true } : n))), []);
   const markAllRead = useCallback(() => setNotifications((ns) => ns.map((n) => ({ ...n, read: true }))), []);
   const unread = notifications.filter((n) => !n.read).length;
 
-  const [projects, setProjects] = useState<Project[]>([]);
-
+  const [projects, setProjects] = useState<Project[]>(() => (demo ? PROJECTS : []));
 
   useEffect(() => {
     let isMounted = true;
-    async function loadLiveContractorProjects() {
+    async function loadAssignedProjects() {
+      if (demo) {
+        setProjects(PROJECTS);
+        return;
+      }
       try {
-        const { supabase } = await import('@/core/supabase/client');
-        const { data, error } = await supabase
-          .from('contractor_assigned_projects_view')
-          .select('*')
-          .order('total_cost_inr_crore', { ascending: false, nullsFirst: false })
-          .limit(100);
-
-        let records: any[] = (data as any[]) || [];
-
-        if (records && records.length > 0 && isMounted) {
-          const liveProjects: Project[] = records.map((p: any) => {
-            const cost = Number(p.contract_value ?? p.total_cost_inr_crore) || 0;
-            const progress = Number(p.physical_progress_percent) || 0;
-            const sharedStatus = normalizeProjectStatus(p.normalized_status);
-            const status: Project['status'] = sharedStatus === 'completed' ? 'Completed' : sharedStatus === 'delayed' ? 'Delayed' : sharedStatus === 'at_risk' ? 'At Risk' : 'Active';
-
-            const projId = p.nirikshak_project_id || p.id;
-            return {
-              id: p.id || projId,
-              code: projId,
-              name: p.project_name || 'Project name not available',
-              department: p.project_authority || 'Not available',
-              deptAbbr: (p.project_authority || 'N/A').slice(0, 4).toUpperCase(),
-              officer: 'Not available', officerRole: 'Not available', officerPhone: '', officerEmail: '',
-              location: p.location_text || 'Not available', district: 'Not available',
-              category: p.sector || p.subsector || 'Not available',
-              value: cost,
-              budgetApproved: cost, spent: 0, received: 0,
-              progress,
-              planned: Math.min(100, progress + 8),
-              start: '', deadline: p.scheduled_completion_date || '', months: 0,
-              status,
-              risk: status === 'Delayed' ? 'High' : status === 'At Risk' ? 'Medium' : 'Low',
-              lastUpdate: '', lastUpdateNote: 'No verified update metadata available.',
-              workOrder: p.contract_number || 'Not available', scope: 'Not available',
-              milestones: [], upcoming: [], history: [], compliance: [], complianceScore: 0,
-              forecast: {
-                predicted: p.scheduled_completion_date || '', earlyDays: 0, confidence: 0, factors: [], actions: [],
-              },
-              health: {
-                overall: status === 'Delayed' ? 'POOR' : progress > 50 ? 'GOOD' : 'FAIR',
-                score: Math.round(progress),
-                scores: [],
-                risks: [],
-              },
-              expenses: [],
-            };
-          });
-          setProjects(liveProjects);
+        const live = await contractorProjectsService.getAssignedProjects();
+        if (isMounted) {
+          setProjects(live);
         }
       } catch (err) {
-        console.warn('Failed to load contractor projects from Supabase:', err);
+        console.warn('[StoreProvider] Error loading assigned projects:', err);
       }
     }
-    loadLiveContractorProjects();
+    loadAssignedProjects();
     return () => {
       isMounted = false;
     };
-  }, [session?.user?.id, session?.organization?.id]);
+  }, [demo, session?.user?.id, session?.organization?.id]);
 
-  const [reports, setReports] = useState<ProgressReport[]>([]);
-  const addReport = useCallback((r: Omit<ProgressReport, 'id' | 'submittedAt'>) => {
-    const id = uid('rep');
-    const newRep = { ...r, id, submittedAt: new Date().toISOString() };
-    setReports((rs) => [newRep, ...rs]);
-    return id;
-  }, []);
-  const setReportStatus = useCallback((id: string, status: ProgressReport['status'], note?: string) => {
-    setReports((rs) => rs.map((r) => (r.id === id ? { ...r, status, reviewerNote: note ?? r.reviewerNote } : r)));
-  }, []);
+  // Local drafts of progress reports, cleanly separated from server state
+  const [reports, setReports] = useState<ProgressReport[]>(() => {
+    if (demo) return INITIAL_REPORTS;
+    try {
+      const saved = localStorage.getItem('nrk-contractor-draft-reports');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
-  const [workers, setWorkers] = useState<Record<string, Worker[]>>({});
-  const addWorker = useCallback((projectId: string, w: Omit<Worker, 'id'>) => {
-    setWorkers((ws) => ({ ...ws, [projectId]: [...(ws[projectId] ?? []), { ...w, id: uid('w') }] }));
-  }, []);
-  const updateWorker = useCallback((projectId: string, w: Worker) => {
-    setWorkers((ws) => ({ ...ws, [projectId]: (ws[projectId] ?? []).map((x) => (x.id === w.id ? w : x)) }));
-  }, []);
-  const removeWorker = useCallback((projectId: string, id: string) => {
-    setWorkers((ws) => ({ ...ws, [projectId]: (ws[projectId] ?? []).filter((x) => x.id !== id) }));
-  }, []);
+  const addReport = useCallback(
+    (r: Omit<ProgressReport, 'id' | 'submittedAt'>) => {
+      const id = uid('draft-rep');
+      const newRep: ProgressReport = {
+        ...r,
+        id,
+        submittedAt: new Date().toISOString(),
+        status: 'Draft',
+      };
+      setReports((rs) => {
+        const updated = [newRep, ...rs];
+        if (!demo) {
+          localStorage.setItem('nrk-contractor-draft-reports', JSON.stringify(updated));
+        }
+        return updated;
+      });
+      return id;
+    },
+    [demo]
+  );
 
-  const [resources, setResources] = useState<Record<string, ResourceRow[]>>({});
-  const addResource = useCallback((projectId: string, r: Omit<ResourceRow, 'id'>) => {
-    setResources((rs) => ({ ...rs, [projectId]: [...(rs[projectId] ?? []), { ...r, id: uid('r') }] }));
-  }, []);
+  const setReportStatus = useCallback(
+    (id: string, status: ProgressReport['status'], note?: string) => {
+      setReports((rs) => {
+        const updated = rs.map((r) => (r.id === id ? { ...r, status, reviewerNote: note ?? r.reviewerNote } : r));
+        if (!demo) {
+          localStorage.setItem('nrk-contractor-draft-reports', JSON.stringify(updated));
+        }
+        return updated;
+      });
+    },
+    [demo]
+  );
 
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const addInvoice = useCallback((i: Omit<Invoice, 'id'>) => {
-    setInvoices((inv) => [{ ...i, id: uid('i') }, ...inv]);
-  }, []);
-  const submitInvoice = useCallback((id: string) => {
-    setInvoices((inv) => inv.map((i) => (i.id === id && i.status === 'Draft' ? { ...i, status: 'Submitted', verification: 'Awaiting DyE check' } : i)));
-  }, []);
+  // Workers, Resources, Invoices, Messages: DEMO fixtures vs LIVE NOT_IMPLEMENTED states
+  const [workers, setWorkers] = useState<Record<string, Worker[]>>(() => (demo ? INITIAL_WORKERS : {}));
+  const addWorker = useCallback(
+    (projectId: string, w: Omit<Worker, 'id'>) => {
+      if (!demo) {
+        toast('info', 'Feature in Development', 'Resource management will be persisted in Database V2.');
+        return;
+      }
+      setWorkers((ws) => ({ ...ws, [projectId]: [...(ws[projectId] ?? []), { ...w, id: uid('w') }] }));
+    },
+    [demo, toast]
+  );
+  const updateWorker = useCallback(
+    (projectId: string, w: Worker) => {
+      if (!demo) return;
+      setWorkers((ws) => ({ ...ws, [projectId]: (ws[projectId] ?? []).map((x) => (x.id === w.id ? w : x)) }));
+    },
+    [demo]
+  );
+  const removeWorker = useCallback(
+    (projectId: string, id: string) => {
+      if (!demo) return;
+      setWorkers((ws) => ({ ...ws, [projectId]: (ws[projectId] ?? []).filter((x) => x.id !== id) }));
+    },
+    [demo]
+  );
 
-  const [messages, setMessages] = useState<Record<string, Message[]>>({});
-  const sendMessage = useCallback((m: Omit<Message, 'id' | 'ts' | 'status'>) => {
-    const id = uid('m');
-    setMessages((ms) => ({
-      ...ms,
-      [m.projectId]: [...(ms[m.projectId] ?? []), { ...m, id, ts: new Date().toISOString(), status: 'Sent' }],
-    }));
-  }, []);
+  const [resources, setResources] = useState<Record<string, ResourceRow[]>>(() => (demo ? INITIAL_RESOURCES : {}));
+  const addResource = useCallback(
+    (projectId: string, r: Omit<ResourceRow, 'id'>) => {
+      if (!demo) {
+        toast('info', 'Feature in Development', 'Heavy machinery & material allocation will be live in Database V2.');
+        return;
+      }
+      setResources((rs) => ({ ...rs, [projectId]: [...(rs[projectId] ?? []), { ...r, id: uid('r') }] }));
+    },
+    [demo, toast]
+  );
 
-  const [documents, setDocuments] = useState<Record<string, ProjectDoc[]>>({});
-  const addDocument = useCallback((projectId: string, d: Omit<ProjectDoc, 'id' | 'uploaded' | 'by'>) => {
-    const orgName = session?.organization?.name || 'Contractor Entity';
-    setDocuments((ds) => ({
-      ...ds,
-      [projectId]: [
-        ...(ds[projectId] ?? []),
-        { ...d, id: uid('d'), uploaded: new Date().toISOString().slice(0, 10), by: orgName },
-      ],
-    }));
-  }, [session?.organization?.name]);
+  const [invoices, setInvoices] = useState<Invoice[]>(() => (demo ? INITIAL_INVOICES : []));
+  const addInvoice = useCallback(
+    (i: Omit<Invoice, 'id'>) => {
+      if (!demo) {
+        toast('info', 'Feature in Development', 'Running Account (RA) billing will be persisted in Database V2.');
+        return;
+      }
+      setInvoices((inv) => [{ ...i, id: uid('i') }, ...inv]);
+    },
+    [demo, toast]
+  );
+  const submitInvoice = useCallback(
+    (id: string) => {
+      if (!demo) return;
+      setInvoices((inv) =>
+        inv.map((i) => (i.id === id && i.status === 'Draft' ? { ...i, status: 'Submitted', verification: 'Awaiting DyE check' } : i))
+      );
+    },
+    [demo]
+  );
 
-  const [bids, setBids] = useState<Record<string, Bid>>({});
+  const [messages, setMessages] = useState<Record<string, Message[]>>(() => (demo ? INITIAL_MESSAGES : {}));
+  const sendMessage = useCallback(
+    (m: Omit<Message, 'id' | 'ts' | 'status'>) => {
+      if (!demo) {
+        toast('info', 'Feature in Development', 'Official project communications will be supported in Database V2.');
+        return;
+      }
+      const id = uid('m');
+      setMessages((ms) => ({
+        ...ms,
+        [m.projectId]: [...(ms[m.projectId] ?? []), { ...m, id, ts: new Date().toISOString(), status: 'Sent' }],
+      }));
+    },
+    [demo, toast]
+  );
+
+  const [documents, setDocuments] = useState<Record<string, ProjectDoc[]>>(() => (demo ? INITIAL_DOCS : {}));
+  const addDocument = useCallback(
+    (projectId: string, d: Omit<ProjectDoc, 'id' | 'uploaded' | 'by'>) => {
+      const orgName = session?.organization?.name || 'Contractor Entity';
+      setDocuments((ds) => ({
+        ...ds,
+        [projectId]: [
+          ...(ds[projectId] ?? []),
+          { ...d, id: uid('d'), uploaded: new Date().toISOString().slice(0, 10), by: orgName },
+        ],
+      }));
+    },
+    [session?.organization?.name]
+  );
+
+  const [bids, setBids] = useState<Record<string, Bid>>(() => {
+    if (demo) return INITIAL_BIDS;
+    try {
+      const saved = localStorage.getItem('nrk-contractor-bid-drafts');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
 
   const saveBidDraft = useCallback((tenderId: string, step: number, data: Record<string, unknown>) => {
-    setBids((bs) => ({
-      ...bs,
-      [tenderId]: {
-        ...(bs[tenderId] ?? { tenderId, status: 'Draft' as const }),
-        tenderId,
-        status: 'Draft',
-        step,
-        updatedAt: new Date().toISOString(),
-        data,
-      },
-    }));
+    setBids((bs) => {
+      const updated = {
+        ...bs,
+        [tenderId]: {
+          ...(bs[tenderId] ?? { tenderId, status: 'Draft' as const }),
+          tenderId,
+          status: 'Draft' as const,
+          step,
+          updatedAt: new Date().toISOString(),
+          data,
+        },
+      };
+      localStorage.setItem('nrk-contractor-bid-drafts', JSON.stringify(updated));
+      return updated;
+    });
   }, []);
+
   const submitBid = useCallback((tenderId: string, bidValue: number) => {
     const ref = `NRK-BID-2026-${Math.floor(3200 + Math.random() * 700)}`;
     setBids((bs) => ({

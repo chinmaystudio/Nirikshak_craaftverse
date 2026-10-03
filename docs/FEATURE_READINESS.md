@@ -1,8 +1,8 @@
 # NIRIKSHAK Craftverse — Feature Readiness Matrix
 
-**Version:** 1.0.0  
+**Version:** 2.0.0  
 **Date:** 2026-10-03  
-**Status:** Canonical Baseline
+**Status:** Canonical Baseline with First-Class AI Microservice Integration  
 
 This document provides a realistic, honest assessment of the readiness level of every major capability within the NIRIKSHAK Craftverse platform.
 
@@ -28,6 +28,13 @@ This document provides a realistic, honest assessment of the readiness level of 
 | **Milestones Management** | **PARTIAL** | Supabase `project_milestones` | Milestones table exists; CRUD UI partially wired. |
 | **Progress Submission** | **LIVE** | PostgreSQL RPC `submit_progress_update` | Contractor submits reported progress & evidence paths. |
 | **Progress Verification** | **LIVE** | PostgreSQL RPC `approve_progress_update` | Government official reviews, accepts, or rejects update. |
+| **Historical Unsupervised ML** | **LIVE** | Python FastAPI (`ai-services`) | IsolationForest, LOF, MiniBatchKMeans, Robust Cost Anomaly. |
+| **Online Drift Learning** | **LIVE** | Python FastAPI (`/learn/snapshot`) | Incremental MiniBatchKMeans updated ONLY on verified data. |
+| **RL Action Recommendations** | **LIVE** | Python FastAPI (`LinUCBPolicy`) | Disjoint LinUCB contextual bandit ranking administrative actions. |
+| **OpenRouter Explanation Layer**| **LIVE** | Python FastAPI + NVIDIA Nemotron | Generates structured explanations with automatic schema repair. |
+| **AI Project Analysis Gateway**| **LIVE** | Express `/api/ai/analyze/:projectId` | Tenancy-checked authorized snapshot dispatched to AI microservice. |
+| **Government AI Feedback** | **LIVE** | Express `/api/ai/feedback` | Official reviews update bandit matrices and SQLite event state. |
+| **Verified Snapshot Learning** | **LIVE** | Express `progress.service` hook | Triggers post-approval verified learning without blocking DB tx. |
 | **Resources & Workforce** | **NOT_IMPLEMENTED** | UI only (Mock in Demo mode) | Dedicated labor/machinery tables deferred to V2. |
 | **Finance — Fund Allocations** | **PARTIAL** | Supabase `financial_updates` | Fund allocation & release tracking live; RA bills deferred. |
 | **Invoices / RA Bills** | **NOT_IMPLEMENTED** | UI only (Mock in Demo mode) | Electronic measurement book & bills deferred to V2. |
@@ -40,38 +47,32 @@ This document provides a realistic, honest assessment of the readiness level of 
 | **Notifications** | **LIVE** | Supabase `notifications` table | Real-time and persistent alerts queryable. |
 | **Audit Logging** | **LIVE** | Supabase `audit_logs` table | System events recorded with actor ID, entity, & payload. |
 | **Realtime Updates** | **PARTIAL** | Supabase Realtime Channels | Configured in migration 019; client service normalized. |
-| **AI Project Risk Analysis** | **PARTIAL** | Express `/api/ai/analyze/:projectId` + OpenRouter | LLM provider analyzes schedule & cost risk; advisory only. |
 
 ---
 
-### Detailed Domain Breakdown
+### Detailed AI & MLOps Architecture Breakdown
 
-### 1. Identity, Authentication & Multi-Tenancy (LIVE)
-- Supabase Auth provides underlying JWT infrastructure.
-- Zero privileged roles are granted automatically at signup.
-- Multi-tenancy is enforced by linking authenticated users to `organizations` through `organization_members`.
-- RLS policies verify caller membership and organization type on every row operation.
+### 1. Historical Unsupervised Machine Learning (LIVE)
+- Pretrained models loaded into memory at microservice startup (`isolation_forest.joblib`, `local_outlier_factor.joblib`, `project_archetypes.joblib`, `preprocessor.joblib`, `cost_cohort_stats.json`, `score_reference.npz`).
+- Produces normalized Review Priority Score, Review Band (`TYPICAL`, `WATCHLIST`, `HIGH_PRIORITY`, `VERY_UNUSUAL`), Structural Anomaly Score, Neighborhood Anomaly Score, Cluster Distance, and Robust Cost Anomaly Score.
+- Terminology rule strictly enforced: never described as delay probability or fraud probability.
 
-### 2. Infrastructure Projects & Milestones (PARTIAL)
-- Core project records, metadata, sanction amounts, planned dates, and authority ownership are fully LIVE.
-- Progress updates update `physical_progress_percent` through authoritative verification.
-- Micro-milestones and detailed dependency graphs await the V2 database design.
+### 2. Online Operational Drift Learning (LIVE)
+- Incremental learner using `StandardScaler.partial_fit()` and `MiniBatchKMeans.partial_fit()`.
+- Thread-safe updates guarded by `threading.RLock()`.
+- **Security Guardrail:** Only updates when `verified=true`. Unverified contractor reports are strictly rejected from updating model weights.
 
-### 3. Procurement, Tenders & Contracting (LIVE)
-- End-to-end procurement cycle is supported by database schema and RPCs:
-  1. Officer creates tender for their organization's project.
-  2. Contractor submits bid before `bid_due_date`.
-  3. Official evaluates bids and calls `award_contract`.
-  4. Active contract links contractor organization to project.
+### 3. Reinforcement Learning Contextual Bandit (LIVE)
+- LinUCB contextual bandit with 8 administrative action arms (`SCHEDULE_SITE_INSPECTION`, `REVIEW_COST_VARIANCE`, `REQUEST_CONTRACTOR_EVIDENCE`, etc.).
+- Exploration bonus balances exploitation with discovering effective oversight strategies.
+- Official human feedback (`ACCEPTED`, `USEFUL`, `NEUTRAL`, `REJECTED`, `HARMFUL`) updates covariance matrices and reward registers.
 
-### 4. Contractor Execution & Verification (LIVE)
-- Contractor submits updates through `submit_progress_update`.
-- State transitions to `SUBMITTED` / `UNDER_REVIEW`.
-- Government engineers review evidence and execute `approve_progress_update`.
-- No fake local state double-writes.
+### 4. OpenRouter / NVIDIA Nemotron Explanation Layer (LIVE)
+- Async HTTP client with strict Pydantic JSON schema validation (`LLMExplanationSchema`).
+- Single-attempt repair flow for malformed responses.
+- Resilient fallback: if OpenRouter is unconfigured or unavailable, returns deterministic ML results with `llm.status="UNAVAILABLE"` without blocking analysis.
 
-### 5. AI Advisory Engine (PARTIAL)
-- Uses NVIDIA Nemotron through OpenRouter.
-- Strictly advisory; forbidden from executing mutations or approvals.
-- Sanitizes PII and credentials prior to prompt dispatch.
-- Returns structured JSON for risk scoring and mitigation recommendations.
+### 5. Express Security Gateway (LIVE)
+- Express authenticates calling user, verifies organization tenancy (or contractor assignment), and extracts clean database context.
+- Attaches `X-Nirikshak-AI-Key` secret header.
+- Records audit event `AI_PROJECT_ANALYZED` and stores analysis metadata into `ai_insights`.

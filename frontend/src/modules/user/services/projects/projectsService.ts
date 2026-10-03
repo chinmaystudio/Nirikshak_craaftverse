@@ -2,6 +2,7 @@ import type { Project, ProjectCategory, ProjectStatus, WardStatistics, CityStati
 import { ApiError } from "@/services/api/client";
 import { projectImages } from "../../data/projects";
 import { ward as wardStats, cityStats } from "../../data/ward";
+import { isDemoMode } from "@/lib/config/dataMode";
 import { supabase } from "@/core/supabase/client";
 
 
@@ -213,12 +214,60 @@ export function allDepartments(projectList?: Project[]): string[] {
 }
 
 export function getWardStats(): WardStatistics {
-  return wardStats;
+  if (isDemoMode()) {
+    return wardStats;
+  }
+  const source = cachedProjects ?? [];
+  const onTrack = source.filter((p) => p.status === 'on-track').length;
+  const delayed = source.filter((p) => p.status === 'delayed').length;
+  const critical = source.filter((p) => p.status === 'under-review').length;
+  const completed = source.filter((p) => p.status === 'completed').length;
+  const totalValue = Math.round(source.reduce((sum, p) => sum + (p.finance?.sanctionedAmount || 0), 0) * 10) / 10;
+  const spent = Math.round(source.reduce((sum, p) => sum + (p.finance?.amountSpent || 0), 0) * 10) / 10;
+
+  return {
+    id: "ward-live",
+    name: "Live Infrastructure Zone",
+    projects: source.length,
+    onTrack,
+    delayed,
+    critical,
+    completed,
+    totalValueCr: totalValue,
+    spentFYCr: spent,
+    expenditurePct: totalValue > 0 ? Math.round((spent / totalValue) * 100) : 0,
+    complaints: 0,
+    resolved: 0,
+    resolutionRate: 100,
+    avgDays: 0,
+    activeComplaints: 0,
+    contractors: [],
+    statusSplit: [
+      { label: "On Track", value: onTrack, className: "bg-secondary" },
+      { label: "Completed", value: completed, className: "bg-green-600" },
+      { label: "Delayed", value: delayed, className: "bg-error" },
+      { label: "Critical Review", value: critical, className: "bg-info" },
+    ]
+  };
 }
 export const getWardStatistics = getWardStats;
 
 export function getCityStats(): CityStatistics {
-  return cityStats;
+  if (isDemoMode()) {
+    return cityStats;
+  }
+  const source = cachedProjects ?? [];
+  const activeProjects = source.filter((p) => p.status !== 'completed').length;
+  const completed = source.filter((p) => p.status === 'completed').length;
+  const underReview = source.filter((p) => p.status === 'under-review').length;
+
+  return {
+    activeProjects,
+    completed,
+    underReview,
+    issuesResolved: 0,
+    avgRedressalDays: 0
+  };
 }
 export const getCityStatistics = getCityStats;
 

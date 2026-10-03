@@ -4,7 +4,6 @@ import { latency } from "@/services/api/client";
 import { nearbyProjects, projectsData, findProject } from "@/services/projects/projectsService";
 import { getMyComplaints } from "@/services/complaints/complaintsService";
 import { criticalUnreadAlerts } from "@/services/alerts/alertsService";
-import { ward as wardStats } from "@/data/ward";
 import { isLoggedIn, currentUser } from "@/services/auth/authService";
 
 export interface AssistantContext {

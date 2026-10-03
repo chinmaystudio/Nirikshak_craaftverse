@@ -10,6 +10,9 @@ const ServerEnvSchema = z.object({
   OPENROUTER_API_KEY: z.string().optional().default(''),
   OPENROUTER_MODEL: z.string().default('nvidia/nemotron-4-340b-instruct'),
   ALLOWED_ORIGINS: z.string().optional().default(''),
+  AI_SERVICE_URL: z.string().url().default('http://127.0.0.1:8000'),
+  AI_SERVICE_SHARED_SECRET: z.string().default('development-ai-secret-change-in-production'),
+  AI_SERVICE_TIMEOUT_MS: z.coerce.number().default(20000),
 });
 
 function parseEnv(): z.infer<typeof ServerEnvSchema> {

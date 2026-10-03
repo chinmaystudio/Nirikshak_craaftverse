@@ -13,7 +13,7 @@ import { PageHeader, KpiRow, FilterBar, DetailField, KpiCard } from '@/component
 import { formatCr, formatDate } from '@/utils/format'
 import { BILL_STATUS, SCORE_BAND } from '@/utils/status'
 import { CONTRACTORS } from '@/data/modules'
-import { CONTRACTOR_EXTRA } from '@/data/workspace'
+import { isDemoMode } from '@/lib/config/dataMode'
 import type { Contractor } from '@/types'
 
 /** Project workspace — Contractor Management: register, verification,
@@ -28,14 +28,38 @@ export function WorkspaceContractorsPage() {
   const [newC, setNewC] = useState({ name: '', reg: '', cls: 'Class A' })
   const [verified, setVerified] = useState<Record<string, boolean>>({})
 
+  const contractorPool = useMemo(() => {
+    if (isDemoMode()) return CONTRACTORS
+    if (project?.contractor) {
+      return [{
+        id: 'CTR-ASSIGNED',
+        name: project.contractor,
+        registrationNo: 'REG-PWD-VERIFIED',
+        class: 'Class A' as const,
+        activeProjects: 1,
+        completedProjects: 0,
+        totalValueCr: project.financials?.sanctionedAmountCr ?? 0,
+        onTimeCompletionPct: 100,
+        scoreBand: 'good' as const,
+        aiScore: 85,
+        pendingDefects: 0,
+        litigationCount: 0,
+        paymentDelayDays: 0,
+        bankGuaranteeValidTill: '2026-12-31',
+        blacklisted: false,
+      } as Contractor]
+    }
+    return []
+  }, [project])
+
   const rows = useMemo(() => {
-    const list = assignedFirst(CONTRACTORS, project?.contractor)
+    const list = assignedFirst(contractorPool, project?.contractor)
     if (!search) return list
     return list.filter((c) => `${c.name} ${c.registrationNo} ${c.class}`.toLowerCase().includes(search.toLowerCase()))
-  }, [search, project?.contractor])
+  }, [search, project?.contractor, contractorPool])
 
-  const highRisk = CONTRACTORS.filter((c) => c.scoreBand === 'poor').length
-  const issues = CONTRACTORS.reduce((s, c) => s + c.pendingDefects + c.litigationCount, 0)
+  const highRisk = contractorPool.filter((c) => c.scoreBand === 'poor').length
+  const issues = contractorPool.reduce((s, c) => s + c.pendingDefects + c.litigationCount, 0)
 
   if (!project) return null
 
@@ -57,8 +81,8 @@ export function WorkspaceContractorsPage() {
       />
 
       <KpiRow>
-        <KpiCard label="Registered Contractors" value={CONTRACTORS.length} icon="engineering" />
-        <KpiCard label="Verified" value={CONTRACTORS.filter((c) => verified[c.id] ?? true).length} icon="verified" iconTone="success" />
+        <KpiCard label="Registered Contractors" value={contractorPool.length} icon="engineering" />
+        <KpiCard label="Verified" value={contractorPool.filter((c) => verified[c.id] ?? true).length} icon="verified" iconTone="success" />
         <KpiCard label="High Risk" value={highRisk} icon="warning" iconTone={highRisk ? 'danger' : 'neutral'} />
         <KpiCard label="Pending Issues" value={issues} icon="report" iconTone={issues ? 'warning' : 'neutral'} delta="Defects + litigation" />
       </KpiRow>

@@ -139,17 +139,30 @@ module/
 
 ---
 
-## 6. AI Architecture & Advisory Guardrails
+## 6. AI Microservice Architecture & Advisory Guardrails
 
-- **Backend-Only Execution**: The AI Engine (`backend/src/modules/ai/`) communicates with OpenRouter and NVIDIA Nemotron. Client applications never contact LLM providers directly.
-- **Data Sanitization**: Before any project data is submitted to the AI model, an automated sanitizer removes:
-  - Phone numbers, email addresses, personal names
-  - Aadhaar / PAN numbers
-  - API keys, JWT tokens, internal system passwords
-  - Competitor contractor bid pricing during active tenders
-- **Advisory Role**: The AI model is strictly an advisory engine:
-  - Allowed: Risk scoring, schedule delay prediction, budget variance detection, public complaint cluster correlation.
-  - Prohibited: Progress verification, contract award, contractor selection, payment release, legal determinations.
+NIRIKSHAK deploys a dedicated Python/FastAPI microservice (`ai-services/`) as a first-class intelligence engine, integrated with the Express gateway via private shared-secret authentication.
+
+### Microservice Interaction Boundaries:
+1. **Frontend to Express Only:** Browser clients NEVER communicate directly with Python AI. All requests flow through `POST /api/ai/analyze/:projectId` and `POST /api/ai/feedback`.
+2. **Security Gateway:** Express authenticates the caller, validates organization tenancy (or contractor project assignment), builds a sanitized `ProjectSnapshot`, and attaches `X-Nirikshak-AI-Key`.
+3. **Deterministic Core Intelligence:**
+   - **Isolation Forest & Local Outlier Factor:** Structural and neighborhood anomaly detection.
+   - **MiniBatch K-Means:** Archetype clustering and online operational drift tracking.
+   - **Robust Cost Cohorts:** Non-parametric sector expenditure variance detection.
+4. **Contextual Bandit Reinforcement Learning (LinUCB):**
+   - Ranks 8 operational oversight actions (`SCHEDULE_SITE_INSPECTION`, `REVIEW_COST_VARIANCE`, etc.).
+   - Learns from Government official feedback (`ACCEPTED`, `USEFUL`, `REJECTED`, `HARMFUL`) and verified milestone outcomes.
+5. **Reasoning & Explanation Layer (OpenRouter / NVIDIA Nemotron):**
+   - Provides structured human-readable explanations with strict Pydantic validation.
+   - Resilient degradation: if OpenRouter is unreachable, deterministic ML intelligence is returned with `llm.status="UNAVAILABLE"`.
+6. **Continuous Learning Lifecycle:**
+   - Contractor reports remain `CONTRACTOR_REPORTED` and cannot update the online learner.
+   - When an Executive Engineer issues official approval (`approve_progress_update`), the backend dispatches a verified snapshot (`verified=true`) to `/learn/snapshot`.
+   - Thread-safe updates and event persistence are managed in `ai-services/state/nirikshak_ai_state.sqlite3`.
+7. **Advisory Guardrails:**
+   - Review Priority Score indicates how unusual a project appears compared to historical training data (never a "delay probability" or "fraud probability").
+   - AI outputs are strictly decision support; authorized Government officials make all executive, legal, and financial decisions.
 
 ---
 

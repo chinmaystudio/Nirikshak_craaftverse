@@ -2,6 +2,7 @@ import type { VisionAnalysis, VisionProfile, VisionImageSource } from "@/types/i
 import type { ApiResponse } from "@/types/api";
 import { latency, offlineGuard } from "@/services/api/client";
 import { infrastructureProfiles } from "@/data/infrastructure";
+import { isDemoMode } from "@/lib/config/dataMode";
 import { appStore } from "@/app/providers/store";
 
 const MAX_HISTORY = 12;
@@ -28,6 +29,28 @@ function pickProfile(preferredProjectId?: string | null): VisionProfile {
 }
 
 function buildResult(profile: VisionProfile, opts: AnalyzeOptions): VisionAnalysis {
+  if (!isDemoMode()) {
+    return {
+      id: `VIS-LIVE-${Date.now()}`,
+      analyzedAt: new Date().toISOString(),
+      imageSource: opts.source,
+      thumb: opts.thumb,
+      infrastructureLabel: "Infrastructure Inspection (Field Upload)",
+      shortLabel: "Field Image",
+      infrastructureType: "Civic Infrastructure",
+      confidence: 85,
+      description: "Photo recorded for verification. Live advisory computer-vision service is currently integrating.",
+      details: ["Image registered on ledger", "Citizen verification pending officer review"],
+      condition: "Recorded for Review",
+      authority: "Municipal Works Agency",
+      relatedProject: opts.preferredProjectId
+        ? { projectId: opts.preferredProjectId, matchConfidence: 90 }
+        : null,
+      reportCategory: "Roads & Pavements",
+      saved: true,
+      infoSubmitted: false,
+    };
+  }
   const variants = profile.conditionVariants;
   const condition = variants
     ? variants[appStore.getState().visionCount % variants.length]

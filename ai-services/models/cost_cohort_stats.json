@@ -1,0 +1,121 @@
+{
+  "global": {
+    "median_log_cost": 4.749530236494927,
+    "mad_log_cost": 0.6164458459568953,
+    "n": 3855
+  },
+  "sector": {
+    "Transport": {
+      "median_log_cost": 4.755398895532386,
+      "mad_log_cost": 0.6801242097291031,
+      "n": 1662
+    },
+    "Energy": {
+      "median_log_cost": 4.795790545596741,
+      "mad_log_cost": 0.5478668954463402,
+      "n": 1547
+    },
+    "Water Sanitation": {
+      "median_log_cost": 4.572333691786951,
+      "mad_log_cost": 0.4606405448912274,
+      "n": 526
+    },
+    "Social and Commercial Infrastructure": {
+      "median_log_cost": 4.76900736741947,
+      "mad_log_cost": 0.761674182186999,
+      "n": 120
+    }
+  },
+  "subsector": {
+    "Roads and bridges": {
+      "median_log_cost": 4.699661849080809,
+      "mad_log_cost": 0.6250099202044446,
+      "n": 1507
+    },
+    "Electricity transmission": {
+      "median_log_cost": 4.545101659521972,
+      "mad_log_cost": 0.39705836496593694,
+      "n": 833
+    },
+    "Airports": {
+      "median_log_cost": 5.091539169320091,
+      "mad_log_cost": 0.47641865247883164,
+      "n": 13
+    },
+    "Oil/ Gas/ LNG Storage": {
+      "median_log_cost": 7.048386408721883,
+      "mad_log_cost": 1.4888054692010444,
+      "n": 13
+    },
+    "Water treatment plants": {
+      "median_log_cost": 4.575353381035096,
+      "mad_log_cost": 0.4545095488797495,
+      "n": 18
+    },
+    "Storm water drainage system": {
+      "median_log_cost": 4.3062436855462805,
+      "mad_log_cost": 0.22691296606590283,
+      "n": 26
+    },
+    "Irrigation (dams, channels, embankments, etc.)": {
+      "median_log_cost": 4.475403102002505,
+      "mad_log_cost": 0.4083445381784827,
+      "n": 172
+    },
+    "Renewable energy (grid)": {
+      "median_log_cost": 5.222383046633521,
+      "mad_log_cost": 0.6384031768323446,
+      "n": 642
+    },
+    "Water supply pipeline": {
+      "median_log_cost": 4.698814784792823,
+      "mad_log_cost": 0.5479770880301129,
+      "n": 184
+    },
+    "Urban public transport (except rolling stock)": {
+      "median_log_cost": 4.206384651826097,
+      "mad_log_cost": 1.0524922732952162,
+      "n": 34
+    },
+    "Common infrastructure for industrial parks, SEZ": {
+      "median_log_cost": 4.89141983355683,
+      "mad_log_cost": 0.43188634879535437,
+      "n": 82
+    },
+    "Electricity generation (grid)": {
+      "median_log_cost": 8.361016460532953,
+      "mad_log_cost": 1.031728798098488,
+      "n": 43
+    },
+    "Railway track, tunnel, viaducts, bridges": {
+      "median_log_cost": 6.958917386361161,
+      "mad_log_cost": 0.779441702179918,
+      "n": 64
+    },
+    "Solid waste management": {
+      "median_log_cost": 4.990092392864926,
+      "mad_log_cost": 0.7170178718839493,
+      "n": 11
+    },
+    "Sewage collection, treatment and disposal system": {
+      "median_log_cost": 4.629472478511056,
+      "mad_log_cost": 0.3953659739137967,
+      "n": 115
+    },
+    "Ports (excluding captive)": {
+      "median_log_cost": 6.153710939470885,
+      "mad_log_cost": 0.658758281489435,
+      "n": 27
+    },
+    "Post-harvest storage infrastructure for agriculture and horticulture produce including cold storage": {
+      "median_log_cost": 3.4542640901085053,
+      "mad_log_cost": 0.10776326975704631,
+      "n": 20
+    },
+    "Tourism": {
+      "median_log_cost": 4.555874894263214,
+      "mad_log_cost": 1.1401105960907625,
+      "n": 11
+    }
+  }
+}

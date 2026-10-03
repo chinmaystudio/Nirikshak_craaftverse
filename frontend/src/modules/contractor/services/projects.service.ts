@@ -46,12 +46,12 @@ export class ContractorProjectsService {
         spent: 0,
         received: 0,
         progress,
-        planned: 0,
+        planned: null,
         start: '',
         deadline: p.scheduled_completion_date || '',
         months: 0,
         status,
-        risk: status === 'Delayed' ? 'High' : status === 'At Risk' ? 'Medium' : 'Low',
+        risk: null,
         lastUpdate: '',
         lastUpdateNote: '',
         workOrder: p.contract_number || 'Not available',
@@ -68,12 +68,7 @@ export class ContractorProjectsService {
           factors: [],
           actions: [],
         },
-        health: {
-          overall: status === 'Delayed' ? 'POOR' : progress > 50 ? 'GOOD' : 'FAIR',
-          score: Math.round(progress),
-          scores: [],
-          risks: [],
-        },
+        health: null,
         expenses: [],
       };
     });

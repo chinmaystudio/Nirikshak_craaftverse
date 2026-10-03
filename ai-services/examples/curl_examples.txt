@@ -1,0 +1,8 @@
+
+# Health
+curl http://127.0.0.1:8000/health
+
+# Analyze
+curl -X POST http://127.0.0.1:8000/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"project":{"project_id":"NIR-1","project_name":"Road Upgrade","sector":"Transport","subsector":"Roads and bridges","total_cost_inr_crore":500,"award_date":"2025-01-01","contractor_reported_progress_pct":60,"government_verified_progress_pct":52,"planned_progress_pct":70,"schedule_variance_days":20,"cost_variance_pct":8,"resource_shortage_ratio":0.25,"inspection_defects":2,"high_severity_complaints":1,"pending_approval_days":5,"evidence_count":6}}'

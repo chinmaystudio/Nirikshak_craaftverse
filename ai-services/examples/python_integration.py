@@ -1,0 +1,38 @@
+
+from pathlib import Path
+from nirikshak_ai import NirikshakAI
+
+ROOT = Path(__file__).resolve().parents[1]
+ai = NirikshakAI(ROOT)
+
+project = {
+    "project_id": "NIR-PUNE-001",
+    "project_name": "Pune Urban Corridor Improvement",
+    "project_authority": "Government of Maharashtra",
+    "sector": "Transport",
+    "subsector": "Roads and bridges",
+    "record_scope": "Project",
+    "normalized_status": "UNDER_CONSTRUCTION",
+    "reported_status": "Work in progress",
+    "total_cost_inr_crore": 850,
+    "award_date": "2025-04-10",
+    "quality_score": 0.95,
+    "contractor_reported_progress_pct": 72,
+    "government_verified_progress_pct": 64,
+    "planned_progress_pct": 76,
+    "schedule_variance_days": 24,
+    "cost_variance_pct": 11.5,
+    "open_complaints": 9,
+    "high_severity_complaints": 2,
+    "inspection_defects": 3,
+    "resource_shortage_ratio": 0.32,
+    "pending_approval_days": 12,
+    "payment_delay_days": 7,
+    "evidence_count": 8,
+}
+
+analysis = ai.analyze(project)
+print(analysis)
+
+# Verified snapshots can update the online learner:
+print(ai.learn_verified_snapshot(project, verified=True))

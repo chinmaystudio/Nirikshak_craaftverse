@@ -1,0 +1,49 @@
+{
+  "model_version": "nirikshak-ai-v1.0.0",
+  "project_id": "NIR-PUNE-DEMO-001",
+  "unsupervised": {
+    "project_id": "NIR-PUNE-DEMO-001",
+    "archetype_cluster": 8,
+    "structural_anomaly_score": 99.82,
+    "neighborhood_anomaly_score": 99.82,
+    "cluster_distance_score": 100.0,
+    "cost_anomaly_score": 91.65,
+    "review_priority_score": 98.63,
+    "review_band": "VERY_UNUSUAL",
+    "signals": [
+      "Project differs strongly from historical infrastructure archetypes.",
+      "Project cost is unusual for comparable historical sector/subsector projects.",
+      "Project lies far from the center of its nearest historical project cluster."
+    ],
+    "limitations": [
+      "This is an unsupervised review-priority signal, not a calibrated probability of delay, fraud, or cost overrun.",
+      "Government verification remains authoritative."
+    ]
+  },
+  "online_drift": {
+    "available": false,
+    "seen_verified_snapshots": 0,
+    "required_verified_snapshots": 30
+  },
+  "recommended_actions": [
+    {
+      "action": "SCHEDULE_SITE_INSPECTION",
+      "score": 3.637488,
+      "learned_mean_reward": 2.649373,
+      "uncertainty_bonus": 0.988115
+    },
+    {
+      "action": "REVIEW_COST_VARIANCE",
+      "score": 3.040605,
+      "learned_mean_reward": 2.05249,
+      "uncertainty_bonus": 0.988115
+    },
+    {
+      "action": "REVIEW_RESOURCE_PLAN",
+      "score": 2.601072,
+      "learned_mean_reward": 1.612957,
+      "uncertainty_bonus": 0.988115
+    }
+  ],
+  "decision_guardrail": "AI output is advisory only. Government officials remain responsible for approvals, inspections, contract awards, payments and legal decisions."
+}

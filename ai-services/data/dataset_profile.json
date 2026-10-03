@@ -1,0 +1,39 @@
+{
+  "model_version": "nirikshak-ai-v1.0.0",
+  "trained_at": "2026-10-03T10:46:30.409699+00:00",
+  "training_rows": 3891,
+  "award_year_min": 2014,
+  "award_year_max": 2019,
+  "median_cost_inr_crore": 114.53,
+  "max_cost_inr_crore": 80190.0,
+  "svd_components": 48,
+  "svd_explained_variance": 0.8895689719514757,
+  "cluster_sizes": {
+    "2": 498,
+    "11": 265,
+    "4": 411,
+    "6": 189,
+    "1": 283,
+    "10": 236,
+    "7": 233,
+    "9": 503,
+    "5": 518,
+    "0": 269,
+    "3": 444,
+    "8": 42
+  },
+  "algorithms": [
+    "IsolationForest",
+    "LocalOutlierFactor(novelty=True)",
+    "TruncatedSVD",
+    "MiniBatchKMeans",
+    "Robust sector/subsector median-MAD cost anomaly",
+    "Online StandardScaler + MiniBatchKMeans",
+    "Seeded LinUCB contextual bandit"
+  ],
+  "limitations": [
+    "Historical workbook is suitable for unsupervised anomaly/archetype learning, not calibrated delay-probability prediction.",
+    "True temporal delay/cost-overrun prediction requires verified longitudinal project snapshots.",
+    "The recommendation policy is advisory and must not execute government decisions."
+  ]
+}
