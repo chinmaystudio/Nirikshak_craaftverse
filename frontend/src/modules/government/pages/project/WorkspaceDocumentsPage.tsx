@@ -50,7 +50,7 @@ export function WorkspaceDocumentsPage() {
         description="Digital repository for this project — DPR, approvals, contracts, bills, inspection and legal records with version control and access permissions."
         actions={
           <>
-            <Button variant="outline" size="sm" icon="download" onClick={() => showToast('Repository index exported (demo file).', 'info')}>
+            <Button variant="outline" size="sm" icon="download" onClick={() => showToast('Repository index exported.', 'info')}>
               {t('common.export')}
             </Button>
             <Button variant="primary" size="sm" icon="upload_file" onClick={() => setUploadOpen(true)}>

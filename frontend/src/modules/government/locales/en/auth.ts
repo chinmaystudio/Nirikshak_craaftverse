@@ -20,6 +20,6 @@ export default {
   'auth.selectRole': 'Select Role',
   'auth.securityNote':
     'Official Infrastructure Monitoring & Verification Network • Authorized Personnel Only',
-  'auth.mockLoginNote': 'Use registered credentials or developer demo accounts to authenticate.',
+  'auth.mockLoginNote': 'Select your assigned administrative role to proceed.',
   'auth.demoCredentials': 'Use registered official credentials to sign in.',
 }

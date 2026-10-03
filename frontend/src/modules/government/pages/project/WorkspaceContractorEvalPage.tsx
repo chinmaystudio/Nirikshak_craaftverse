@@ -53,7 +53,6 @@ export function WorkspaceContractorEvalPage() {
             This project is at the pre-tender stage. Once a tender is awarded and the work order is issued, the AI
             evaluation runs against the awarded contractor's record.
           </p>
-          <p className="mt-2 text-caption text-fg-subtle">{t('common.mockDataNote')}</p>
         </Panel>
       </div>
     )

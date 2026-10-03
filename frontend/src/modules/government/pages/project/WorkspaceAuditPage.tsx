@@ -172,8 +172,6 @@ export function WorkspaceAuditPage() {
         </p>
       </Panel>
 
-      <Card className="p-3 text-caption text-fg-subtle">{t('common.mockDataNote')}</Card>
-
       {/* Finding drawer */}
       <Drawer open={detail !== null} onClose={() => setDetail(null)} title={detail ? `Audit ${detail.id}` : ''} titleIcon="content_paste_search" width="max-w-lg">
         {detail && (

@@ -33,7 +33,7 @@ export function SettingsPage() {
       <div>
         <h1 className="text-heading-1 text-fg">{t('nav.settings')}</h1>
         <p className="mt-1 text-body-small text-fg-muted">
-          Preferences and role information for this demonstration session (mock data).
+          Preferences and role information for this active administrative session.
         </p>
       </div>
 

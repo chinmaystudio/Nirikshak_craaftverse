@@ -301,64 +301,6 @@ export default function Dashboard() {
           />
         </Card>
       </div>
-
-      {/* Demonstration-only alerts are never shown in production. */}
-      {(import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.VITE_USE_MOCK_API === 'true') ? <Card className="p-5">
-        <SectionTitle icon={Sparkles} title="AI Alerts" right={<Link to="/ai-assist" className="link text-sm flex items-center gap-1">Ask AI Assist <ArrowRight className="w-4 h-4" /></Link>} />
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          <AlertItem
-            tone="red"
-            icon={AlertTriangle}
-            title="Project is behind schedule"
-            body="Rural Bridge Construction is 18% behind planned progress. Girder-launch crane unconfirmed. Recovery plan due 16 Sep."
-            link="/projects/p5/ai-analysis"
-            linkLabel="View AI analysis"
-          />
-          <AlertItem
-            tone="amber"
-            icon={Clock}
-            title="Payment awaiting approval"
-            body="INV-2026-0179 (₹2.12 Cr) under verification since 24 Aug — beyond the 21-day SLA. Written follow-up recommended."
-            link="/projects/p1/bills"
-            linkLabel="View bill status"
-          />
-          <AlertItem
-            tone="amber"
-            icon={AlertTriangle}
-            title="Missing document"
-            body="Bid for NH-548C Satara lacks Experience Certificate and Equipment Ownership Proof. Readiness at 78%."
-            link="/tenders/t1/bid/ai-assist"
-            linkLabel="Open AI Bid Assist"
-          />
-          <AlertItem
-            tone="blue"
-            icon={CalendarClock}
-            title="Upcoming inspection"
-            body="Structural Work Zone 1 inspection on 15 Sep 2026, 10:30 hrs by Er. Anil Deshmukh (EE, PWD Pune)."
-            link="/projects/p1/inspection"
-            linkLabel="Prepare checklist"
-          />
-          <AlertItem
-            tone="amber"
-            icon={Wrench}
-            title="Resource shortage"
-            body="District Hospital Expansion: skilled mason & MEP technician strength 12 below peak requirement from 20 Sep."
-            link="/projects/p3/resources"
-            linkLabel="Manage resources"
-          />
-          <AlertItem
-            tone="amber"
-            icon={AlertTriangle}
-            title="Compliance issue"
-            body="CAR Insurance Certificate expires 22 Sep 2026 on Pune Road Development. DG emission test due 30 Sep on Hospital project."
-            link="/projects/p1/inspection"
-            linkLabel="View compliance"
-          />
-        </div>
-      </Card> : null}
-
-      {/* Action Center */}
-      {(import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.VITE_USE_MOCK_API === 'true') ? <ActionCenter /> : null}
     </div>
   );
 }

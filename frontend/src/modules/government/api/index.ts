@@ -1,21 +1,17 @@
-import * as mockApi from './mockApi';
 import * as supabaseApi from './supabaseApi';
 
-const useMock = import.meta.env.VITE_USE_MOCK_API === 'true';
+export const authApi = supabaseApi.authApi;
+export const projectsApi = supabaseApi.projectsApi;
+export const contractorsApi = supabaseApi.contractorsApi;
+export const approvalsApi = supabaseApi.approvalsApi;
+export const tendersApi = supabaseApi.tendersApi;
+export const grievancesApi = supabaseApi.grievancesApi;
+export const financeApi = supabaseApi.financeApi;
+export const auditApi = supabaseApi.auditApi;
+export const alertsApi = supabaseApi.alertsApi;
+export const documentsApi = supabaseApi.documentsApi;
+export const litigationApi = supabaseApi.litigationApi;
+export const workApi = supabaseApi.workApi;
+export const insightsApi = supabaseApi.insightsApi;
+export const citizenApi = supabaseApi.citizenApi;
 
-const selectedApi = useMock ? mockApi : supabaseApi;
-
-export const authApi = selectedApi.authApi;
-export const projectsApi = selectedApi.projectsApi;
-export const contractorsApi = selectedApi.contractorsApi;
-export const approvalsApi = selectedApi.approvalsApi;
-export const tendersApi = selectedApi.tendersApi;
-export const grievancesApi = selectedApi.grievancesApi;
-export const financeApi = selectedApi.financeApi;
-export const auditApi = selectedApi.auditApi;
-export const alertsApi = selectedApi.alertsApi;
-export const documentsApi = selectedApi.documentsApi;
-export const litigationApi = selectedApi.litigationApi;
-export const workApi = selectedApi.workApi;
-export const insightsApi = selectedApi.insightsApi;
-export const citizenApi = selectedApi.citizenApi;

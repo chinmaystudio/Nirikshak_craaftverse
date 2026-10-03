@@ -34,7 +34,6 @@ export function DashboardPage() {
   const [expandedDepts, setExpandedDepts] = useState(false)
   const [loadedAt] = useState(() => new Date())
   const [pendingClearanceCount, setPendingClearanceCount] = useState<number>(0)
-  const demoMode = import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.VITE_USE_MOCK_API === 'true'
 
   useEffect(() => {
     async function fetchPendingRequests() {
@@ -265,80 +264,6 @@ export function DashboardPage() {
         </Panel>
       </div>
 
-      {/* Fixture-only operational queues stay out of production. */}
-      {demoMode ? <Panel
-        title={t('dash.urgentQueue')}
-        icon="crisis_alert"
-        actions={<Link to="/government/approvals" className="text-caption text-primary-strong hover:underline">{t('common.viewAll')}</Link>}
-        bodyClassName="p-0"
-      >
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[880px] text-body">
-            <thead>
-              <tr className="nk-table-header">
-                <th className="px-4 text-left">{t('common.project')}</th>
-                <th className="px-3 text-left">Queue Item</th>
-                <th className="px-3 text-left">SLA</th>
-                <th className="px-3 text-right">{t('common.actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { id: 'NIR-PWD-2026-0142', item: 'Review Geo-Inspection & Notice', sla: 'Due today', tone: 'danger' as const, action: '/government/approvals' },
-                { id: 'NIR-WRD-2026-0089', item: 'Verify Measurement Book (e-MB)', sla: 'Due in 2 days', tone: 'warning' as const, action: '/government/projects' },
-                { id: 'NIR-PWD-2026-0205', item: 'Assign Field Engineer', sla: 'Due in 3 days', tone: 'warning' as const, action: '/government/projects' },
-                { id: 'NIR-UID-2026-0311', item: 'Open Comparative Chart', sla: 'Due in 5 days', tone: 'info' as const, action: '/government/reports' },
-              ].map((row) => (
-                <tr key={row.id + row.item} className="border-t border-border hover:bg-surface-2">
-                  <td className="px-4 py-2.5">
-                    <span className="nk-mono-id text-fg-muted">{row.id}</span>
-                  </td>
-                  <td className="px-3 py-2.5 font-medium text-fg">{row.item}</td>
-                  <td className="px-3 py-2.5">
-                    <StatusBadge descriptor={{ key: row.sla, tone: row.tone, icon: 'alarm' }} />
-                  </td>
-                  <td className="px-3 py-2.5 text-right">
-                    <Button variant="outline" size="sm" onClick={() => navigate(row.action)}>
-                      {t('common.view')}
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Panel> : null}
-
-      {/* Ground-truth feed (3-col) */}
-      {demoMode ? <Panel title={t('dash.groundTruth')} icon="fact_check" subtitle={t('dash.groundTruthSubtitle')} bodyClassName="p-0">
-        <ul className="divide-y divide-border">
-          {[
-            { id: 'INS-2026-0231', p: 'NIR-PWD-2026-0142', txt: 'Core sample 38.4 MPa after 28-day curing — above M35 spec (NABL Accredited lab).', when: '09 Feb, 15:40 IST', tone: 'success' as const, icon: 'verified' },
-            { id: 'INS-2026-0229', p: 'NIR-PWD-2026-0205', txt: 'Pile bore-log vs e-MB discrepancy on spans 3–4; third-party verification ordered.', when: '08 Feb, 11:10 IST', tone: 'danger' as const, icon: 'report' },
-            { id: 'INS-2026-0228', p: 'NIR-PHED-2026-0117', txt: 'ESR-2 chlorination within limits; pipeline joint inspection 84% complete.', when: '07 Feb, 16:05 IST', tone: 'success' as const, icon: 'check_circle' },
-          ].map((row) => (
-            <li key={row.id} className="flex items-start gap-3 p-4">
-              <span
-                className={cn(
-                  'material-symbols-outlined rounded-control p-1.5 text-[20px]',
-                  row.tone === 'success' && 'bg-success-tint text-success-strong',
-                  row.tone === 'danger' && 'bg-danger-tint text-danger-strong',
-                )}
-                aria-hidden="true"
-              >
-                {row.icon}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-body-small text-fg">{row.txt}</p>
-                <p className="mt-1 text-caption text-fg-subtle">
-                  <span className="nk-mono-id">{row.p}</span> • {row.id} • {row.when}
-                </p>
-              </div>
-              <IconButton icon="arrow_forward" label="Open inspection" size="sm" onClick={() => navigate(`/government/projects/${row.p}`)} />
-            </li>
-          ))}
-        </ul>
-      </Panel> : null}
 
       {/* Projects register with filters */}
       <Panel title={t('dash.projectsRegister')} icon="map" subtitle={t('dash.registerSubtitle')} bodyClassName="p-0">
@@ -420,8 +345,6 @@ export function DashboardPage() {
           }
         />
       </Panel>
-
-      {demoMode ? <p className="text-caption text-fg-subtle">{t('common.mockDataNote')}</p> : null}
     </div>
   )
 }

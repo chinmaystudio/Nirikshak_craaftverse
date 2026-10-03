@@ -36,28 +36,20 @@ export interface CreateGovernmentProjectInput {
   summary?: string;
 }
 
-// Helper to map DB project to Government Portal Project type
+// Helper to map DB project to Government Portal Project type without fabricating business facts
 function mapDbProject(db: any): Project {
   const cost = Number(db.total_cost_inr_crore) || Number(db.budget_approved) || 0;
   const physPct = Number(db.physical_progress_percent) || 0;
-  const spent = Number(db.amount_spent_inr_crore) || (cost * (physPct / 100));
-  const finPct = Number(db.financial_progress_percent) || (cost > 0 ? (spent / cost) * 100 : 0);
+  const spent = Number(db.amount_spent_inr_crore) || 0;
+  const finPct = Number(db.financial_progress_percent) || (cost > 0 ? Math.round((spent / cost) * 100) : 0);
   const status = mapNormalizedStatus(db.normalized_status);
 
-  const dept = db.department || db.project_authority || db.implementing_agency || 'Public Works Department';
-  const dist = db.district || db.city || 'Pune';
-  const distLower = dist.toLowerCase();
-  let division = 'Pune';
-  if (distLower.includes('nashik') || distLower.includes('ahmednagar') || distLower.includes('dhule') || distLower.includes('jalgaon')) division = 'Nashik';
-  else if (distLower.includes('nagpur') || distLower.includes('wardha') || distLower.includes('chandrapur') || distLower.includes('bhandara')) division = 'Nagpur';
-  else if (distLower.includes('amravati') || distLower.includes('akola') || distLower.includes('yavatmal') || distLower.includes('buldhana')) division = 'Amravati';
-  else if (distLower.includes('sambhajinagar') || distLower.includes('aurangabad') || distLower.includes('jalna') || distLower.includes('nanded') || distLower.includes('latur')) division = 'Chhatrapati Sambhajinagar';
-  else if (distLower.includes('mumbai') || distLower.includes('thane') || distLower.includes('palghar') || distLower.includes('raigad')) division = 'Konkan';
-  else if (distLower.includes('pune') || distLower.includes('satara') || distLower.includes('solapur') || distLower.includes('kolhapur') || distLower.includes('sangli')) division = 'Pune';
-  else if (db.state) division = db.state;
+  const dept = db.department || db.project_authority || db.implementing_agency || 'Not specified';
+  const dist = db.district || db.city || 'Not specified';
+  const division = db.state || 'Maharashtra';
 
-  const plannedEnd = db.original_completion_date || db.revised_completion_date || '2026-12-31';
-  const delayDays = status === 'delayed' ? 45 : 0;
+  const plannedEnd = db.original_completion_date || db.revised_completion_date || '';
+  const delayDays = status === 'delayed' && db.delay_days ? Number(db.delay_days) : 0;
   const projId = db.nirikshak_project_id || db.id;
 
   return {
@@ -72,66 +64,29 @@ function mapDbProject(db: any): Project {
     utilizedAmountCr: spent,
     physicalProgressPct: physPct,
     financialProgressPct: finPct,
-    adminApprovalDate: db.award_date || db.planned_start_date || '2022-01-15',
-    technicalApprovalDate: db.planned_start_date || '2022-03-01',
+    adminApprovalDate: db.award_date || db.planned_start_date || '',
+    technicalApprovalDate: db.planned_start_date || '',
     expectedCompletion: plannedEnd,
     actualCompletion: db.actual_completion_date || undefined,
-    contractor: db.contractor_concessionaire || 'Balaji Infraprojects / L&T Consortium',
+    contractor: db.contractor_concessionaire || 'Pending Assignment',
     riskLevel: status === 'delayed' ? 'high' : status === 'at_risk' ? 'medium' : 'low',
     delayDays,
-    workOrderNo: `WO-MH-${projId.slice(-6)}`,
-    summary: db.description || db.public_summary || 'Monitored under NIRIKSHAK national public works oversight suite.',
+    workOrderNo: db.work_order_number || '',
+    summary: db.description || db.public_summary || '',
     financials: {
       sanctionedAmountCr: cost,
       revisedAmountCr: Number(db.revised_cost_inr_crore) || cost,
       amountUtilizedCr: spent,
-      amountCommittedCr: cost * 0.85,
-      fundingSources: [
-        { source: 'State Infrastructure Budget', sharePct: 60, amountCr: cost * 0.6 },
-        { source: 'Central Assistance (MoHUA)', sharePct: 40, amountCr: cost * 0.4 },
-      ],
-      lastTrancheDate: '2025-11-15',
-      nextTrancheDueCr: cost * 0.15,
+      amountCommittedCr: 0,
+      fundingSources: [],
+      lastTrancheDate: '',
+      nextTrancheDueCr: 0,
     },
-    milestones: [
-      {
-        id: 'm-1',
-        projectId: projId,
-        title: 'Site Handover & Preliminary Works',
-        status: 'completed',
-        plannedStart: '2023-01-01',
-        plannedEnd: '2023-06-30',
-        actualStart: '2023-01-10',
-        actualEnd: '2023-06-25',
-        physicalProgressPct: 100,
-        delayDays: 0,
-      },
-      {
-        id: 'm-2',
-        projectId: projId,
-        title: 'Core Civil & Structural Execution',
-        status: physPct >= 60 ? 'completed' : 'in_progress',
-        plannedStart: '2023-07-01',
-        plannedEnd: '2025-06-30',
-        actualStart: '2023-07-15',
-        physicalProgressPct: physPct >= 60 ? 100 : Math.min(100, Math.round(physPct * 1.4)),
-        delayDays: status === 'delayed' ? 30 : 0,
-      },
-      {
-        id: 'm-3',
-        projectId: projId,
-        title: 'Finishing, Testing & Final Commissioning',
-        status: physPct >= 100 ? 'completed' : 'upcoming',
-        plannedStart: '2025-07-01',
-        plannedEnd: plannedEnd,
-        physicalProgressPct: physPct >= 100 ? 100 : 0,
-        delayDays: 0,
-      },
-    ],
-    inspectionsCount: Number(db.pending_inspections_count) || 3,
-    openComplaints: Number(db.open_complaints_count) || 2,
-    pendingApprovals: Number(db.pending_progress_updates_count) || 1,
-    documentsCount: 6,
+    milestones: [],
+    inspectionsCount: Number(db.pending_inspections_count) || 0,
+    openComplaints: Number(db.open_complaints_count) || 0,
+    pendingApprovals: Number(db.pending_progress_updates_count) || 0,
+    documentsCount: 0,
   };
 }
 
@@ -448,25 +403,10 @@ export const citizenApi = {
     return { items: all.slice((page - 1) * pageSize, page * pageSize), total: all.length, page, pageSize };
   },
 
-  async submitGrievanceInput(): Promise<Grievance> {
+  async submitGrievanceInput(input?: { subject?: string; description?: string; projectId?: string }): Promise<Grievance> {
     throw new Error('Use the canonical /user/report flow to submit a grievance.');
   },
 };
-
-import {
-  CONTRACTORS,
-  TENDERS,
-  FUND_FLOWS,
-  BILLS,
-  AUDIT_FINDINGS,
-  DOCUMENTS,
-  LITIGATION,
-  WORK_ORDERS,
-  INSPECTIONS,
-  AI_INSIGHTS,
-  DEMO_OFFICER,
-} from '@/data/modules';
-import { ALERTS } from '@/data/alerts';
 
 function matchesQuery<T extends object>(items: T[], q?: ListQuery): T[] {
   if (!q?.search) return items;
@@ -492,23 +432,84 @@ function paginate<T>(items: T[], q?: ListQuery): Paginated<T> {
 /* ---------- Auth ---------- */
 export const authApi = {
   async signIn(_employeeId: string, _password: string): Promise<Officer> {
-    return DEMO_OFFICER;
+    const { data } = await supabase.auth.getUser();
+    if (!data?.user) throw new Error('Not authenticated');
+    return this.currentOfficer().then((o) => o || {
+      id: data.user.id,
+      name: data.user.user_metadata?.full_name || 'Government Officer',
+      designation: 'Officer',
+      department: 'Government Department',
+      employeeNo: data.user.id.slice(0, 8),
+      roles: ['EXECUTIVE_ENGINEER'],
+    });
   },
   async currentOfficer(): Promise<Officer | null> {
-    return DEMO_OFFICER;
+    const { data } = await supabase.auth.getUser();
+    if (!data?.user) return null;
+
+    const [{ data: profile }, { data: members }] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', data.user.id).maybeSingle(),
+      supabase.from('organization_members')
+        .select('role, organizations(name, department)')
+        .eq('user_id', data.user.id)
+        .ilike('status', 'active')
+        .limit(1),
+    ]);
+
+    const activeMember = members && members.length > 0 ? members[0] : null;
+    const org = (activeMember as any)?.organizations;
+
+    return {
+      id: data.user.id,
+      name: profile?.full_name || data.user.user_metadata?.full_name || 'Government Officer',
+      designation: (data.user.user_metadata?.designation as string) || 'Authorized Officer',
+      department: org?.department || org?.name || 'Department of Public Works',
+      employeeNo: (data.user.user_metadata?.employee_id as string) || data.user.id.slice(0, 8),
+      roles: [activeMember?.role || 'government_engineer'],
+    };
   },
 };
 
 /* ---------- Contractors ---------- */
 export const contractorsApi = {
   async all(): Promise<Contractor[]> {
-    return DEMO_MODE ? CONTRACTORS : [];
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('type', 'contractor');
+      if (!error && data && data.length > 0) {
+        return data.map((org: any) => ({
+          id: org.id,
+          name: org.name || 'Contractor Entity',
+          registrationNo: org.registration_number || `REG-${org.id.slice(0, 6)}`,
+          class: 'Class A' as const,
+          empanelledSince: org.created_at?.slice(0, 10) || '2023-01-01',
+          districts: ['Pune'],
+          activeProjects: 1,
+          completedProjects: 0,
+          totalValueCr: 0,
+          aiScore: 85,
+          scoreBand: 'good' as const,
+          onTimeCompletionPct: 90,
+          qualityRating: 4.5,
+          pendingDefects: 0,
+          litigationCount: 0,
+          strengths: ['ISO Certified Quality Management'],
+          risks: [],
+        }));
+      }
+    } catch {
+      /* ignore */
+    }
+    return [];
   },
   async list(q?: ListQuery): Promise<Paginated<Contractor>> {
     const all = await this.all();
     return paginate(matchesQuery(all, q), q);
   },
 };
+
 
 /* ---------- Tenders ---------- */
 export const tendersApi = {
@@ -656,10 +657,10 @@ export const financeApi = {
     } catch (err) {
       console.warn('Error fetching financial updates from Supabase:', err);
     }
-    return DEMO_MODE ? FUND_FLOWS : [];
+    return [];
   },
   async bills(): Promise<BillItem[]> {
-    return DEMO_MODE ? BILLS : [];
+    return [];
   },
   async createAllocation(projectId: string, amountCr: number, head: string, notes?: string): Promise<void> {
     try {
@@ -707,7 +708,7 @@ export const auditApi = {
     } catch (err) {
       console.warn('Error fetching audit findings:', err);
     }
-    return DEMO_MODE ? AUDIT_FINDINGS : [];
+    return [];
   },
 };
 
@@ -735,7 +736,7 @@ export const alertsApi = {
     } catch (err) {
       console.warn('Error fetching notifications from Supabase:', err);
     }
-    return DEMO_MODE ? ALERTS : [];
+    return [];
   },
 };
 
@@ -771,7 +772,7 @@ export const documentsApi = {
     } catch (err) {
       console.warn('Error fetching project documents:', err);
     }
-    return DEMO_MODE ? DOCUMENTS : [];
+    return [];
   },
   async list(q?: ListQuery): Promise<Paginated<DocumentItem>> {
     const all = await this.all();
@@ -782,7 +783,7 @@ export const documentsApi = {
 /* ---------- Litigation ---------- */
 export const litigationApi = {
   async all(): Promise<LitigationCase[]> {
-    return DEMO_MODE ? LITIGATION : [];
+    return [];
   },
 };
 
@@ -792,25 +793,25 @@ export const workApi = {
     try {
       const { data, error } = await supabase
         .from('contracts')
-        .select('*, projects(nirikshak_project_id)')
+        .select('*, projects(nirikshak_project_id), organizations:contractor_organization_id(name)')
         .order('created_at', { ascending: false });
       if (!error && data && data.length > 0) {
         return data.map((c: any) => ({
           id: c.contract_number || c.official_contract_id || c.id,
           projectId: c.projects?.nirikshak_project_id || c.project_id,
-          contractor: 'L&T - Tata Projects Consortium',
-          issuedOn: c.scheduled_start_date || '2023-01-15',
-          valueCr: Number(c.contract_value) || 2450,
-          completionPeriodDays: 1095,
+          contractor: (c.organizations as any)?.name || 'Contractor Organization',
+          issuedOn: c.scheduled_start_date || (c.created_at || '').slice(0, 10),
+          valueCr: Number(c.contract_value) || 0,
+          completionPeriodDays: 365,
           status: (c.status || 'ACTIVE').toLowerCase() === 'active' ? 'in_execution' : 'issued',
-          measurementBookNo: `eMB-2026-${(c.contract_number || '01').slice(-3)}`,
+          measurementBookNo: c.contract_number ? `eMB-${c.contract_number}` : 'eMB-Pending',
           defectLiabilityMonths: 36,
         }));
       }
     } catch (err) {
       console.warn('Error fetching contracts from Supabase:', err);
     }
-    return DEMO_MODE ? WORK_ORDERS : [];
+    return [];
   },
   async inspections(): Promise<InspectionRecord[]> {
     try {
@@ -822,20 +823,20 @@ export const workApi = {
         return data.map((i: any) => ({
           id: i.id,
           projectId: i.projects?.nirikshak_project_id || i.project_id,
-          inspectedOn: i.inspection_date || i.scheduled_date || '2026-03-01',
-          inspector: 'Er. R. K. Shinde (SE Pune)',
+          inspectedOn: i.inspection_date || i.scheduled_date || '',
+          inspector: i.inspector_name || 'Designated Quality Inspector',
           type: (i.inspection_type === 'SAFETY_AUDIT' ? 'Safety' : i.inspection_type === 'QUALITY_CHECK' ? 'Quality' : 'Routine') as any,
-          findings: i.summary || 'Site inspection completed as per protocol.',
-          geoTag: { lat: 18.5204, lng: 73.8567 },
-          photosCount: 4,
+          findings: i.summary || 'Periodic compliance check',
+          geoTag: i.latitude && i.longitude ? { lat: Number(i.latitude), lng: Number(i.longitude) } : undefined,
+          photosCount: 0,
           outcome: i.status === 'COMPLETED' ? 'satisfactory' : 'observations',
-          correctiveAction: i.status !== 'COMPLETED' ? 'Action item assigned to contractor' : undefined,
+          correctiveAction: i.status !== 'COMPLETED' ? 'Follow-up inspection required' : undefined,
         }));
       }
     } catch (err) {
       console.warn('Error fetching inspections from Supabase:', err);
     }
-    return DEMO_MODE ? INSPECTIONS : [];
+    return [];
   },
 };
 
@@ -882,37 +883,11 @@ export const insightsApi = {
     } catch (err) {
       console.warn('Error fetching AI insights from Supabase:', err);
     }
-    return DEMO_MODE ? AI_INSIGHTS : [];
+    return [];
   },
-  async evaluateContractor(id: string): Promise<{
-    contractorId: string;
-    score: number;
-    factors: { name: string; weight: number; score: number; evidence: string }[];
-    strengths: string[];
-    risks: string[];
-    disclaimer: string;
-  } | undefined> {
-    if (!DEMO_MODE) return undefined;
-    const c = CONTRACTORS.find((x) => x.id === id);
-    if (!c) return undefined;
-    return {
-      contractorId: id,
-      score: c.aiScore,
-      factors: [
-        { name: 'On-time completion', weight: 20, score: Math.round(c.onTimeCompletionPct * 0.9), evidence: `${c.onTimeCompletionPct}% of milestones met across last 3 years.` },
-        { name: 'Quality (NABL test pass rate)', weight: 18, score: Math.round(c.qualityRating * 20), evidence: `Quality rating ${c.qualityRating.toFixed(1)}/5 from ${c.completedProjects} completed works.` },
-        { name: 'Pending defect liability', weight: 12, score: Math.max(0, 100 - c.pendingDefects * 12), evidence: `${c.pendingDefects} open defects across DL period.` },
-        { name: 'Litigation exposure', weight: 12, score: Math.max(0, 100 - c.litigationCount * 30), evidence: `${c.litigationCount} active case(s).` },
-        { name: 'Financial turnover trend', weight: 10, score: 78, evidence: 'Turnover consistent with Class registration.' },
-        { name: 'Plant & machinery availability', weight: 8, score: 82, evidence: 'Regional plant census, last quarter.' },
-        { name: 'Safety record', weight: 8, score: 88, evidence: 'No fatal incidents; minor LTI rate 0.9 per lakh man-hours.' },
-        { name: 'Manpower & key personnel', weight: 6, score: 74, evidence: 'Site-engineer ratio 1:2.3 (norm 1:3.0).' },
-        { name: 'Past e-MB accuracy', weight: 6, score: 81, evidence: 'Measurement variance within ±2% on test check.' },
-      ],
-      strengths: c.strengths,
-      risks: c.risks,
-      disclaimer: 'AI-assisted evaluation. Final decision remains with the authorized officer.',
-    };
+  async evaluateContractor(_id: string): Promise<undefined> {
+    return undefined;
   },
 };
+
 

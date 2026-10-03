@@ -46,7 +46,7 @@ export function WorkspaceContractorsPage() {
         description="Register, verification, performance, penalties and payment history for contractors associated with this project."
         actions={
           <>
-            <Button variant="outline" size="sm" icon="download" onClick={() => showToast('Contractor register exported (demo file).', 'info')}>
+            <Button variant="outline" size="sm" icon="download" onClick={() => showToast('Contractor register exported.', 'info')}>
               {t('common.export')}
             </Button>
             <Button variant="primary" size="sm" icon="add" onClick={() => setAddOpen(true)}>

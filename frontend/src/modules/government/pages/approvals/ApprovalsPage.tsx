@@ -46,7 +46,7 @@ export function ApprovalsPage() {
       <div>
         <h1 className="text-heading-1 text-fg">{t('nav.approvals')}</h1>
         <p className="mt-1 text-body-small text-fg-muted">
-          Pending approvals with SLA due dates and a full audit trail on every action (mock data).
+          Pending approvals with SLA due dates and a full audit trail on every action.
         </p>
       </div>
 

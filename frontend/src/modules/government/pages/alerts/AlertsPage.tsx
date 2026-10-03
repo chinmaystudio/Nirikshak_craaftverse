@@ -43,7 +43,7 @@ export function AlertsPage() {
       <div>
         <h1 className="text-heading-1 text-fg">{t('nav.alerts')}</h1>
         <p className="mt-1 text-body-small text-fg-muted">
-          Rule-based alerts across {ALERT_CATEGORIES.length} categories (mock data).
+          Rule-based alerts across {ALERT_CATEGORIES.length} categories.
         </p>
       </div>
 

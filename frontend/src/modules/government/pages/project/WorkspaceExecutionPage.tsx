@@ -13,8 +13,9 @@ import { PageHeader, KpiRow, FilterBar, ConfirmDialog, DetailField, KpiCard } fr
 import { DualProgress } from '@/components/ui/Progress'
 import { formatCr, formatDate } from '@/utils/format'
 import { AI_CLASSIFICATION, AI_CONFIDENCE, INSPECTION_OUTCOME, LITIGATION_STATUS, WORK_ORDER_STATUS } from '@/utils/status'
-import { HEARINGS, PROGRESS_UPDATES, MIGRATIONS, SETTLEMENTS, ACTIVITY_LOG, type ProgressUpdate } from '@/data/workspace'
+import { HEARINGS, type ProgressUpdate } from '@/data/workspace'
 import type { LitigationCase } from '@/types'
+
 
 const CONTRACT_STAGES = [
   { label: 'Contract Award', icon: 'emoji_events', dateKey: 'adminApprovalDate' as const },
@@ -32,7 +33,7 @@ export function WorkspaceExecutionPage() {
   const { t } = useI18n()
   const { showToast } = useToast()
   const { project, workOrder, inspections, litigation, insights, bills } = useProjectWorkspace()
-  const [updates, setUpdates] = useState<ProgressUpdate[]>(() => PROGRESS_UPDATES.filter((u) => u.projectId === project?.id))
+  const [updates, setUpdates] = useState<ProgressUpdate[]>([])
   const [updateSearch, setUpdateSearch] = useState('')
   const [updateFilter, setUpdateFilter] = useState('')
   const [caseDrawer, setCaseDrawer] = useState<LitigationCase | null>(null)
@@ -45,9 +46,10 @@ export function WorkspaceExecutionPage() {
 
   const peopleBills = useMemo(() => bills.filter((b) => b.type === 'Labour Bill'), [bills])
   const projectUpdates = updates
-  const projectMigrations = MIGRATIONS.filter((m) => m.projectId === project?.id)
-  const projectSettlements = SETTLEMENTS.filter((s) => s.projectId === project?.id)
-  const projectActivity = useMemo(() => ACTIVITY_LOG.filter((a) => a.projectId === project?.id), [project?.id])
+  const projectMigrations: any[] = []
+  const projectSettlements: any[] = []
+  const projectActivity: any[] = []
+
 
   if (!project) return null
 

@@ -1,12 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { AlertItem } from '@/types'
-import { ALERTS } from '@/data/alerts'
+import { alertsApi } from '@/api'
 
 /**
  * Notification context — alerts feed powering the header bell and drawer.
- * Mock data source; wired to the alerts API surface so a real backend can
- * replace it without UI changes.
+ * Powered by live Supabase alertsApi query.
  */
 
 interface NotificationsContextValue {
@@ -19,12 +18,22 @@ interface NotificationsContextValue {
 const NotificationsContext = createContext<NotificationsContextValue | null>(null)
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const [alerts, setAlerts] = useState<AlertItem[]>(ALERTS)
+  const [alerts, setAlerts] = useState<AlertItem[]>([])
 
   useEffect(() => {
-    // Placeholder for a real subscription (websocket / polling) — mock data
-    // is static, so nothing to subscribe to yet.
+    let active = true
+    alertsApi.list().then((liveAlerts) => {
+      if (active && Array.isArray(liveAlerts)) {
+        setAlerts(liveAlerts)
+      }
+    }).catch((err) => {
+      console.warn('Failed to load notifications from alertsApi:', err)
+    })
+    return () => {
+      active = false
+    }
   }, [])
+
 
   const markRead = (id: string) =>
     setAlerts((list) => list.map((a) => (a.id === id ? { ...a, read: true } : a)))

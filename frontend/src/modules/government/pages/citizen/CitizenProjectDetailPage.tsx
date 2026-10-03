@@ -84,8 +84,7 @@ export function CitizenProjectDetailPage() {
           Contractor evaluation scores and internal correspondence are not published.
         </p>
       </Panel>
-
-      <p className="text-caption text-fg-subtle">{t('common.mockDataNote')}</p>
     </div>
   )
 }
+

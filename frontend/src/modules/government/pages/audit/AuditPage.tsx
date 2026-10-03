@@ -36,7 +36,7 @@ export function AuditPage() {
       <div>
         <h1 className="text-heading-1 text-fg">{t('nav.audit')}</h1>
         <p className="mt-1 text-body-small text-fg-muted">
-          Audit paras and observations with accountable officers and corrective status (mock data).
+          Audit paras and observations with accountable officers and corrective status.
         </p>
       </div>
 

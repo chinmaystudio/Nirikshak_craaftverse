@@ -94,7 +94,7 @@ export function WorkspaceTendersPage() {
         description="Procurement workspace for this project — publication, bids, evaluation, approval and award, with the full tender history."
         actions={
           <>
-            <Button variant="outline" size="sm" icon="download" onClick={() => showToast('Procurement register exported (demo file).', 'info')}>
+            <Button variant="outline" size="sm" icon="download" onClick={() => showToast('Procurement register exported.', 'info')}>
               {t('common.export')}
             </Button>
             <Button variant="primary" size="sm" icon="add" onClick={() => setCreateOpen(true)}>

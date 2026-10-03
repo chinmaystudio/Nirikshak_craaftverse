@@ -75,7 +75,7 @@ export async function respond(text: string, ctx: AssistantContext | null): Promi
   }
 
   if (/(delay|late|behind|stuck|slow|why.*time)/.test(q)) {
-    const project = (ctx?.projectId ? findProject(ctx.projectId) : undefined) ?? projectsData.find((p) => p.id === "katraj-kondhwa-road");
+    const project = (ctx?.projectId ? findProject(ctx.projectId) : undefined) ?? nearbyProjects(1)[0];
     if (!project) {
       return make({ text: "I could not find that project. Try asking about projects near you." });
     }
@@ -97,12 +97,16 @@ export async function respond(text: string, ctx: AssistantContext | null): Promi
 
   if (/(who|responsible|accountab|contractor|engineer)/.test(q)) {
     const project = (ctx?.projectId ? findProject(ctx.projectId) : undefined) ?? nearbyProjects(1)[0];
+    if (!project) {
+      return make({ text: "No project information is currently available." });
+    }
     return make({
       text: `For ${project.name}, the executing agency is ${project.agency} and the works contractor is ${project.contractor.name} (contract ₹${project.contractor.contractValue} Cr). On-time performance: ${project.contractor.performance.onTime}, quality rating ${project.contractor.performance.quality}. The supervising engineer is ${project.engineer}. All of this is public on the project page.`,
       actions: [{ label: "Open Contractor Profile", icon: "engineering", route: `#/projects/${project.id}?tab=contractor` }],
       chips: ["How are contractors penalised?", "Which projects has this contractor done before?"]
     });
   }
+
 
   if (/(money|spent|budget|cost|fund|expenditure|kharcha|paisa)/.test(q)) {
     return make({

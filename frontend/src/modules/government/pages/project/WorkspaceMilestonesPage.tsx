@@ -252,7 +252,7 @@ export function WorkspaceMilestonesPage() {
                       : m,
                   ),
                 )
-                showToast(`Progress on "${updateTarget.title}" set to ${value}% — verification requested (demo).`, 'success')
+                showToast(`Progress on "${updateTarget.title}" set to ${value}% — verification requested.`, 'success')
                 setUpdateTarget(null)
               }}
             >

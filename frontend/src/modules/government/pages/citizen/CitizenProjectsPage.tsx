@@ -38,7 +38,7 @@ export function CitizenProjectsPage() {
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-heading-1 text-fg">{t('citizen.projectsTitle')}</h1>
-        <p className="mt-1 text-body-small text-fg-muted">{t('citizen.noLoginNote')} {t('common.mockDataNote')}</p>
+        <p className="mt-1 text-body-small text-fg-muted">{t('citizen.noLoginNote')}</p>
       </div>
 
       <Panel title={t('common.filters')} icon="filter_list" bodyClassName="p-4">

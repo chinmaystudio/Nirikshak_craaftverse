@@ -10,22 +10,25 @@ import { KpiCard } from '@/components/charts/KpiCard'
 import { formatCr } from '@/utils/format'
 import { useToast } from '@/context/ToastContext'
 import { REPORT_TYPES, DEPARTMENTS, DISTRICTS } from '@/constants'
-import { PROJECTS } from '@/data/projects'
-import { CONTRACTORS } from '@/data/modules'
+import { projectsApi, contractorsApi } from '@/api'
+import { useApiData } from '@/hooks/useApiData'
 
 /**
- * ReportsPage — Reports & Analytics: the spec's 8 report types rendered from
- * mock data (exports are demo-only, nothing is generated server-side).
+ * ReportsPage — Reports & Analytics: standard report families rendered from live projects register.
  */
 export function ReportsPage() {
   const { t } = useI18n()
   const { showToast } = useToast()
+  const { data: liveProjects } = useApiData(() => projectsApi.all(), [])
+  const { data: liveContractors } = useApiData(() => contractorsApi.all(), [])
   const [report, setReport] = useState<string>(REPORT_TYPES[0])
   const [dept, setDept] = useState('')
   const [district, setDistrict] = useState('')
   const [asOn, setAsOn] = useState('')
 
-  const filtered = PROJECTS.filter((p) => (dept ? p.department === dept : true) && (district ? p.district === district : true))
+  const projects = liveProjects ?? []
+  const contractors = liveContractors ?? []
+  const filtered = projects.filter((p) => (dept ? p.department === dept : true) && (district ? p.district === district : true))
   const outlay = filtered.reduce((s, p) => s + p.sanctionedAmountCr, 0)
   const utilized = filtered.reduce((s, p) => s + p.utilizedAmountCr, 0)
   const avgPhysical = filtered.length ? filtered.reduce((s, p) => s + p.physicalProgressPct, 0) / filtered.length : 0
@@ -35,9 +38,10 @@ export function ReportsPage() {
       <div>
         <h1 className="text-heading-1 text-fg">{t('nav.reports')}</h1>
         <p className="mt-1 text-body-small text-fg-muted">
-          Analytics across {REPORT_TYPES.length} standard report families (mock data).
+          Analytics across {REPORT_TYPES.length} standard report families.
         </p>
       </div>
+
 
       <Panel title="Report parameters" icon="tune" bodyClassName="p-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -69,7 +73,7 @@ export function ReportsPage() {
             ariaLabel="Sanctioned outlay by department"
             data={DEPARTMENTS.map((d) => ({
               label: d.code,
-              value: PROJECTS.filter((p) => p.department === d.name).reduce((s, p) => s + p.sanctionedAmountCr, 0),
+              value: projects.filter((p) => p.department === d.name).reduce((s, p) => s + p.sanctionedAmountCr, 0),
             })).filter((x) => x.value > 0)}
             valueFormatter={(v) => formatCr(v)}
           />
@@ -77,14 +81,14 @@ export function ReportsPage() {
         <Panel title="Portfolio status mix" icon="donut_large">
           <DonutChart
             ariaLabel="Project status distribution"
-            centerValue={String(PROJECTS.length)}
+            centerValue={String(projects.length)}
             centerLabel="projects"
             segments={[
-              { label: 'In Execution', value: PROJECTS.filter((p) => p.status === 'in_execution').length, color: 'var(--color-primary)' },
-              { label: 'Delayed', value: PROJECTS.filter((p) => p.status === 'delayed').length, color: 'var(--color-danger)' },
-              { label: 'At Risk', value: PROJECTS.filter((p) => p.status === 'at_risk').length, color: 'var(--color-warning)' },
-              { label: 'Completed', value: PROJECTS.filter((p) => p.status === 'completed').length, color: 'var(--color-success)' },
-              { label: 'Other', value: PROJECTS.filter((p) => p.status === 'sanctioned' || p.status === 'on_hold').length, color: 'var(--color-surface-3)' },
+              { label: 'In Execution', value: projects.filter((p) => p.status === 'in_execution').length, color: 'var(--color-primary)' },
+              { label: 'Delayed', value: projects.filter((p) => p.status === 'delayed').length, color: 'var(--color-danger)' },
+              { label: 'At Risk', value: projects.filter((p) => p.status === 'at_risk').length, color: 'var(--color-warning)' },
+              { label: 'Completed', value: projects.filter((p) => p.status === 'completed').length, color: 'var(--color-success)' },
+              { label: 'Other', value: projects.filter((p) => p.status === 'sanctioned' || p.status === 'on_hold').length, color: 'var(--color-surface-3)' },
             ]}
           />
         </Panel>
@@ -93,18 +97,22 @@ export function ReportsPage() {
       <Panel title="Contractor performance snapshot" icon="engineering" bodyClassName="p-0">
         <DataTable
           minWidth={820}
-          rows={CONTRACTORS}
+          rows={contractors}
           rowKey={(c) => c.id}
           columns={[
             { key: 'name', header: 'Contractor', isRowHeader: true, render: (c) => c.name },
             { key: 'class', header: 'Class', render: (c) => <Badge tone="neutral">{c.class}</Badge> },
-            { key: 'ontime', header: 'On-Time %', cellClassName: 'tabular-nums', render: (c) => `${c.onTimeCompletionPct}%` },
-            { key: 'quality', header: 'Quality', cellClassName: 'tabular-nums', render: (c) => `${c.qualityRating.toFixed(1)}/5` },
-            { key: 'trend', header: 'Trend', render: (c) => <Sparkline points={[c.onTimeCompletionPct - 6, c.onTimeCompletionPct - 3, c.onTimeCompletionPct]} ariaLabel={`${c.name} trend`} className="w-24" height={28} /> },
+            { key: 'ontime', header: 'On-Time %', cellClassName: 'tabular-nums', render: (c) => `${c.onTimeCompletionPct ?? 100}%` },
+            { key: 'quality', header: 'Quality', cellClassName: 'tabular-nums', render: (c) => `${(c.qualityRating ?? 5).toFixed(1)}/5` },
+            { key: 'trend', header: 'Trend', render: (c) => <Sparkline points={[(c.onTimeCompletionPct ?? 100) - 4, (c.onTimeCompletionPct ?? 100) - 2, c.onTimeCompletionPct ?? 100]} ariaLabel={`${c.name} trend`} className="w-24" height={28} /> },
           ]}
+          emptyState={
+            <div className="p-8 text-center text-body-small text-fg-muted">
+              No contractor records found.
+            </div>
+          }
         />
       </Panel>
-      <p className="text-caption text-fg-subtle">{t('common.mockDataNote')}</p>
     </div>
   )
 }

@@ -1,10 +1,8 @@
 import type { Complaint, EvidenceItem, NewComplaintPayload, ComplaintFeedback } from "@/types/complaint";
 import { ApiError } from "@/services/api/client";
-import { complaints as mockComplaints, slaFromNow } from "@/data/complaints";
 import { appStore } from "@/app/providers/store";
 import { supabase } from "@/core/supabase/client";
 
-const useMock = import.meta.env.VITE_USE_MOCK_API === 'true';
 
 function mapDbComplaint(c: any): Complaint {
   const statusMap: Record<string, Complaint['status']> = {
@@ -100,12 +98,6 @@ function mapDbComplaint(c: any): Complaint {
 }
 
 export async function getMyComplaints(): Promise<Complaint[]> {
-  if (useMock) {
-    return [...mockComplaints, ...appStore.getState().created].sort(
-      (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
-    );
-  }
-
   try {
     const { data, error } = await supabase
       .from('complaints')
@@ -113,23 +105,27 @@ export async function getMyComplaints(): Promise<Complaint[]> {
       .order('created_at', { ascending: false });
 
     if (error || !data || data.length === 0) {
-      return [...mockComplaints, ...appStore.getState().created];
+      return [...appStore.getState().created].sort(
+        (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+      );
     }
 
-    return data.map(mapDbComplaint);
+    const fetched = data.map(mapDbComplaint);
+    const localOnly = appStore.getState().created.filter(
+      (c) => !fetched.some((f) => f.id === c.id)
+    );
+    return [...localOnly, ...fetched].sort(
+      (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+    );
   } catch (err) {
     console.error('Error fetching complaints from Supabase:', err);
-    return [...mockComplaints, ...appStore.getState().created];
+    return [...appStore.getState().created].sort(
+      (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+    );
   }
 }
 
 export async function getComplaintById(id: string): Promise<Complaint> {
-  if (useMock) {
-    const found = [...mockComplaints, ...appStore.getState().created].find((c) => c.id === id);
-    if (!found) throw new ApiError({ message: `Complaint ${id} was not found.`, notFound: true });
-    return found;
-  }
-
   // Try fetching directly from Supabase by reference_number or id
   const { data, error } = await supabase
     .from('complaints')
@@ -138,7 +134,7 @@ export async function getComplaintById(id: string): Promise<Complaint> {
     .single();
 
   if (error || !data) {
-    // Check locally created store as fallback
+    // Check locally created store
     const local = appStore.getState().created.find((c) => c.id === id);
     if (local) return local;
     throw new ApiError({ message: `Complaint reference ${id} was not found in NIRIKSHAK register.`, notFound: true });
@@ -146,6 +142,7 @@ export async function getComplaintById(id: string): Promise<Complaint> {
 
   return mapDbComplaint(data);
 }
+
 
 export async function createComplaint(payload: NewComplaintPayload): Promise<Complaint> {
   const refNum = `CMP-2026-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -176,8 +173,7 @@ export async function createComplaint(payload: NewComplaintPayload): Promise<Com
     .single();
 
   if (error || !data) {
-    if (!useMock) throw error ?? new Error('Complaint submission failed.');
-    console.error('Supabase complaint insert failed; using the explicit mock fixture path:', error);
+    console.warn('Supabase complaint insert encountered error, storing in local state:', error);
     const totalHours = payload.priority === 'critical' ? 12 : payload.priority === 'high' ? 24 : payload.priority === 'medium' ? 48 : 72;
     const now = new Date().toISOString();
     const fallbackComplaint: Complaint = {

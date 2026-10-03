@@ -30,7 +30,9 @@ Thumbs.db
 .claude/
 .kilo/
 .agents/
-skills/
+.skills/
+.tests/
+.coderabbit/
 
 # Logs
 logs/

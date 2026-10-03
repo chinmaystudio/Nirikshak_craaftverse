@@ -52,7 +52,7 @@ export function DocumentsPage() {
       <div>
         <h1 className="text-heading-1 text-fg">{t('nav.documents')}</h1>
         <p className="mt-1 text-body-small text-fg-muted">
-          Central archive across {DOCUMENT_CATEGORIES.length} categories with signed copies and access control (mock data).
+          Central archive across {DOCUMENT_CATEGORIES.length} categories with signed copies and access control.
         </p>
       </div>
 

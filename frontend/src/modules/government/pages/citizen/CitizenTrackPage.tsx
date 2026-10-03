@@ -42,7 +42,7 @@ export function CitizenTrackPage() {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
       <div>
         <h1 className="text-heading-1 text-fg">{t('citizen.trackTitle')}</h1>
-        <p className="mt-1 text-body-small text-fg-muted">{t('citizen.noLoginNote')} {t('common.mockDataNote')}</p>
+        <p className="mt-1 text-body-small text-fg-muted">{t('citizen.noLoginNote')}</p>
       </div>
 
       <Card className="p-4">
@@ -53,7 +53,7 @@ export function CitizenTrackPage() {
           onChange={(e) => setRef(e.target.value)}
           placeholder={t('citizen.trackPlaceholder')}
           startIcon="confirmation_number"
-          helper="Demo references: GRV-MH-9942, GRV-MH-9943, GRV-MH-9944, GRV-MH-9945"
+          helper="Enter the reference number provided on grievance submission (e.g. CMP-...)"
         />
       </Card>
 

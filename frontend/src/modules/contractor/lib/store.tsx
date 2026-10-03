@@ -125,12 +125,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const [notifications, setNotifications] = useState<Notification[]>(() => DEMO_MODE ? clone(INITIAL_NOTIFICATIONS) : []);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const markRead = useCallback((id: string) => setNotifications((ns) => ns.map((n) => (n.id === id ? { ...n, read: true } : n))), []);
   const markAllRead = useCallback(() => setNotifications((ns) => ns.map((n) => ({ ...n, read: true }))), []);
   const unread = notifications.filter((n) => !n.read).length;
 
-  const [projects, setProjects] = useState<Project[]>(() => DEMO_MODE ? clone(PROJECTS) : []);
+  const [projects, setProjects] = useState<Project[]>([]);
+
 
   useEffect(() => {
     let isMounted = true;
@@ -196,7 +197,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
   }, [session?.user?.id, session?.organization?.id]);
 
-  const [reports, setReports] = useState<ProgressReport[]>(() => DEMO_MODE ? clone(INITIAL_REPORTS) : []);
+  const [reports, setReports] = useState<ProgressReport[]>([]);
   const addReport = useCallback((r: Omit<ProgressReport, 'id' | 'submittedAt'>) => {
     const id = uid('rep');
     const newRep = { ...r, id, submittedAt: new Date().toISOString() };
@@ -226,7 +227,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setReports((rs) => rs.map((r) => (r.id === id ? { ...r, status, reviewerNote: note ?? r.reviewerNote } : r)));
   }, []);
 
-  const [workers, setWorkers] = useState<Record<string, Worker[]>>(() => DEMO_MODE ? clone(INITIAL_WORKERS) : {});
+  const [workers, setWorkers] = useState<Record<string, Worker[]>>({});
   const addWorker = useCallback((projectId: string, w: Omit<Worker, 'id'>) => {
     setWorkers((ws) => ({ ...ws, [projectId]: [...(ws[projectId] ?? []), { ...w, id: uid('w') }] }));
   }, []);
@@ -237,12 +238,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setWorkers((ws) => ({ ...ws, [projectId]: (ws[projectId] ?? []).filter((x) => x.id !== id) }));
   }, []);
 
-  const [resources, setResources] = useState<Record<string, ResourceRow[]>>(() => DEMO_MODE ? clone(INITIAL_RESOURCES) : {});
+  const [resources, setResources] = useState<Record<string, ResourceRow[]>>({});
   const addResource = useCallback((projectId: string, r: Omit<ResourceRow, 'id'>) => {
     setResources((rs) => ({ ...rs, [projectId]: [...(rs[projectId] ?? []), { ...r, id: uid('r') }] }));
   }, []);
 
-  const [invoices, setInvoices] = useState<Invoice[]>(() => DEMO_MODE ? clone(INITIAL_INVOICES) : []);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const addInvoice = useCallback((i: Omit<Invoice, 'id'>) => {
     setInvoices((inv) => [{ ...i, id: uid('i') }, ...inv]);
   }, []);
@@ -250,53 +251,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setInvoices((inv) => inv.map((i) => (i.id === id && i.status === 'Draft' ? { ...i, status: 'Submitted', verification: 'Awaiting DyE check' } : i)));
   }, []);
 
-  const [messages, setMessages] = useState<Record<string, Message[]>>(() => DEMO_MODE ? clone(INITIAL_MESSAGES) : {});
+  const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const sendMessage = useCallback((m: Omit<Message, 'id' | 'ts' | 'status'>) => {
     const id = uid('m');
     setMessages((ms) => ({
       ...ms,
       [m.projectId]: [...(ms[m.projectId] ?? []), { ...m, id, ts: new Date().toISOString(), status: 'Sent' }],
     }));
-    if (!DEMO_MODE) return;
-    // Demo-only acknowledgement from government office
-    window.setTimeout(() => {
-      setMessages((ms) => {
-        const list = (ms[m.projectId] ?? []).map((x) => (x.id === id ? { ...x, status: 'Read' as const } : x));
-        return {
-          ...ms,
-          [m.projectId]: [
-            ...list,
-            {
-              id: uid('m'),
-              projectId: m.projectId,
-              dir: 'in' as const,
-              from: 'Office of the Executive Engineer',
-              role: 'Secretariat, Government of Maharashtra',
-              subject: `Re: ${m.subject}`,
-              type: 'Response' as const,
-              body: 'Your communication has been received and acknowledged. It has been marked to the concerned section for further action. Reference number may please be quoted in future correspondence.',
-              ts: new Date().toISOString(),
-              ref: `GOV/ACK/${Math.floor(1000 + Math.random() * 9000)}`,
-              status: 'Read' as const,
-            },
-          ],
-        };
-      });
-    }, 2600);
   }, []);
 
-  const [documents, setDocuments] = useState<Record<string, ProjectDoc[]>>(() => DEMO_MODE ? clone(INITIAL_DOCS) : {});
+  const [documents, setDocuments] = useState<Record<string, ProjectDoc[]>>({});
   const addDocument = useCallback((projectId: string, d: Omit<ProjectDoc, 'id' | 'uploaded' | 'by'>) => {
+    const orgName = session?.organization?.name || 'Contractor Entity';
     setDocuments((ds) => ({
       ...ds,
       [projectId]: [
         ...(ds[projectId] ?? []),
-        { ...d, id: uid('d'), uploaded: new Date().toISOString().slice(0, 10), by: 'Balaji Infraprojects' },
+        { ...d, id: uid('d'), uploaded: new Date().toISOString().slice(0, 10), by: orgName },
       ],
     }));
-  }, []);
+  }, [session?.organization?.name]);
 
-  const [bids, setBids] = useState<Record<string, Bid>>(() => DEMO_MODE ? clone(INITIAL_BIDS) : {});
+  const [bids, setBids] = useState<Record<string, Bid>>({});
+
   const saveBidDraft = useCallback((tenderId: string, step: number, data: Record<string, unknown>) => {
     setBids((bs) => ({
       ...bs,

@@ -78,8 +78,7 @@ export function WorkspaceOverviewPage() {
           </ol>
         </Panel>
       </div>
-
-      <Card className="p-3 text-caption text-fg-subtle">{t('common.mockDataNote')}</Card>
     </div>
   )
 }
+

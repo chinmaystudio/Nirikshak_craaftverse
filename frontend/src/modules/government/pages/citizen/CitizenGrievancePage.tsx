@@ -6,7 +6,7 @@ import { TextField, TextArea, Select } from '@/components/ui/Fields'
 import { Button } from '@/components/ui/Button'
 import { citizenApi } from '@/api'
 import { useToast } from '@/context/ToastContext'
-import { PROJECTS } from '@/data/projects'
+import { useApiData } from '@/hooks/useApiData'
 
 /**
  * CitizenGrievancePage — public grievance form (no login). Collects the
@@ -15,6 +15,7 @@ import { PROJECTS } from '@/data/projects'
 export function CitizenGrievancePage() {
   const { t } = useI18n()
   const { showToast } = useToast()
+  const { data: projects } = useApiData(() => citizenApi.all(), [])
   const [subject, setSubject] = useState('')
   const [description, setDescription] = useState('')
   const [projectRef, setProjectRef] = useState('')
@@ -67,7 +68,6 @@ export function CitizenGrievancePage() {
             </Button>
           </div>
         </Card>
-        <p className="text-caption text-fg-subtle">{t('common.mockDataNote')}</p>
       </div>
     )
   }
@@ -103,17 +103,17 @@ export function CitizenGrievancePage() {
             value={projectRef}
             onChange={(e) => setProjectRef(e.target.value)}
             placeholder="No specific project"
-            options={PROJECTS.map((p) => ({ value: p.id, label: `${p.id} — ${p.name}` }))}
+            options={(projects ?? []).map((p) => ({ value: p.id, label: `${p.id} — ${p.name}` }))}
           />
-          <TextField label={t('citizen.grievanceNameOptional')} block readOnly placeholder="Optional in this demo" />
-          <TextField label={t('citizen.grievanceContact')} block type="text" placeholder="Optional in this demo" />
+          <TextField label={t('citizen.grievanceNameOptional')} block placeholder="Optional contact name" />
+          <TextField label={t('citizen.grievanceContact')} block type="text" placeholder="Optional phone or email" />
           <Button type="submit" variant="primary" icon="outbox" disabled={submitting || !subject.trim() || !description.trim()}>
             {submitting ? 'Submitting…' : t('citizen.grievanceSubmit')}
           </Button>
         </form>
       </Card>
-
       <p className="rounded-control bg-surface-2 p-3 text-caption text-fg-muted">{t('citizen.privacyNote')}</p>
     </div>
   )
 }
+

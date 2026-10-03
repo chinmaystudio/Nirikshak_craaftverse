@@ -663,7 +663,7 @@ function BillDrawerContent({
             </Button>
           )}
         </div>
-        <p className="mt-2 text-caption text-fg-subtle">Actions apply to this demo session only and are announced in the audit log.</p>
+        <p className="mt-2 text-caption text-fg-subtle">Actions are logged in the project audit trail.</p>
       </div>
     </div>
   )
