@@ -29,7 +29,7 @@ Historical Unsupervised ML   Online Drift Monitor    LinUCB Contextual Bandit
    └──────────────┬──────────────┴─────────────────────────┘
                   │
                   ▼
-         OpenRouter / NVIDIA Nemotron-4-340B-Instruct (Reasoning & Explanations)
+         OpenRouter / NVIDIA Nemotron-3-Super-120B-A12B:free (Reasoning & Explanations)
                   │ (Context Sanitization, Transient Retries, Graceful Fallback)
                   ▼
          SQLite State Store (WAL mode, Foreign Keys, Idempotent Audit Ledger)

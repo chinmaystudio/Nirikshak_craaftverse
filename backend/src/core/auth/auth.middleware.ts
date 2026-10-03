@@ -12,18 +12,36 @@ export interface AuthenticatedRequest extends Request {
   role?: AppRole;
   organizationId?: string | null;
   supabase?: SupabaseClient;
+  mfaVerified?: boolean;
 }
+
+// Narrowly scoped public identity bootstrap endpoints
+export const AUTH_BOOTSTRAP_PUBLIC = [
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/csrf',
+  '/api/ai/health',
+];
 
 export async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   try {
+    let token: string | undefined;
+
+    // 1. Check Authorization: Bearer <token>
     const authHeader = req.header('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new AuthenticationError('Missing or malformed Authorization header');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.slice(7).trim();
     }
 
-    const token = authHeader.slice(7).trim();
+    // 2. Check HttpOnly session cookie
+    if (!token && req.cookies) {
+      token = req.cookies['nirikshak_session'] || req.cookies['sb-access-token'];
+    }
+
     if (!token) {
-      throw new AuthenticationError('Bearer token cannot be empty');
+      throw new AuthenticationError('Missing or malformed authentication credentials');
     }
 
     const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(token);
@@ -73,6 +91,25 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
   }
 }
 
+/**
+ * Secure default middleware:
+ * Any route under /api must automatically require authentication unless
+ * explicitly listed in AUTH_BOOTSTRAP_PUBLIC.
+ */
+export function requireAuthByDefault(req: Request, res: Response, next: NextFunction): void {
+  const fullPath = req.baseUrl ? `${req.baseUrl}${req.path}` : req.path;
+
+  // Check if matching any public bootstrap route
+  for (const publicEndpoint of AUTH_BOOTSTRAP_PUBLIC) {
+    if (fullPath === publicEndpoint || fullPath.startsWith(`${publicEndpoint}/`)) {
+      return next();
+    }
+  }
+
+  // Enforce authentication on all other /api routes
+  void requireAuth(req as AuthenticatedRequest, res, next);
+}
+
 export function requireRole(allowedRoles: AppRole[]) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user || !req.role) {
@@ -98,6 +135,42 @@ export function requireContractor(req: AuthenticatedRequest, res: Response, next
   if (!req.role || !isContractorRole(req.role)) {
     return next(new AuthorizationError('Contractor credentials required for this operation'));
   }
+  next();
+}
+
+/**
+ * Require elevated authentication (recent login / MFA) for critical state operations
+ * (e.g. contract awards, payment approvals, settlement authorizations).
+ */
+export function requireElevatedAuth(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  if (!req.user) {
+    return next(new AuthenticationError('Authentication required'));
+  }
+
+  // For high-privilege government roles, verify elevated authentication
+  const sensitiveRoles: AppRole[] = [
+    'government_admin',
+    'chief_engineer',
+    'auditor',
+  ];
+
+  if (req.role && sensitiveRoles.includes(req.role)) {
+    const authTimeStr = req.user.last_sign_in_at || req.user.created_at;
+    const authTime = new Date(authTimeStr).getTime();
+    const fifteenMinutes = 15 * 60 * 1000;
+
+    // Check if session authenticated within last 15 minutes or elevated
+    if (Date.now() - authTime > fifteenMinutes && !req.mfaVerified) {
+      res.status(403).json({
+        success: false,
+        error: 'ELEVATED_AUTH_REQUIRED',
+        code: 'MFA_REQUIRED',
+        message: 'This sensitive operation requires elevated authentication within the last 15 minutes.',
+      });
+      return;
+    }
+  }
+
   next();
 }
 

@@ -1,0 +1,210 @@
+version: '3.8'
+
+networks:
+  fabric-private:
+    name: nirikshak-fabric-private
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  orderer1_data:
+  orderer2_data:
+  orderer3_data:
+  peer0_gov_data:
+  peer0_contractor_data:
+  peer0_auditor_data:
+
+services:
+  # -------------------------------------------------------------------------
+  # RAFT ORDERING CLUSTER (3 NODES)
+  # -------------------------------------------------------------------------
+  orderer1.example.com:
+    image: hyperledger/fabric-orderer:2.5.9
+    container_name: orderer1.example.com
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+    volumes:
+      - ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer1.example.com/msp:/var/hyperledger/orderer/msp:ro
+      - ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer1.example.com/tls/:/var/hyperledger/orderer/tls:ro
+      - orderer1_data:/var/hyperledger/production/orderer
+    networks:
+      fabric-private:
+        ipv4_address: 172.28.0.10
+    restart: always
+
+  orderer2.example.com:
+    image: hyperledger/fabric-orderer:2.5.9
+    container_name: orderer2.example.com
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+    volumes:
+      - ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer2.example.com/msp:/var/hyperledger/orderer/msp:ro
+      - ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer2.example.com/tls/:/var/hyperledger/orderer/tls:ro
+      - orderer2_data:/var/hyperledger/production/orderer
+    networks:
+      fabric-private:
+        ipv4_address: 172.28.0.11
+    restart: always
+
+  orderer3.example.com:
+    image: hyperledger/fabric-orderer:2.5.9
+    container_name: orderer3.example.com
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+    volumes:
+      - ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer3.example.com/msp:/var/hyperledger/orderer/msp:ro
+      - ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer3.example.com/tls/:/var/hyperledger/orderer/tls:ro
+      - orderer3_data:/var/hyperledger/production/orderer
+    networks:
+      fabric-private:
+        ipv4_address: 172.28.0.12
+    restart: always
+
+  # -------------------------------------------------------------------------
+  # INSTITUTIONAL PEER NODES
+  # -------------------------------------------------------------------------
+  peer0.government.example.com:
+    image: hyperledger/fabric-peer:2.5.9
+    container_name: peer0.government.example.com
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=nirikshak-fabric-private
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=false
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_ID=peer0.government.example.com
+      - CORE_PEER_ADDRESS=peer0.government.example.com:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.government.example.com:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.government.example.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.government.example.com:7051
+      - CORE_PEER_LOCALMSPID=GovernmentOrgMSP
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    volumes:
+      - /var/run/:/host/var/run/
+      - ../network/crypto-config/peerOrganizations/government.example.com/peers/peer0.government.example.com/msp:/etc/hyperledger/fabric/msp:ro
+      - ../network/crypto-config/peerOrganizations/government.example.com/peers/peer0.government.example.com/tls:/etc/hyperledger/fabric/tls:ro
+      - peer0_gov_data:/var/hyperledger/production
+    networks:
+      fabric-private:
+        ipv4_address: 172.28.0.20
+    restart: always
+
+  peer0.contractor.example.com:
+    image: hyperledger/fabric-peer:2.5.9
+    container_name: peer0.contractor.example.com
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=nirikshak-fabric-private
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=false
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_ID=peer0.contractor.example.com
+      - CORE_PEER_ADDRESS=peer0.contractor.example.com:8051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:8051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.contractor.example.com:8052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:8052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.contractor.example.com:8051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.contractor.example.com:8051
+      - CORE_PEER_LOCALMSPID=ContractorOrgMSP
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    volumes:
+      - /var/run/:/host/var/run/
+      - ../network/crypto-config/peerOrganizations/contractor.example.com/peers/peer0.contractor.example.com/msp:/etc/hyperledger/fabric/msp:ro
+      - ../network/crypto-config/peerOrganizations/contractor.example.com/peers/peer0.contractor.example.com/tls:/etc/hyperledger/fabric/tls:ro
+      - peer0_contractor_data:/var/hyperledger/production
+    networks:
+      fabric-private:
+        ipv4_address: 172.28.0.21
+    restart: always
+
+  peer0.auditor.example.com:
+    image: hyperledger/fabric-peer:2.5.9
+    container_name: peer0.auditor.example.com
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=nirikshak-fabric-private
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=false
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_ID=peer0.auditor.example.com
+      - CORE_PEER_ADDRESS=peer0.auditor.example.com:9051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:9051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.auditor.example.com:9052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.auditor.example.com:9051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.auditor.example.com:9051
+      - CORE_PEER_LOCALMSPID=AuditorOrgMSP
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    volumes:
+      - /var/run/:/host/var/run/
+      - ../network/crypto-config/peerOrganizations/auditor.example.com/peers/peer0.auditor.example.com/msp:/etc/hyperledger/fabric/msp:ro
+      - ../network/crypto-config/peerOrganizations/auditor.example.com/peers/peer0.auditor.example.com/tls:/etc/hyperledger/fabric/tls:ro
+      - peer0_auditor_data:/var/hyperledger/production
+    networks:
+      fabric-private:
+        ipv4_address: 172.28.0.22
+    restart: always

@@ -1,0 +1,21 @@
+{
+  "name": "nirikshak-audit-chaincode",
+  "version": "1.0.0",
+  "description": "NIRIKSHAK Craftverse Hyperledger Fabric Immutable Audit Proof Chaincode",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "npx tsx tests/auditContract.test.ts",
+    "start": "fabric-chaincode-node start"
+  },
+  "dependencies": {
+    "fabric-contract-api": "^2.5.4",
+    "fabric-shim": "^2.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "tsx": "^4.7.1"
+  }
+}

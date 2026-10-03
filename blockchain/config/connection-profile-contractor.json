@@ -1,0 +1,45 @@
+{
+  "name": "nirikshak-network-contractor",
+  "version": "1.0.0",
+  "client": {
+    "organization": "ContractorOrgMSP",
+    "connection": {
+      "timeout": {
+        "peer": {
+          "endorser": "300"
+        },
+        "orderer": "300"
+      }
+    }
+  },
+  "channels": {
+    "nirikshakchannel": {
+      "orderers": ["orderer1.example.com", "orderer2.example.com", "orderer3.example.com"],
+      "peers": {
+        "peer0.contractor.example.com": {
+          "endorsingPeer": true,
+          "chaincodeQuery": true,
+          "ledgerQuery": true,
+          "eventSource": true
+        }
+      }
+    }
+  },
+  "organizations": {
+    "ContractorOrgMSP": {
+      "mspid": "ContractorOrgMSP",
+      "peers": ["peer0.contractor.example.com"],
+      "certificateAuthorities": ["ca.contractor.example.com"]
+    }
+  },
+  "orderers": {
+    "orderer1.example.com": {
+      "url": "grpcs://orderer1.example.com:7050"
+    }
+  },
+  "peers": {
+    "peer0.contractor.example.com": {
+      "url": "grpcs://peer0.contractor.example.com:8051"
+    }
+  }
+}

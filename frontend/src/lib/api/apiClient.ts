@@ -5,16 +5,26 @@ import type { ApiResponse } from './response';
 
 class ApiClient {
   private get baseUrl(): string {
-    return env.API_BASE_URL;
+    return env.API_BASE_URL || '/api';
   }
 
   private async getAuthHeader(): Promise<Record<string, string>> {
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) {
+        return { Authorization: `Bearer ${token}` };
+      }
+    } catch {
+      // In cookie-only zero-trust session mode, auth is transmitted via HttpOnly cookie
     }
     return {};
+  }
+
+  private getCsrfToken(): string | null {
+    if (typeof document === 'undefined') return null;
+    const match = document.cookie.match(/nirikshak_csrf=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
   }
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -27,9 +37,21 @@ class ApiClient {
       ...(options.headers as Record<string, string>),
     };
 
+    const method = (options.method || 'GET').toUpperCase();
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      const csrfToken = this.getCsrfToken();
+      if (csrfToken && !headers['X-CSRF-Token']) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+    }
+
     let response: Response;
     try {
-      response = await fetch(url, { ...options, headers });
+      response = await fetch(url, {
+        ...options,
+        headers,
+        credentials: 'same-origin',
+      });
     } catch (err: any) {
       throw new ApiError(err?.message || 'Network connection failed', 'NETWORK_ERROR', 0);
     }

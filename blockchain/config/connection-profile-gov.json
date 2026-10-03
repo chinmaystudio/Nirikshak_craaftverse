@@ -1,0 +1,80 @@
+{
+  "name": "nirikshak-network-government",
+  "version": "1.0.0",
+  "client": {
+    "organization": "GovernmentOrgMSP",
+    "connection": {
+      "timeout": {
+        "peer": {
+          "endorser": "300"
+        },
+        "orderer": "300"
+      }
+    }
+  },
+  "channels": {
+    "nirikshakchannel": {
+      "orderers": ["orderer1.example.com", "orderer2.example.com", "orderer3.example.com"],
+      "peers": {
+        "peer0.government.example.com": {
+          "endorsingPeer": true,
+          "chaincodeQuery": true,
+          "ledgerQuery": true,
+          "eventSource": true
+        },
+        "peer0.auditor.example.com": {
+          "endorsingPeer": true,
+          "chaincodeQuery": true,
+          "ledgerQuery": true,
+          "eventSource": false
+        }
+      }
+    }
+  },
+  "organizations": {
+    "GovernmentOrgMSP": {
+      "mspid": "GovernmentOrgMSP",
+      "peers": ["peer0.government.example.com"],
+      "certificateAuthorities": ["ca.government.example.com"]
+    },
+    "AuditorOrgMSP": {
+      "mspid": "AuditorOrgMSP",
+      "peers": ["peer0.auditor.example.com"],
+      "certificateAuthorities": ["ca.auditor.example.com"]
+    }
+  },
+  "orderers": {
+    "orderer1.example.com": {
+      "url": "grpcs://orderer1.example.com:7050",
+      "grpcOptions": {
+        "ssl-target-name-override": "orderer1.example.com"
+      }
+    },
+    "orderer2.example.com": {
+      "url": "grpcs://orderer2.example.com:7050",
+      "grpcOptions": {
+        "ssl-target-name-override": "orderer2.example.com"
+      }
+    },
+    "orderer3.example.com": {
+      "url": "grpcs://orderer3.example.com:7050",
+      "grpcOptions": {
+        "ssl-target-name-override": "orderer3.example.com"
+      }
+    }
+  },
+  "peers": {
+    "peer0.government.example.com": {
+      "url": "grpcs://peer0.government.example.com:7051",
+      "grpcOptions": {
+        "ssl-target-name-override": "peer0.government.example.com"
+      }
+    },
+    "peer0.auditor.example.com": {
+      "url": "grpcs://peer0.auditor.example.com:9051",
+      "grpcOptions": {
+        "ssl-target-name-override": "peer0.auditor.example.com"
+      }
+    }
+  }
+}

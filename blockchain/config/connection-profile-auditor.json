@@ -1,0 +1,45 @@
+{
+  "name": "nirikshak-network-auditor",
+  "version": "1.0.0",
+  "client": {
+    "organization": "AuditorOrgMSP",
+    "connection": {
+      "timeout": {
+        "peer": {
+          "endorser": "300"
+        },
+        "orderer": "300"
+      }
+    }
+  },
+  "channels": {
+    "nirikshakchannel": {
+      "orderers": ["orderer1.example.com", "orderer2.example.com", "orderer3.example.com"],
+      "peers": {
+        "peer0.auditor.example.com": {
+          "endorsingPeer": true,
+          "chaincodeQuery": true,
+          "ledgerQuery": true,
+          "eventSource": true
+        }
+      }
+    }
+  },
+  "organizations": {
+    "AuditorOrgMSP": {
+      "mspid": "AuditorOrgMSP",
+      "peers": ["peer0.auditor.example.com"],
+      "certificateAuthorities": ["ca.auditor.example.com"]
+    }
+  },
+  "orderers": {
+    "orderer1.example.com": {
+      "url": "grpcs://orderer1.example.com:7050"
+    }
+  },
+  "peers": {
+    "peer0.auditor.example.com": {
+      "url": "grpcs://peer0.auditor.example.com:9051"
+    }
+  }
+}

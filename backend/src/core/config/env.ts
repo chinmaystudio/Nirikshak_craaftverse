@@ -9,7 +9,7 @@ const ServerEnvSchema = z
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY is required by the backend'),
     SUPABASE_ANON_KEY: z.string().min(1, 'SUPABASE_ANON_KEY is required by the backend'),
     OPENROUTER_API_KEY: z.string().optional().default(''),
-    OPENROUTER_MODEL: z.string().default('nvidia/nemotron-4-340b-instruct'),
+    OPENROUTER_MODEL: z.string().default('nvidia/nemotron-3-super-120b-a12b:free'),
     ALLOWED_ORIGINS: z.string().optional().default(''),
     AI_SERVICE_URL: z.string().url().default('http://127.0.0.1:8000'),
     AI_SERVICE_SHARED_SECRET: z.string().default(''),

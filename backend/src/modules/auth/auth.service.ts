@@ -1,9 +1,75 @@
-import { supabaseAdmin } from '../../core/database/supabase.js';
-import { RegisterInput } from './auth.validation.js';
+import { supabase, supabaseAdmin } from '../../core/database/supabase.js';
+import { RegisterInput, LoginInput } from './auth.validation.js';
 import { RegisterResult } from './auth.types.js';
-import { ConflictError, ValidationError } from '../../core/http/errors.js';
+import { ConflictError, ValidationError, AuthenticationError } from '../../core/http/errors.js';
+import { generateCsrfToken } from '../../core/security/csrf.js';
+
+export interface LoginResult {
+  userId: string;
+  email: string;
+  role: string;
+  organizationId: string | null;
+  organizationName?: string;
+  organizationType?: string;
+  accessToken: string;
+  refreshToken?: string;
+  csrfToken: string;
+}
 
 export class AuthService {
+  async login(input: LoginInput): Promise<LoginResult> {
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: input.email.toLowerCase(),
+      password: input.password,
+    });
+
+    if (authError || !authData.session || !authData.user) {
+      throw new AuthenticationError('Invalid email or password.');
+    }
+
+    // Resolve authoritative role & active membership
+    const { data: memberRows } = await supabaseAdmin
+      .from('organization_members')
+      .select('role, organization_id, status, organizations(id, name, type)')
+      .eq('user_id', authData.user.id)
+      .ilike('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const membership = memberRows && memberRows.length > 0 ? memberRows[0] : null;
+    const org = membership?.organizations as any;
+
+    const role = membership?.role || 'citizen';
+    const orgId = membership?.organization_id || null;
+
+    const csrfToken = generateCsrfToken();
+
+    return {
+      userId: authData.user.id,
+      email: authData.user.email!,
+      role,
+      organizationId: orgId,
+      organizationName: org?.name,
+      organizationType: org?.type,
+      accessToken: authData.session.access_token,
+      refreshToken: authData.session.refresh_token,
+      csrfToken,
+    };
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    await supabase.auth.resetPasswordForEmail(email.toLowerCase());
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(token, {
+      password: newPassword,
+    });
+    if (error) {
+      throw new ValidationError(error.message);
+    }
+  }
+
   async register(input: RegisterInput): Promise<RegisterResult> {
     const metadata: Record<string, string> = {
       full_name: input.fullName,

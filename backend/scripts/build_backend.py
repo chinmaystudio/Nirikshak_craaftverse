@@ -182,7 +182,7 @@ export class OpenRouterProvider implements LLMProvider {
 
   constructor() {
     this.apiKey = process.env.OPENROUTER_API_KEY || '';
-    this.model = process.env.OPENROUTER_MODEL || 'nvidia/nemotron-4-340b-instruct';
+    this.model = process.env.OPENROUTER_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free';
   }
 
   async analyzeProject(prompt: string, context: Record<string, unknown>): Promise<ProjectRiskAnalysis> {

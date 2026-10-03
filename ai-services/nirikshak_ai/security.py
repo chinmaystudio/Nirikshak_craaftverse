@@ -11,7 +11,7 @@ def get_configured_secret() -> str:
     return os.getenv("AI_SERVICE_SHARED_SECRET", "").strip()
 
 def is_development_mode() -> bool:
-    env_name = (os.getenv("AI_ENVIRONMENT") or os.getenv("ENVIRONMENT") or "development").strip().lower()
+    env_name = (os.getenv("ENVIRONMENT") or os.getenv("AI_ENVIRONMENT") or "development").strip().lower()
     return env_name in ("development", "dev", "test")
 
 def is_insecure_dev_allowed() -> bool:

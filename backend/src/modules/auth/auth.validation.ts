@@ -1,5 +1,18 @@
 import { z } from 'zod';
 
+export const LoginSchema = z.object({
+  email: z.string().trim().email().max(254),
+  password: z.string().min(1).max(128),
+});
+
+export const ForgotPasswordSchema = z.object({
+  email: z.string().trim().email().max(254),
+});
+
+export const ResetPasswordSchema = z.object({
+  password: z.string().min(8).max(128),
+});
+
 export const RegisterCitizenSchema = z.object({
   accountType: z.literal('citizen'),
   email: z.string().trim().email().max(254),
@@ -43,4 +56,7 @@ export const RegisterSchema = z.discriminatedUnion('accountType', [
   RegisterContractorSchema,
 ]);
 
+export type LoginInput = z.infer<typeof LoginSchema>;
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
 export type RegisterInput = z.infer<typeof RegisterSchema>;

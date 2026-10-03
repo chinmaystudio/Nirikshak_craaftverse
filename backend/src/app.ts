@@ -1,7 +1,10 @@
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import { securityHeaders } from './core/security/headers.js';
 import { corsMiddleware } from './core/security/cors.js';
 import { rateLimit } from './core/security/rateLimit.js';
+import { csrfProtection } from './core/security/csrf.js';
+import { requireAuthByDefault } from './core/auth/auth.middleware.js';
 import { safeErrorHandler } from './core/http/errorHandler.js';
 import { ApiResponseHelper } from './core/http/response.js';
 
@@ -21,6 +24,7 @@ import { documentsRouter } from './modules/documents/documents.routes.js';
 import { environmentRouter } from './modules/environment/environment.routes.js';
 import { legalRouter } from './modules/legal/legal.routes.js';
 import { notificationsRouter } from './modules/notifications/notifications.routes.js';
+import { blockchainRouter } from './modules/blockchain/blockchain.routes.js';
 
 export const app = express();
 
@@ -30,14 +34,20 @@ app.use(securityHeaders);
 // 2. Strict CORS Configuration
 app.use(corsMiddleware);
 
-// 3. Body parsers with payload size caps
+// 3. Cookie parser for HttpOnly session credentials
+app.use(cookieParser());
+
+// 4. Body parsers with payload size caps
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-// 4. Global Rate Limiter (120 req / min)
+// 5. CSRF protection on state-changing requests
+app.use(csrfProtection);
+
+// 6. Global Rate Limiter (120 req / min)
 app.use(rateLimit({ windowMs: 60 * 1000, max: 120 }));
 
-// 5. Root service identity (no leaked metadata)
+// 7. Root service identity (no leaked metadata)
 app.get('/', (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Robots-Tag', 'noindex, nofollow');
@@ -56,12 +66,24 @@ app.get('/', (_req, res) => {
 </html>`);
 });
 
-// 6. Hardened Health Check
+// 8. Internal Health Check (Zero-Trust)
+app.get('/internal/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// 9. Minimal public health check (zero disclosures)
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-// 7. Domain Module API Routes
+// 10. Default Zero-Trust authentication guard for /api
+// Automatically guards every /api route unless in AUTH_BOOTSTRAP_PUBLIC
+app.use('/api', requireAuthByDefault);
+
+// 11. Domain Module API Routes
 app.use('/api/auth', authRouter);
 app.use('/api/projects', projectsRouter);
 app.use('/api/tenders', procurementRouter);
@@ -77,13 +99,14 @@ app.use('/api/documents', documentsRouter);
 app.use('/api/environment', environmentRouter);
 app.use('/api/legal', legalRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/integrity', blockchainRouter);
 
-// 8. Safe 404 Handler (no internal routing leaks)
+// 12. Safe 404 Handler (no internal routing leaks)
 app.use((_req, res) => {
   ApiResponseHelper.notFound(res, 'The requested resource was not found.');
 });
 
-// 9. Centralized Error Handler
+// 13. Centralized Error Handler
 app.use(safeErrorHandler);
 
 export default app;

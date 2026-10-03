@@ -26,7 +26,7 @@ GOVERNMENT PORTAL │ CONTRACTOR PORTAL │ CITIZEN PORTAL
         │      (Historical ML + Online Drift + LinUCB)
         │             │
         │             ▼
-        │        OPENROUTER (NVIDIA Nemotron 340B)
+        │        OPENROUTER (NVIDIA Nemotron 3 Super Free)
         │             │
         │             ▼
         │    STRUCTURED EXPLANATION & ADVISORY ACTIONS
@@ -60,9 +60,11 @@ Nirikshak_craaftverse/
 │
 ├── backend/                # Express, TypeScript, Supabase Database V2
 │   ├── src/
-│   │   ├── core/           # Auth middleware, tenancy, errors, rate limiting
+│   │   ├── core/           # Auth middleware, tenancy, errors, rate limiting, CSRF
+│   │   ├── workers/        # Blockchain anchor outbox background worker
 │   │   └── modules/
-│   │       ├── auth/       # Registration & access approval pipelines
+│   │       ├── auth/       # Registration, login, HttpOnly sessions & MFA
+│   │       ├── blockchain/ # Hyperledger Fabric gateway client, hashing & verification
 │   │       ├── projects/   # Tenancy-checked project management
 │   │       ├── procurement/# Tenders & bidding gateway
 │   │       ├── progress/   # Milestone verification & AI online learning hooks
@@ -76,14 +78,21 @@ Nirikshak_craaftverse/
 │   │       ├── legal/      # Litigation tracking & court settlements
 │   │       ├── notifications/# System & alert notifications
 │   │       └── ai/         # AI security gateway, context builder, client
-│   └── supabase/           # PostgreSQL migrations 001–056 (Database V2 production schema)
+│   └── supabase/           # PostgreSQL migrations 001–065 (Database V2 production schema)
+│
+├── blockchain/             # Hyperledger Fabric Enterprise Permissioned Ledger
+│   ├── chaincode/          # TypeScript smart contract (nirikshak-audit)
+│   ├── config/             # Fabric connection profiles for Gov, Contractor, Auditor
+│   ├── docker/             # Pinned Fabric 2.5.9 LTS compose topology
+│   ├── network/            # crypto-config.yaml & configtx.yaml (Raft consensus)
+│   └── scripts/            # Network bootstrap and lifecycle automation
 │
 ├── ai-services/            # First-Class Python AI Microservice
 │   ├── nirikshak_ai/       # Core Python package
 │   │   ├── engine.py       # IsolationForest, LOF, MiniBatchKMeans, Cost Cohort
 │   │   ├── online.py       # Incremental StandardScaler & MiniBatchKMeans (Verified Gated)
 │   │   ├── bandit.py       # LinUCB Contextual Bandit action ranker (Normalized Signal Weights)
-│   │   ├── openrouter/     # Async client, prompts, schemas, PII sanitizer
+│   │   ├── openrouter/     # Async client (NVIDIA Nemotron), prompts, PII sanitizer
 │   │   ├── security.py     # X-Nirikshak-AI-Key verification
 │   │   ├── state_store.py  # SQLite thread-safe event persistence
 │   │   └── api.py          # FastAPI application endpoints
@@ -93,7 +102,17 @@ Nirikshak_craaftverse/
 │   ├── run_api.py          # Microservice launcher
 │   └── Dockerfile          # Production container specification
 │
-├── docs/                   # Architecture, Data Flow, Model Card, Matrix, Production Certification
+├── docs/                   # Institutional Specifications & Production Certifications
+│   ├── SECURITY_ARCHITECTURE.md   # Zero-Trust topology & OWASP mitigations
+│   ├── API_EXPOSURE_MATRIX.md     # Public, internal & elevated routes
+│   ├── RLS_SECURITY_MATRIX.md     # PostgreSQL row level security policies
+│   ├── BLOCKCHAIN_ARCHITECTURE.md # Multi-node Raft consensus & chaincode
+│   ├── BLOCKCHAIN_DATA_POLICY.md  # DPDP Act 2023 / GDPR & PII prohibition
+│   ├── BLOCKCHAIN_OPERATIONS.md   # Network bootstrap & worker operations
+│   ├── KEY_ROTATION.md            # Cryptographic keys & X.509 rollover
+│   ├── INCIDENT_RESPONSE.md       # Tamper alert response & forensics
+│   ├── DISASTER_RECOVERY.md       # RTO/RPO & multi-region failover
+│   └── PRODUCTION_READINESS.md    # Master v3.0.0 Production Certification
 └── tests/                  # Cross-cutting integration tests
 ```
 
@@ -157,7 +176,7 @@ AI_SERVICE_TIMEOUT_MS=20000
 ```ini
 AI_SERVICE_SHARED_SECRET=your-secure-shared-secret
 OPENROUTER_API_KEY=your-openrouter-key
-OPENROUTER_MODEL=nvidia/nemotron-4-340b-instruct
+OPENROUTER_MODEL=nvidia/nemotron-3-super-120b-a12b:free
 AI_STATE_DIR=./state
 AI_MODEL_DIR=./models
 AI_ENABLE_OPENROUTER=true

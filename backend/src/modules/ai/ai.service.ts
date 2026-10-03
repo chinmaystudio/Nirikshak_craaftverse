@@ -118,7 +118,7 @@ export class AiService {
           historical_model_version: result.versions?.historical_model || 'nirikshak-historical-v1.0.0',
           online_model_version: result.versions?.online_model || 'nirikshak-online-v1.0.0',
           rl_policy_version: result.versions?.rl_policy || 'linucb-v1.0.0',
-          llm_model: result.versions?.llm_model || 'nvidia/nemotron-4-340b-instruct',
+          llm_model: result.versions?.llm_model || 'nvidia/nemotron-3-super-120b-a12b:free',
           context_hash: contextHash,
           input_completeness_score: result.input_quality?.completeness_score ?? null,
           status: 'COMPLETED',

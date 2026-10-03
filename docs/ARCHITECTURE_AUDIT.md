@@ -188,7 +188,7 @@ The following files contain hardcoded mock fixtures or demo logic:
 ## 11. AI Integration
 
 - Backend route `/api/ai/analyze/:projectId` invokes `getLLMProvider()`.
-- Uses OpenRouter API with NVIDIA Nemotron (`nvidia/nemotron-4-340b-instruct` or configured model).
+- Uses OpenRouter API with NVIDIA Nemotron (`nvidia/nemotron-3-super-120b-a12b:free` or configured model).
 - Backend sanitizes project descriptions (removes emails, phone numbers, Aadhaar, PAN numbers, bearer tokens).
 - Advisory Only: Outputs risk analysis, risk level (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), and recommendations. AI cannot approve payments, contracts, or progress.
 - Problem: If `OPENROUTER_API_KEY` is missing in development, provider returned mock analysis. In live mode, error should be explicit (`503 AI_UNAVAILABLE`).

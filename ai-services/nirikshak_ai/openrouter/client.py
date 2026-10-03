@@ -25,9 +25,9 @@ class OpenRouterClient:
         enabled: bool | None = None,
         timeout_seconds: float = 8.0,
     ):
-        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY", "").strip()
-        self.model = model or os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-4-340b-instruct").strip()
-        self.base_url = (base_url or os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")).rstrip("/")
+        self.api_key = api_key if api_key is not None else os.getenv("OPENROUTER_API_KEY", "").strip()
+        self.model = model if model is not None else os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3-super-120b-a12b:free").strip()
+        self.base_url = (base_url if base_url is not None else os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")).rstrip("/")
         self.app_name = app_name or os.getenv("OPENROUTER_APP_NAME", "NIRIKSHAK").strip()
         self.referer = referer or os.getenv("OPENROUTER_HTTP_REFERER", "").strip()
         

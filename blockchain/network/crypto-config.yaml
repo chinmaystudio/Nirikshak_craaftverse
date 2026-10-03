@@ -1,0 +1,41 @@
+# ---------------------------------------------------------------------------
+# NIRIKSHAK Craftverse Hyperledger Fabric Crypto Configuration
+# Multi-Node Consensus (3 Raft Orderers) & 3 Institutional Organizations
+# ---------------------------------------------------------------------------
+
+OrdererOrgs:
+  - Name: Orderer
+    Domain: example.com
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer1
+        CommonName: orderer1.example.com
+      - Hostname: orderer2
+        CommonName: orderer2.example.com
+      - Hostname: orderer3
+        CommonName: orderer3.example.com
+
+PeerOrgs:
+  - Name: GovernmentOrg
+    Domain: government.example.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 2
+
+  - Name: ContractorOrg
+    Domain: contractor.example.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 2
+
+  - Name: AuditorOrg
+    Domain: auditor.example.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 2
