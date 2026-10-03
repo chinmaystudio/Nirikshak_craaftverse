@@ -1,0 +1,75 @@
+/*
+ * NIRIKSHAK accessibility styles.
+ * - Text-size scale (Accessibility menu: Standard / Large / Extra Large)
+ * - Focus visibility, skip link, screen-reader-only helpers
+ * - Reduced motion
+ */
+
+/* ---------- Text size scale ---------- */
+/* Applied as classes on <html>; rem-based type scales with the root font size. */
+html { font-size: 16px; }
+html.text-lg-size { font-size: 17.5px; }
+html.text-xl-size { font-size: 19px; }
+
+/* ---------- Focus visibility (keyboard-first) ---------- */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+:root.dark :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline-color: var(--color-primary-strong);
+}
+
+/* ---------- Skip link ---------- */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: var(--z-skip);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  padding: var(--space-2) var(--space-4);
+  border-radius: 0 0 var(--radius-control) 0;
+  font-weight: 600;
+}
+.skip-link:focus {
+  left: 0;
+}
+
+/* ---------- Screen-reader-only ---------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+:root.reduced-motion *,
+:root.reduced-motion *::before,
+:root.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ---------- Minimum text size guard ---------- */
+/* No text below 12px rendered (11px label-sm is bumped to 12px minimum). */
+html:not(.text-lg-size):not(.text-xl-size) .text-min-guard { font-size: 12px; }

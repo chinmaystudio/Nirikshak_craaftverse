@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+*.log
+deploy_now.json
+deployment_payload.json
+files_b64.json
+mcp_call_args.json
+api_index_b64.txt
+.vercel

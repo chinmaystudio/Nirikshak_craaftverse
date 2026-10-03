@@ -1,0 +1,113 @@
+@import './tokens.css';
+@import './themes.css';
+@import './accessibility.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- Base ---------- */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-fg);
+  background-color: var(--color-canvas);
+  -webkit-font-smoothing: antialiased;
+}
+/* Generous line-height for Devanagari (hi, mr) — vowel marks never clip. */
+html[lang='hi'] body,
+html[lang='mr'] body {
+  line-height: 1.6;
+}
+
+/* Display cap on mobile per design system */
+@media (max-width: 639px) {
+  .text-display { font-size: 1.375rem; line-height: 1.875rem; }
+}
+
+/* Material Symbols alignment */
+.material-symbols-outlined {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 500,
+    'GRAD' 0,
+    'opsz' 24;
+  display: inline-block;
+  line-height: 1;
+  vertical-align: middle;
+  user-select: none;
+}
+.ms-fill {
+  font-variation-settings:
+    'FILL' 1,
+    'wght' 500,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+/* Tabular figures for all financial/numeric data */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Component classes ---------- */
+@layer components {
+  .nk-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+  .nk-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .nk-panel-title {
+    font: var(--text-heading-3);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .nk-label {
+    display: block;
+    font: var(--text-caption);
+    color: var(--color-fg-muted);
+  }
+  .nk-table-header {
+    background-color: var(--color-surface-2);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+    height: 44px;
+  }
+  .nk-mono-id {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+  }
+  .nk-demo-banner {
+    background-color: var(--color-warning-tint);
+    border-bottom: 1px solid var(--color-warning-border);
+    color: var(--color-warning);
+    font: var(--text-caption);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+}
+
+/* Scrollbars — unobtrusive, theme-aware */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}

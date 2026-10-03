@@ -1,0 +1,136 @@
+/*
+ * NIRIKSHAK design tokens — single source of truth for all colors, type, spacing.
+ * Derived from the preserved Stitch design system ("Nirikshan Civic Infrastructure",
+ * DESIGN.md). The Stitch Civic Primary #1E40AF is used as the primary government
+ * blue — a visually similar professional blue to the suggested #174A7C, kept to
+ * preserve the existing Stitch design language.
+ * Dark-theme overrides live in themes.css. Never hardcode these values in components.
+ */
+
+:root {
+  /* ---- Canvas & surfaces (light) ---- */
+  --color-canvas: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f5f9;
+  --color-surface-3: #e2e8f0;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  /* Hover surface for nav rows (dark theme swaps to translucent lime) */
+  --color-hover: #f1f5f9;
+
+  /* ---- Text ---- */
+  --color-fg: #0f172a;
+  --color-fg-muted: #475569;
+  --color-fg-subtle: #64748b;
+  --color-fg-inverted: #ffffff;
+
+  /* ---- Primary (Government Blue) ---- */
+  --color-primary: #1e40af;
+  --color-primary-strong: #1d4ed8;
+  --color-primary-soft: #eff6ff;
+  --color-primary-border: #bfdbfe;
+  --color-on-primary: #ffffff;
+
+  /* ---- Secondary (Deep Navy) ---- */
+  --color-secondary: #12395d;
+  --color-secondary-soft: #eff4ff;
+
+  /* ---- Status semantics (icon + text + tint always paired) ---- */
+  --color-success: #15803d;
+  --color-success-strong: #16a34a;
+  --color-success-tint: #f0fdf4;
+  --color-success-border: #bbf7d0;
+
+  --color-warning: #b45309;
+  --color-warning-strong: #d97706;
+  --color-warning-tint: #fffbeb;
+  --color-warning-border: #fde68a;
+
+  --color-danger: #b91c1c;
+  --color-danger-strong: #dc2626;
+  --color-danger-tint: #fef2f2;
+  --color-danger-border: #fecaca;
+
+  --color-info: #1e40af;
+  --color-info-strong: #1d4ed8;
+  --color-info-tint: #eff6ff;
+  --color-info-border: #bfdbfe;
+
+  /* ---- Restrained tricolor accents (brand trim only, never for status) ---- */
+  --color-saffron: #ff9933;
+  --color-india-green: #138808;
+  --color-navy-chakra: #12395d;
+
+  /* ---- Typography ---- */
+  --font-sans: 'Noto Sans', 'Noto Sans Devanagari', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace;
+
+  --text-display: 700 1.75rem/2.25rem var(--font-sans); /* capped 22px mobile in globals */
+  --text-heading-1: 700 1.5rem/2rem var(--font-sans);
+  --text-heading-2: 600 1.25rem/1.75rem var(--font-sans);
+  --text-heading-3: 600 1rem/1.5rem var(--font-sans);
+  --text-body-lg: 400 1rem/1.6rem var(--font-sans);
+  --text-body: 400 0.875rem/1.25rem var(--font-sans);
+  --text-body-small: 400 0.8125rem/1.125rem var(--font-sans);
+  --text-caption: 600 0.75rem/1rem var(--font-sans);
+  --text-label: 600 0.875rem/1.25rem var(--font-sans);
+  --text-button: 600 0.875rem/1.25rem var(--font-sans);
+  --text-tabular: 500 0.8125rem/1.125rem var(--font-sans);
+  --tracking-caps: 0.05em;
+
+  /* ---- Spacing (4px base / 8px grid) ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---- Radius (restrained, institutional) ---- */
+  --radius-control: 4px;   /* buttons, inputs, selects */
+  --radius-badge: 4px;     /* status badges — pills prohibited */
+  --radius-card: 8px;      /* cards, panels */
+  --radius-panel: 12px;    /* modals, drawers */
+
+  /* ---- Border ---- */
+  --border-width: 1px;
+  --border-width-strong: 2px;
+
+  /* ---- Elevation (minimal, tonal separation preferred) ---- */
+  --shadow-card: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-raised: 0 2px 4px -1px rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow-modal: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.08);
+  --scrim: rgba(15, 23, 42, 0.45); /* solid scrim, no blur */
+
+  /* ---- Z-index ladder ---- */
+  --z-base: 0;
+  --z-sticky: 30;
+  --z-sidebar: 40;
+  --z-header: 50;
+  --z-drawer: 60;
+  --z-modal: 70;
+  --z-toast: 80;
+  --z-skip: 90;
+
+  /* ---- Motion ---- */
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 280ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ---- Layout ---- */
+  --header-height: 64px;   /* utility row of the header */
+  --header-total: 112px;   /* full header (64 + 44 rows + border) + clearance */
+  --sidebar-width: 288px;
+  --sidebar-width-collapsed: 72px;
+  --max-width-content: 1600px;
+  --touch-target: 44px;
+
+  /* ---- Breakpoints (documented; enqueued via Tailwind screens) ---- */
+  /* mobile 360–639 · tablet 640–1023 · desktop 1024–1599 · wide 1600+ */
+  color-scheme: light;
+}

@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+tone_instructions: "You are a senior infrastructure and security reviewer for NIRIKSHAK. Prioritize PostgreSQL RLS security, TypeScript type safety, and role-based access control across Citizen, Government, and Contractor portals."
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords:
+      - "WIP"
+      - "draft"
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/dist/**"
+    - "!**/*.min.*"
+    - "!**/*.xlsx"
+    - "!**/package-lock.json"
+  path_instructions:
+    - path: "backend/supabase/migrations/**"
+      instructions: "PostgreSQL migrations: verify that Row Level Security (RLS) is explicitly enabled on all new tables and that policies strictly prevent unauthorized data mutation or access."
+    - path: "frontend/src/core/**"
+      instructions: "Shared core layer: ensure AuthProvider, RoleGuard, and database types maintain strict RBAC rules across the 9 application roles."
+    - path: "backend/src/ai/**"
+      instructions: "AI analysis services: ensure the AI remains strictly advisory, outputs match Zod schemas, and no database credentials or service role keys are exposed."
+    - path: "frontend/src/modules/contractor/**"
+      instructions: "Contractor portal: ensure progress reporting claims remain unverified until approved by government officers, and data is scoped via contractor_assigned_projects_view."
+
+chat:
+  auto_reply: true

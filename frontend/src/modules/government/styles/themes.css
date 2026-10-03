@@ -1,0 +1,155 @@
+/*
+ * NIRIKSHAK theme layers.
+ * - Dark theme: near-black canvas with a subtle dark-teal undertone and a
+ *   bright lime primary accent (#BFFF00 family). Navy/blue-gray surfaces are
+ *   prohibited in dark mode. Semantic red/warning/green keep their hues.
+ * - High-contrast theme: user-selected accessibility mode (stronger text/borders).
+ * Palette swaps tokens only; components never know which theme is active.
+ *
+ * Source values are shadcn-style HSL triplets; the legacy --color-* tokens
+ * consume them so both vocabularies stay in sync.
+ */
+
+/* ---------- Dark theme (class .dark on <html>) ---------- */
+:root.dark {
+  color-scheme: dark;
+
+  /* ----- shadcn-style theme tokens (source values) ----- */
+  --background: 197.1 53.8% 2.5%;
+  --foreground: 240 50% 99.2%;
+  --inverse: 240 50% 99.2%;
+  --inverse-foreground: 197.1 53.8% 2.5%;
+  --card: 197 30% 4.5%;
+  --card-foreground: 240 50% 99.2%;
+  --table: 197 30% 4.5%;
+  --popover: 197 30% 4.5%;
+  --popover-foreground: 240 50% 99.2%;
+  --primary: 72.9 100% 50%;
+  --primary-foreground: 197.1 53.8% 2.5%;
+  --secondary: 72.9 100% 50% / 0.078;
+  --secondary-foreground: 72.9 100% 50%;
+  --accent: 72.9 100% 50% / 0.078;
+  --accent-foreground: 72.9 100% 50%;
+
+  /* ----- NIRIKSHAK tokens consume the theme tokens ----- */
+  /* Canvas & surfaces — near black; cards only slightly elevated */
+  --color-canvas: hsl(var(--background));
+  --color-surface: hsl(var(--card));
+  --color-surface-2: hsl(197 30% 7%);   /* elevated: table headers, hover, inputs */
+  --color-surface-3: hsl(197 30% 10.5%);
+  --color-hover: hsl(72.9 100% 50% / 0.06); /* sidebar/row hover: extremely subtle lime */
+
+  /* Borders — dark translucent, derived from foreground (never bright blue) */
+  --color-border: hsl(var(--foreground) / 0.08);
+  --color-border-strong: hsl(var(--foreground) / 0.14);
+
+  /* Text — off-white; muted/subtle are neutral low-opacity foreground */
+  --color-fg: hsl(var(--foreground));
+  --color-fg-muted: hsl(var(--foreground) / 0.65);
+  --color-fg-subtle: hsl(var(--foreground) / 0.45);
+  --color-fg-inverted: hsl(var(--inverse-foreground));
+
+  /* Primary — bright lime (#BFFF00 visual); soft/border are translucent lime */
+  --color-primary: hsl(var(--primary));
+  --color-primary-strong: hsl(72.9 100% 62%);
+  --color-primary-soft: hsl(var(--accent));
+  --color-primary-border: hsl(72.9 100% 50% / 0.32);
+  --color-on-primary: hsl(var(--primary-foreground));
+
+  /* Secondary / accent — very subtle transparent lime, lime text */
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-fg: hsl(var(--secondary-foreground));
+  --color-secondary-soft: hsl(72.9 100% 50% / 0.05);
+
+  /* Status semantics — hues preserved (never forced to lime); tints tuned
+     to sit on the near-black canvas without becoming large colored surfaces */
+  --color-success: #6fd083;
+  --color-success-strong: #86e09a;
+  --color-success-tint: #0e2415;
+  --color-success-border: #275232;
+
+  --color-warning: #fbbf24;
+  --color-warning-strong: #fcd34d;
+  --color-warning-tint: #2b1e06;
+  --color-warning-border: #5c410c;
+
+  --color-danger: #f87171;
+  --color-danger-strong: #fca5a5;
+  --color-danger-tint: #300e0e;
+  --color-danger-border: #6f2727;
+
+  --color-info: #7ea6ff;
+  --color-info-strong: #a8c2ff;
+  --color-info-tint: #0c1a2b;
+  --color-info-border: #27466b;
+
+  /* tricolor accents tuned for the dark canvas (brand trim only) */
+  --color-saffron: #ffb866;
+  --color-india-green: #4ade80;
+  --color-navy-chakra: hsl(var(--primary));
+
+  --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-raised: 0 2px 4px -1px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+  --scrim: rgba(0, 0, 0, 0.55);
+}
+
+/* ---------- High-contrast mode (class .high-contrast on <html>) ---------- */
+/* Stacks on either light or dark; strengthens text, borders and focus. */
+:root.high-contrast {
+  --color-fg: #000000;
+  --color-fg-muted: #1f2937;
+  --color-fg-subtle: #1f2937;
+  --color-border: #475569;
+  --color-border-strong: #0f172a;
+
+  --color-primary: #0031a0;
+  --color-primary-strong: #00246e;
+
+  --color-success: #0d5c2b;
+  --color-warning: #8a3d00;
+  --color-danger: #8f0f0f;
+
+  --shadow-card: none;
+  --shadow-raised: none;
+}
+
+:root.dark.high-contrast {
+  --background: 197.1 53.8% 0%;
+  --foreground: 240 50% 100%;
+
+  --color-canvas: #000000;      /* exception: HC dark goes full black for max contrast */
+  --color-surface: hsl(197 30% 5.5%);
+  --color-surface-2: hsl(197 30% 10%);
+  --color-hover: hsl(72.9 100% 50% / 0.12);
+
+  --color-fg: #ffffff;
+  --color-fg-muted: hsl(240 50% 99.2% / 0.85);
+  --color-fg-subtle: hsl(240 50% 99.2% / 0.72);
+  --color-fg-inverted: #000000;
+
+  --color-border: hsl(240 50% 99.2% / 0.5);
+  --color-border-strong: hsl(240 50% 99.2% / 0.9);
+
+  --color-primary: hsl(72.9 100% 62%);
+  --color-primary-strong: hsl(72.9 100% 74%);
+  --color-primary-soft: hsl(72.9 100% 50% / 0.14);
+  --color-primary-border: hsl(72.9 100% 50% / 0.55);
+  --color-on-primary: #000000;
+
+  --color-secondary: hsl(72.9 100% 50% / 0.14);
+  --color-secondary-fg: hsl(72.9 100% 62%);
+
+  --color-success: #86efac;
+  --color-warning: #fde047;
+  --color-danger: #fca5a5;
+}
+
+/* Dark-mode logo swap: the standard wordmark is dark ink; on dark canvases the
+   app uses the light-ink variant instead (see Logo component). */
+:root.dark .logo-dark-canvas {
+  display: block;
+}
+:root.dark .logo-light-canvas {
+  display: none;
+}

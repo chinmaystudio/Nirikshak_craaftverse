@@ -1,0 +1,16 @@
+export default {
+  'a11y.menuTitle': 'Accessibility options',
+  'a11y.openMenu': 'Open accessibility menu',
+  'a11y.textSize': 'Text size',
+  'a11y.sizeStandard': 'Standard',
+  'a11y.sizeLarge': 'Large',
+  'a11y.sizeXLarge': 'Extra large',
+  'a11y.highContrast': 'High contrast mode',
+  'a11y.theme': 'Theme',
+  'a11y.themeLight': 'Light',
+  'a11y.themeDark': 'Dark',
+  'a11y.themeSystem': 'System',
+  'a11y.reducedMotion': 'Reduce motion',
+  'a11y.language': 'Language',
+  'a11y.screenReaderStructure': 'Screen reader structure',
+}

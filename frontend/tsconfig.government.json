@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "paths": { "@/*": ["src/modules/government/*", "src/*"] } },
+  "include": ["src/modules/government/**/*", "src/core/**/*"]
+}

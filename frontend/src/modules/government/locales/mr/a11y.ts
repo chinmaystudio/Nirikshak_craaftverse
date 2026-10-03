@@ -1,0 +1,16 @@
+export default {
+  'a11y.menuTitle': 'सुलभता पर्याय',
+  'a11y.openMenu': 'सुलभता मेनू उघडा',
+  'a11y.textSize': 'मजकूराचा आकार',
+  'a11y.sizeStandard': 'प्रमाणित',
+  'a11y.sizeLarge': 'मोठा',
+  'a11y.sizeXLarge': 'अति मोठा',
+  'a11y.highContrast': 'उच्च कॉन्ट्रास्ट मोड',
+  'a11y.theme': 'थीम',
+  'a11y.themeLight': 'लाइट',
+  'a11y.themeDark': 'डार्क',
+  'a11y.themeSystem': 'सिस्टम',
+  'a11y.reducedMotion': 'हालचाल कमी करा',
+  'a11y.language': 'भाषा',
+  'a11y.screenReaderStructure': 'स्क्रीन रीडर रचना',
+}

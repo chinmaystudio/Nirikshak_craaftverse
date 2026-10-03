@@ -1,0 +1,43 @@
+.nirikshak-landing-scope {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #ffffff;
+  background-color: #09090b;
+}
+
+.nirikshak-landing-scope .font-display {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Crisp text contrast over moving background video canvas */
+.nirikshak-landing-scope p,
+.nirikshak-landing-scope span,
+.nirikshak-landing-scope div,
+.nirikshak-landing-scope li,
+.nirikshak-landing-scope h1,
+.nirikshak-landing-scope h2,
+.nirikshak-landing-scope h3,
+.nirikshak-landing-scope h4,
+.nirikshak-landing-scope h5,
+.nirikshak-landing-scope a,
+.nirikshak-landing-scope button {
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.nirikshak-landing-scope canvas {
+  text-shadow: none;
+}
+
+/* Top Nav overrides */
+.nirikshak-landing-scope #main-nav * {
+  text-shadow: none !important;
+}
+
+.nirikshak-landing-scope .hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.nirikshak-landing-scope .hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

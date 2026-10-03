@@ -1,0 +1,235 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@theme {
+  --color-primary: #00236f;
+  --color-primary-container: #1e3a8a;
+  --color-on-primary: #ffffff;
+  --color-secondary: #904d00;
+  --color-secondary-container: #fe932c;
+  --color-on-secondary-container: #663500;
+  --color-tertiary: #003120;
+  --color-tertiary-container: #004a32;
+  --color-on-tertiary-container: #4ac08f;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+  --color-background: #faf8ff;
+  --color-surface: #faf8ff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f2f3ff;
+  --color-surface-container: #eaedff;
+  --color-surface-container-high: #e2e7ff;
+  --color-surface-container-highest: #dae2fd;
+  --color-on-surface: #131b2e;
+  --color-on-surface-variant: #444651;
+  --color-outline: #757682;
+  --color-outline-variant: #c5c5d3;
+  --color-secondary-fixed: #ffdcc3;
+  --color-on-secondary-fixed: #2f1500;
+  --color-on-secondary-fixed-variant: #6e3900;
+  --color-primary-fixed: #dce1ff;
+  --color-on-primary-fixed: #00164e;
+
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+
+  --color-sidebar: #0a1020;
+}
+
+:root {
+  --font-scale: 1;
+  --ch-grid: #e2e8f0;
+  --ch-text: #64748b;
+  --ch-dot: #ffffff;
+  --ch-track: #e2e8f0;
+  --ch-blue: #1d4ed8;
+  --ch-navy: #1e3a8a;
+  --ch-sky: #60a5fa;
+  --ch-green: #16a34a;
+  --ch-amber: #d97706;
+  --ch-red: #dc2626;
+}
+
+/*
+  NIRIKSHAK Dark Edition — centralized token system.
+  Tailwind v4 utilities resolve to these variables, so overriding them
+  under `.dark` re-themes every dark: utility in the application at once.
+  Layered hierarchy: 0B1120 app → 0A1020 sidebar → 111827 surface →
+  172033 elevated → 263449 borders.
+*/
+.dark {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --color-slate-950: #0b1120;
+  --color-slate-900: #111827;
+  --color-slate-800: #172033;
+  --color-slate-700: #263449;
+  --color-slate-600: #334155;
+
+  /* Text hierarchy */
+  --color-slate-500: #64748b;
+  --color-slate-400: #94a3b8;
+  --color-slate-300: #cbd5e1;
+  --color-slate-200: #e2e8f0;
+  --color-slate-100: #f8fafc;
+
+  /* Brand accent */
+  --color-blue-700: #3b82f6;
+  --color-blue-600: #3b82f6;
+  --color-blue-500: #60a5fa;
+  --color-blue-800: #1e4fbf;
+  --color-blue-900: #1e3a8a;
+  --color-blue-950: #10203e;
+
+  /* Status */
+  --color-green-600: #22c55e;
+  --color-green-700: #4ade80;
+  --color-amber-600: #f59e0b;
+  --color-amber-700: #fbbf24;
+  --color-red-600: #ef4444;
+  --color-red-700: #f87171;
+
+  /* Charts */
+  --ch-grid: #223046;
+  --ch-text: #94a3b8;
+  --ch-dot: #111827;
+  --ch-track: #1e293b;
+  --ch-blue: #3b82f6;
+  --ch-navy: #1e40af;
+  --ch-sky: #93c5fd;
+  --ch-green: #22c55e;
+  --ch-amber: #f59e0b;
+  --ch-red: #ef4444;
+}
+
+html {
+  font-size: calc(16px * var(--font-scale));
+}
+
+body {
+  background-color: #f8fafc;
+  color: var(--color-on-surface);
+  font-family: var(--font-sans);
+}
+
+/* Scoped contractor dark theme applied via container classes instead of global body */
+.dark .contractor-scope {
+  background-color: #0b1120;
+  color: #e5e7eb;
+}
+
+.dark ::selection {
+  background: rgba(59, 130, 246, 0.35);
+}
+
+.dark * {
+  scrollbar-color: #334155 transparent;
+}
+
+:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.dark :focus-visible {
+  outline-color: #60a5fa;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+body.hc {
+  filter: contrast(1.12) saturate(1.08);
+}
+body.rm *,
+body.rm *::before,
+body.rm *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+body.ul a {
+  text-decoration: underline;
+}
+
+@layer components {
+  .card {
+    @apply bg-white border border-slate-200 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:bg-slate-900 dark:border-slate-700;
+  }
+  .kpi {
+    @apply flex flex-col justify-between p-4 rounded-xl bg-white border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.03)] h-[116px] dark:bg-slate-900 dark:border-slate-700;
+  }
+  .kpi-label {
+    @apply text-[10px] uppercase tracking-wider text-slate-500 font-bold leading-tight dark:text-slate-400;
+  }
+  .kpi-value {
+    @apply text-[26px] leading-none font-display font-bold text-slate-800 tracking-tight dark:text-slate-100;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-colors px-4 py-2 border shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap;
+  }
+  .btn-primary {
+    @apply bg-blue-700 border-blue-700 text-white hover:bg-blue-800 dark:bg-blue-600 dark:border-blue-600 dark:hover:bg-blue-500;
+  }
+  .btn-secondary {
+    @apply bg-white border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700;
+  }
+  .btn-ghost {
+    @apply bg-transparent border-transparent shadow-none text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800;
+  }
+  .btn-danger {
+    @apply bg-red-600 border-red-600 text-white hover:bg-red-700;
+  }
+  .btn-sm {
+    @apply px-2.5 py-1.5 text-xs rounded-md gap-1.5;
+  }
+  .input {
+    @apply w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition-all shadow-sm dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:placeholder:text-slate-500 dark:focus:bg-slate-800;
+  }
+  .label {
+    @apply block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 dark:text-slate-400;
+  }
+  .data-table {
+    @apply w-full text-sm border-collapse;
+  }
+  .data-table th {
+    @apply text-left text-[11px] uppercase tracking-wider font-bold text-slate-500 px-4 py-2.5 bg-slate-50 border-b border-slate-200 whitespace-nowrap dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-700;
+  }
+  .data-table td {
+    @apply px-4 py-3 border-b border-slate-100 text-slate-700 align-middle dark:border-slate-800 dark:text-slate-300;
+  }
+  .pill {
+    @apply px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors whitespace-nowrap cursor-pointer;
+  }
+  .pill-active {
+    @apply bg-blue-600 border-blue-600 text-white shadow-sm;
+  }
+  .pill-idle {
+    @apply bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800;
+  }
+  .nav-item {
+    @apply relative flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200;
+  }
+  .nav-item-active {
+    @apply bg-blue-50 text-blue-700 hover:bg-blue-50 dark:bg-blue-950/60 dark:text-blue-400;
+  }
+  .section-title {
+    @apply flex items-center gap-2 text-blue-900 dark:text-blue-300;
+  }
+  .dl-label {
+    @apply text-[11px] uppercase tracking-wider text-slate-500 font-bold dark:text-slate-400;
+  }
+  .dl-value {
+    @apply text-sm font-semibold text-slate-800 dark:text-slate-200;
+  }
+  .link {
+    @apply text-blue-700 font-semibold hover:underline dark:text-blue-400 cursor-pointer;
+  }
+}
