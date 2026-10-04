@@ -3,33 +3,34 @@ import { Sparkles, Send, RotateCcw, ShieldCheck, Banknote, Map, Gavel, AlertTria
 import { PageHeader, Card, SectionTitle, StatusBadge, Spinner } from '../components/ui';
 import { Link } from '../lib/router';
 import { useStore } from '../lib/store';
-import { AI_ANSWERS, CONTRACTOR, pendingForProject } from '../lib/data';
 import { cls, cr, money } from '../lib/utils';
 
 interface Msg {
   role: 'user' | 'ai';
   text?: string;
-  answer?: (typeof AI_ANSWERS)[number];
+  answer?: any;
 }
 
 const SUGGESTIONS = [
   { icon: AlertTriangle, q: 'Which of my projects are at risk?' },
   { icon: Banknote, q: 'Which payment is pending?' },
-  { icon: Sparkles, q: 'What should I do to finish Pune Road earlier?' },
-  { icon: Gavel, q: 'Which tender am I eligible for?' },
-  { icon: ShieldCheck, q: 'What documents are missing from my bid?' },
-  { icon: Map, q: 'Why is Rural Bridge Construction delayed?' },
+  { icon: Sparkles, q: 'What is the overall progress of my projects?' },
+  { icon: Gavel, q: 'What is the status of my assigned contracts?' },
+  { icon: ShieldCheck, q: 'Are there any upcoming site inspections?' },
 ];
 
 export default function AIAssist() {
-  const { projects, invoices, bids } = useStore();
+  const { projects, invoices } = useStore();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
 
   const active = projects.filter((p) => p.status !== 'Completed');
-  const pendingAmt = invoices.filter((i) => ['Submitted', 'Under Verification', 'Approved'].includes(i.status)).reduce((s, i) => s + i.amount, 0);
+  const atRiskProjects = projects.filter((p) => p.status === 'At Risk' || p.status === 'Delayed');
+  const pendingAmt = invoices.filter((i) => ['Submitted', 'Under Verification', 'Approved'].includes(i.status)).reduce((s, i) => s + (i.amount || 0), 0);
+  const allUpcoming = projects.flatMap((p) => (p.upcoming || []).map((u) => ({ ...u, projectName: p.name })))
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: 'smooth' });
@@ -37,22 +38,94 @@ export default function AIAssist() {
 
   const resolve = (question: string) => {
     const q = question.toLowerCase();
-    const found = AI_ANSWERS.find((a) => a.match.some((m) => q.includes(m)));
-    if (found) return found;
+
+    if (q.includes('risk') || q.includes('delay')) {
+      return {
+        title: 'Projects Risk Assessment',
+        blocks: [
+          {
+            kind: 'list' as const,
+            items: atRiskProjects.length > 0
+              ? atRiskProjects.map((p) => ({
+                  label: p.name,
+                  value: `${p.status.toUpperCase()} — Current physical progress: ${p.progress}%, Target completion: ${p.deadline || 'Pending'}`,
+                  link: `/projects/${p.id}`,
+                  tone: 'bad' as const,
+                }))
+              : [{ label: 'All Projects Stable', value: 'Zero delayed or at-risk contracts detected in live portfolio.', tone: 'ok' as const }],
+          },
+          {
+            kind: 'text' as const,
+            text: atRiskProjects.length > 0
+              ? `There are ${atRiskProjects.length} projects requiring operational attention.`
+              : 'All assigned government contracts are tracking according to planned milestone schedules.',
+          },
+        ],
+      };
+    }
+
+    if (q.includes('payment') || q.includes('bill') || q.includes('invoice')) {
+      return {
+        title: 'Live Payment & Billing Status',
+        blocks: [
+          {
+            kind: 'text' as const,
+            text: `Current pending amount across submitted bills: ${money(pendingAmt)}. Total invoiced claims: ${invoices.length}.`,
+          },
+          {
+            kind: 'list' as const,
+            items: invoices.slice(0, 5).map((inv) => ({
+              label: `Invoice #${inv.num} — ${inv.status}`,
+              value: `${money(inv.amount)} (${inv.verification || 'In processing'})`,
+              link: `/projects/${inv.projectId}/bills`,
+              tone: inv.status === 'Approved' ? 'ok' as const : 'warn' as const,
+            })),
+          },
+        ],
+      };
+    }
+
+    if (q.includes('inspection')) {
+      return {
+        title: 'Upcoming Quality & Engineering Inspections',
+        blocks: [
+          {
+            kind: 'list' as const,
+            items: allUpcoming.length > 0
+              ? allUpcoming.slice(0, 4).map((insp) => ({
+                  label: `${insp.projectName} — ${insp.title || 'Site Inspection'}`,
+                  value: `${insp.date} ${insp.time ? `at ${insp.time} IST` : ''}`,
+                  tone: 'info' as const,
+                }))
+              : [{ label: 'No Inspections Scheduled', value: 'No upcoming site inspections logged in database.', tone: 'ok' as const }],
+          },
+        ],
+      };
+    }
+
+    const nextInspection = allUpcoming[0];
     return {
-      match: [],
-      title: 'Contractor status summary',
+      title: 'Portfolio Operational Status',
       blocks: [
         {
           kind: 'text' as const,
-          text: `Here is your current standing: ${active.length} active works (${cr(active.reduce((s, p) => s + p.value, 0))}), ${money(pendingAmt)} in bills awaiting release, and 2 open tender deadlines within 30 days. Ask me about a specific project, payment, tender or compliance item for a deeper answer.`,
+          text: `You have ${active.length} active works (${cr(active.reduce((s, p) => s + (p.value || 0), 0))}) with average progress of ${active.length > 0 ? Math.round(active.reduce((s, p) => s + (p.progress || 0), 0) / active.length) : 0}%.`,
         },
         {
           kind: 'list' as const,
           items: [
-            { label: 'At-risk projects', value: 'Rural Bridge (HIGH), Hospital (MEDIUM)' },
-            { label: 'Next inspection', value: '15 Sep — Pune Road, Structural Zone 1' },
-            { label: 'Nearest tender deadline', value: '28 Sep — NH-548C Satara (readiness 78%)' },
+            {
+              label: 'Projects status',
+              value: atRiskProjects.length > 0 ? `${atRiskProjects.length} at risk or delayed` : 'All projects on schedule',
+            },
+            {
+              label: 'Next scheduled inspection',
+              value: nextInspection ? `${nextInspection.date} — ${nextInspection.projectName}` : 'None scheduled',
+            },
+            {
+              label: 'Pending payment claims',
+              value: money(pendingAmt),
+            },
           ],
         },
       ],

@@ -6,12 +6,10 @@ import { useStore } from '../../lib/store';
 import type { Project } from '../../lib/data';
 import type { ProgressReport } from '../../types/contractor.types';
 import { ContractorProgressService } from '../../services/progress.service';
-import { isDemoMode } from '@/lib/config/dataMode';
 import { cls, fmtDate, timeAgo } from '../../lib/utils';
 
 export default function ReportUpdate({ project }: { project: Project }) {
   const { reports, addReport, toast } = useStore();
-  const demo = isDemoMode();
   const current = project.milestones.find((m) => m.state === 'current');
   const [milestone, setMilestone] = useState(current?.name ?? project.milestones[0]?.name ?? '');
   const [progress, setProgress] = useState(String(Math.max(project.progress, 1)));
@@ -28,7 +26,6 @@ export default function ReportUpdate({ project }: { project: Project }) {
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   const fetchServerHistory = useCallback(async () => {
-    if (demo) return;
     try {
       setLoadingHistory(true);
       const list = await ContractorProgressService.listProgress(project.id);
@@ -38,16 +35,14 @@ export default function ReportUpdate({ project }: { project: Project }) {
     } finally {
       setLoadingHistory(false);
     }
-  }, [demo, project.id]);
+  }, [project.id]);
 
   useEffect(() => {
     void fetchServerHistory();
   }, [fetchServerHistory]);
 
   const localDrafts = reports.filter((r) => r.projectId === project.id && r.status === 'Draft');
-  const officialSubmissions = demo
-    ? reports.filter((r) => r.projectId === project.id && r.status !== 'Draft').sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
-    : serverReports;
+  const officialSubmissions = serverReports;
 
   const sinceLast = Number(progress) - project.progress;
 
@@ -95,30 +90,15 @@ export default function ReportUpdate({ project }: { project: Project }) {
         challenges ? `Challenges: ${challenges}` : '',
       ].filter(Boolean).join('\n');
 
-      if (demo) {
-        addReport({
-          projectId: project.id,
-          milestone,
-          progress: Number(progress) || project.progress,
-          prevProgress: project.progress,
-          completed,
-          planned,
-          challenges,
-          photos: photos.map((p) => p.name),
-          docs: docs.map((d) => d.name),
-          status: 'Under Government Review',
-        });
-      } else {
-        await ContractorProgressService.submitProgress({
-          projectId: project.id,
-          reportedProgress: Number(progress) || project.progress,
-          description: summary || 'Physical progress update submitted via Contractor Portal.',
-          milestoneId: null,
-        });
+      await ContractorProgressService.submitProgress({
+        projectId: project.id,
+        reportedProgress: Number(progress) || project.progress,
+        description: summary || 'Physical progress update submitted via Contractor Portal.',
+        milestoneId: null,
+      });
 
-        // Refresh authoritative database history without creating local drafts
-        await fetchServerHistory();
-      }
+      // Refresh authoritative database history
+      await fetchServerHistory();
 
       toast('success', 'Submitted to Government', 'Update has been submitted for official verification.');
       setConfirmOpen(false);

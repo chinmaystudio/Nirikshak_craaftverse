@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { ArrowLeft, FileSignature, Upload, MessagesSquare, Sparkles } from 'lucide-react';
 import { Link, navigate } from '../../lib/router';
 import { useStore } from '../../lib/store';
-import { getProject } from '../../lib/data';
 import ProjectSidebar, { PROJECT_SECTIONS } from '../../components/ProjectSidebar';
 import { Card, StatusBadge, RiskBadge, ProgressBar, Modal, Field, Select, DocumentUploader, Avatar } from '../../components/ui';
 import type { UploadDoc } from '../../components/ui';
@@ -23,7 +22,7 @@ import { useAuth } from '@/core/auth/useAuth';
 export default function ProjectLayout({ projectId, section }: { projectId: string; section: string }) {
   const { projects, documents, addDocument, toast } = useStore();
   const { session } = useAuth();
-  const project = projects.find((p) => p.id === projectId || p.code === projectId) || getProject(projectId) || projects[0];
+  const project = projects.find((p) => p.id === projectId || p.code === projectId) || projects[0];
   const [uploadOpen, setUploadOpen] = useState(false);
   const [docType, setDocType] = useState('QA Report');
   const [docs, setDocs] = useState<UploadDoc[]>([]);

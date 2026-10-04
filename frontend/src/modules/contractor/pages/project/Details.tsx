@@ -6,9 +6,11 @@ import { useStore } from '../../lib/store';
 import type { Project } from '../../lib/data';
 import { useState } from 'react';
 import { cls, cr, downloadFile, fmtDate, fmtDateShort, daysUntil } from '../../lib/utils';
+import { useAuth } from '@/core/auth/useAuth';
 
 export default function ProjectDetails({ project }: { project: Project }) {
   const { documents, addDocument, toast } = useStore();
+  const { session } = useAuth();
   const [docs, setDocs] = useState<UploadDoc[]>([]);
   const docsList = documents[project.id] ?? [];
   const elapsedDays = Math.max(0, daysUntil(project.start) * -1);
@@ -38,7 +40,7 @@ export default function ProjectDetails({ project }: { project: Project }) {
             <Info k="Approved Budget" v={cr(project.budgetApproved || project.value || 0)} />
             <Info k="Start Date" v={fmtDate(project.start)} />
             <Info k="Expected Completion" v={fmtDate(project.deadline)} />
-            <Info k="Contractor" v="Balaji Infraprojects Pvt. Ltd. (Class-A)" />
+            <Info k="Contractor" v={session?.organization?.name || 'Authorized Contractor Entity'} />
             <Info k="Contract Status" v="" badge={<StatusBadge status={project.status === 'Completed' ? 'Completed' : 'Active'} />} />
             <Info k="Work Order" v={project.workOrder || 'WO-MH-2026-001'} mono />
           </dl>

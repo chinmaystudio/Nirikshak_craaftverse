@@ -8,7 +8,6 @@ import { Link, navigate } from '../lib/router';
 import { cls } from '../lib/utils';
 import Logo from './Logo';
 import { Avatar, Dropdown } from './ui';
-import { CONTRACTOR } from '../lib/data';
 import { useAuth } from '@/core/auth/useAuth';
 import { RealtimeStatusIndicator } from '@/core/realtime/RealtimeStatusIndicator';
 

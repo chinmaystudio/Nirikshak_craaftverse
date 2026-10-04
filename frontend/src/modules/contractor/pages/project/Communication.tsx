@@ -5,11 +5,13 @@ import type { UploadDoc } from '../../components/ui';
 import { useStore } from '../../lib/store';
 import type { Project, Message } from '../../lib/data';
 import { cls, fmtDate, fmtDateTime, timeAgo } from '../../lib/utils';
+import { useAuth } from '@/core/auth/useAuth';
 
 const TYPES = ['Clarification Request', 'Material / Drawing Approval', 'Extension Request (EOT)', 'Response to Notice', 'Payment Follow-up', 'General Correspondence'];
 
 export default function Communication({ project }: { project: Project }) {
   const { messages, sendMessage, toast } = useStore();
+  const { session } = useAuth();
   const thread = useMemo(() => (messages[project.id] ?? []).slice().sort((a, b) => b.ts.localeCompare(a.ts)), [messages, project.id]);
   const [selectedId, setSelectedId] = useState<string | null>(thread[0]?.id ?? null);
   const [composeOpen, setComposeOpen] = useState(false);
@@ -26,15 +28,17 @@ export default function Communication({ project }: { project: Project }) {
       toast('warn', 'Incomplete message', 'Subject (min 5 chars) and message (min 10 chars) are required.');
       return;
     }
+    const contractorName = session?.organization?.name || 'Contractor Entity';
+    const abbr = (contractorName.match(/\b\w/g) || []).join('').slice(0, 3).toUpperCase() || 'CNT';
     sendMessage({
       projectId: project.id,
       dir: 'out',
-      from: 'Balaji Infraprojects Pvt. Ltd.',
+      from: contractorName,
       role: 'Contractor',
       subject,
       type: type as Message['type'],
       body,
-      ref: `BIP/${project.deptAbbr}/2026-27/${Math.floor(300 + Math.random() * 700)}`,
+      ref: `${abbr}/${project.deptAbbr}/2026-27/${Math.floor(300 + Math.random() * 700)}`,
       attachments: files.map((f) => f.name),
     });
     toast('success', 'Message sent', `Marked to ${project.officer} — acknowledgement typically within 1 working day.`);

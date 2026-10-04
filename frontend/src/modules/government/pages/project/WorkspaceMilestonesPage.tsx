@@ -13,8 +13,6 @@ import { TextField, Select } from '@/components/ui/Fields'
 import { PageHeader, KpiRow, ConfirmDialog, DetailField, KpiCard } from '@/components/blocks/Page'
 import { formatCr, formatDate } from '@/utils/format'
 import { MILESTONE_STATUS } from '@/utils/status'
-import { MILESTONE_META } from '@/data/workspace'
-import { isDemoMode } from '@/lib/config/dataMode'
 import type { Milestone } from '@/types'
 
 const VERIFICATION_TONE = {
@@ -38,7 +36,7 @@ export function WorkspaceMilestonesPage() {
 
   if (!project) return null
 
-  const meta = (m: Milestone) => (isDemoMode() ? MILESTONE_META[m.id] : undefined)
+  const meta = (_m: Milestone) => undefined
   const completed = milestones.filter((m) => m.status === 'completed').length
   const inProgress = milestones.filter((m) => m.status === 'in_progress').length
   const delayed = milestones.filter((m) => m.status === 'delayed').length

@@ -18,4 +18,4 @@ INSERT INTO public.organizations (id, name, type, department, state, district, v
 ('55555555-5555-5555-5555-555555555555', 'Tata Projects Limited', 'contractor', 'Infrastructure Engineering', 'Maharashtra', 'Pune', TRUE),
 ('66666666-6666-6666-6666-666666666666', 'Larsen & Toubro Infrastructure (L&T)', 'contractor', 'Heavy Civil Infrastructure', 'Maharashtra', 'Pune', TRUE),
 ('77777777-7777-7777-7777-777777777777', 'J Kumar Infraprojects Limited', 'contractor', 'Metro & Flyovers', 'Maharashtra', 'Pune', TRUE)
-ON CONFLICT (name) DO UPDATE SET verified = TRUE;
+ON CONFLICT (id) DO UPDATE SET verified = TRUE, name = EXCLUDED.name;

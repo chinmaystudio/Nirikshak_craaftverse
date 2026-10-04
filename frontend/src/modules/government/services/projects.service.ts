@@ -129,7 +129,6 @@ export const projectsService = {
     const { data, error } = await supabase
       .from('government_project_summary_view')
       .select('*')
-      .is('source_record_id', null)
       .or('record_scope.is.null,record_scope.neq.DEMO')
       .order('total_cost_inr_crore', { ascending: false, nullsFirst: false })
       .limit(1000);
@@ -149,7 +148,7 @@ export const projectsService = {
     const to = from + pageSize - 1;
 
     let query = supabase.from('government_project_summary_view').select('*', { count: 'exact' });
-    query = query.is('source_record_id', null).or('record_scope.is.null,record_scope.neq.DEMO');
+    query = query.or('record_scope.is.null,record_scope.neq.DEMO');
 
     if (q?.search) {
       query = query.or(`project_name.ilike.%${q.search}%,location_text.ilike.%${q.search}%,nirikshak_project_id.ilike.%${q.search}%`);

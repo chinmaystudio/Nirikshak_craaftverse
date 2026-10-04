@@ -1,8 +1,6 @@
 import type { Project, ProjectCategory, ProjectStatus, WardStatistics, CityStatistics } from "@/types/project";
 import { ApiError } from "@/services/api/client";
 import { projectImages } from "../../data/projects";
-import { ward as wardStats, cityStats } from "../../data/ward";
-import { isDemoMode } from "@/lib/config/dataMode";
 import { supabase } from "@/core/supabase/client";
 
 
@@ -214,9 +212,6 @@ export function allDepartments(projectList?: Project[]): string[] {
 }
 
 export function getWardStats(): WardStatistics {
-  if (isDemoMode()) {
-    return wardStats;
-  }
   const source = cachedProjects ?? [];
   const onTrack = source.filter((p) => p.status === 'on-track').length;
   const delayed = source.filter((p) => p.status === 'delayed').length;
@@ -253,9 +248,6 @@ export function getWardStats(): WardStatistics {
 export const getWardStatistics = getWardStats;
 
 export function getCityStats(): CityStatistics {
-  if (isDemoMode()) {
-    return cityStats;
-  }
   const source = cachedProjects ?? [];
   const activeProjects = source.filter((p) => p.status !== 'completed').length;
   const completed = source.filter((p) => p.status === 'completed').length;

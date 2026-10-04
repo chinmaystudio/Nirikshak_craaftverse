@@ -4,20 +4,34 @@ import { Card, SectionTitle, StatusBadge, Loading } from '../components/ui';
 import { ProgressRing } from '../components/charts';
 import { Link } from '../lib/router';
 import { useStore } from '../lib/store';
-import { getTender, CONTRACTOR } from '../lib/data';
+import { getTender } from '../lib/data';
+import type { Tender } from '../lib/data';
+import { ContractorTenderService } from '../services/tender.service';
 import { eligibilityRows, eligibilityStatus } from '../lib/eligibility';
 import { cr, fmtDate, cls } from '../lib/utils';
 
 export default function BidAIAssist({ tenderId }: { tenderId: string }) {
-  const tender = getTender(tenderId);
+  const [tender, setTender] = useState<Tender | null>(() => getTender(tenderId) || null);
   const { bids, toast } = useStore();
   const [loading, setLoading] = useState(true);
   const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
+    let active = true;
     setLoading(true);
-    const t = window.setTimeout(() => setLoading(false), 900);
-    return () => window.clearTimeout(t);
+    ContractorTenderService.getTender(tenderId)
+      .then((dbT) => {
+        if (active && dbT) {
+          setTender(ContractorTenderService.toTender(dbT));
+        }
+      })
+      .catch((err) => {
+        console.warn('Error loading live tender for AI assist:', err);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
   }, [tenderId, nonce]);
 
   if (!tender) {
@@ -41,7 +55,9 @@ export default function BidAIAssist({ tenderId }: { tenderId: string }) {
   const primaryFinancialRequirement = tender.finReq?.find((item) => item?.trim())
     || 'No separate financial requirement was included in the published tender';
   const expectedAwardDate = tender.timeline?.[Math.max(0, tender.timeline.length - 1)]?.date || tender.deadline;
-  const missing = tender.id === 't1' ? ['Experience Certificate', 'Equipment Ownership Proof'] : tender.id === 't3' ? ['MJP Class-1 Revalidation'] : [];
+  const missing = (tender.docs && tender.docs.length > 0)
+    ? tender.docs.slice(0, 2)
+    : [];
   const readiness = Math.max(20, 100 - missing.length * 11 - (status === 'Review' ? 8 : 0));
 
   const regen = () => {

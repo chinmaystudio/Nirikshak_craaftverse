@@ -7,10 +7,12 @@ import { Card, StatusBadge, Field, DocumentUploader, ConfirmModal, SectionTitle 
 import { Link } from '../lib/router';
 import type { UploadDoc } from '../components/ui';
 import { useStore } from '../lib/store';
-import { getTender, CONTRACTOR, BID_STEPS } from '../lib/data';
+import { getTender, BID_STEPS } from '../lib/data';
+import type { Tender } from '../lib/data';
 import { eligibilityStatus } from '../lib/eligibility';
 import { cr, money, fmtDate, cls } from '../lib/utils';
 import { ContractorTenderService } from '../services/tender.service';
+import { useAuth } from '@/core/auth/useAuth';
 
 interface BidData {
   contact: string;
@@ -28,31 +30,44 @@ interface BidData {
   verified: boolean;
 }
 
-const EMPTY: BidData = {
-  contact: CONTRACTOR.name,
-  signatory: '',
-  designation: 'Authorized Signatory',
-  turnoverFY: '',
-  eligibilityDecls: [false, false, false, false],
-  methodology: '',
-  equipment: '',
-  safetyPlan: false,
-  bidAmount: '',
-  taxPercent: '18',
-  validity: '120',
-  docs: [],
-  verified: false,
-};
-
 const REQUIRED_DOCS = ['Experience Certificate', 'Equipment Ownership Proof', 'EMD Bank Guarantee', 'Turnover Certificate'];
 
 export default function BidSubmission({ tenderId }: { tenderId: string }) {
-  const tender = getTender(tenderId);
+  const { session } = useAuth();
+  const [tender, setTender] = useState<Tender | null>(() => getTender(tenderId) || null);
   const { bids, saveBidDraft, submitBid, toast } = useStore();
   const existing = tender ? bids[tender.id] : undefined;
   const [step, setStep] = useState(existing && existing.status === 'Draft' ? Math.min(existing.step, 6) : 0);
-  const [data, setData] = useState<BidData>(EMPTY);
+  const [data, setData] = useState<BidData>(() => ({
+    contact: session?.organization?.name || 'Authorized Contractor Entity',
+    signatory: session?.profile?.full_name || '',
+    designation: session?.role ? session.role.replace(/_/g, ' ') : 'Authorized Signatory',
+    turnoverFY: '',
+    eligibilityDecls: [false, false, false, false],
+    methodology: '',
+    equipment: '',
+    safetyPlan: false,
+    bidAmount: '',
+    taxPercent: '18',
+    validity: '120',
+    docs: [],
+    verified: false,
+  }));
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let active = true;
+    ContractorTenderService.getTender(tenderId)
+      .then((dbT) => {
+        if (active && dbT) {
+          setTender(ContractorTenderService.toTender(dbT));
+        }
+      })
+      .catch((err) => {
+        console.warn('Error loading live tender for bid:', err);
+      });
+    return () => { active = false; };
+  }, [tenderId]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submittedRef, setSubmittedRef] = useState<string | null>(existing && existing.ref ? existing.ref : null);
   const [serverSubmittedAt, setServerSubmittedAt] = useState<string | null>(null);

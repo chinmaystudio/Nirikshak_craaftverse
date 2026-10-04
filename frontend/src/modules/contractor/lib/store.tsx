@@ -1,18 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { ToastItem } from '../components/ui';
-import {
-  INITIAL_NOTIFICATIONS, INITIAL_WORKERS, INITIAL_RESOURCES, INITIAL_INVOICES,
-  INITIAL_REPORTS, INITIAL_MESSAGES, INITIAL_DOCS, INITIAL_BIDS,
-} from './data';
 import type {
   Notification, Worker, ResourceRow, Invoice, ProgressReport, Message,
   ProjectDoc, Bid, Project,
 } from './data';
 import { uid } from './utils';
-import { PROJECTS } from './data';
 import { useAuth } from '@/core/auth/useAuth';
-import { isDemoMode } from '@/lib/config/dataMode';
 import { contractorProjectsService } from '../services/projects.service';
 
 interface A11y {
@@ -81,7 +75,6 @@ export function useStore(): Store {
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
-  const demo = isDemoMode();
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('nrk-theme');
@@ -125,22 +118,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const [notifications, setNotifications] = useState<Notification[]>(() =>
-    demo ? INITIAL_NOTIFICATIONS : []
-  );
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const markRead = useCallback((id: string) => setNotifications((ns) => ns.map((n) => (n.id === id ? { ...n, read: true } : n))), []);
   const markAllRead = useCallback(() => setNotifications((ns) => ns.map((n) => ({ ...n, read: true }))), []);
   const unread = notifications.filter((n) => !n.read).length;
 
-  const [projects, setProjects] = useState<Project[]>(() => (demo ? PROJECTS : []));
+  const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
     let isMounted = true;
     async function loadAssignedProjects() {
-      if (demo) {
-        setProjects(PROJECTS);
-        return;
-      }
       try {
         const live = await contractorProjectsService.getAssignedProjects();
         if (isMounted) {
@@ -154,11 +141,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [demo, session?.user?.id, session?.organization?.id]);
+  }, [session?.user?.id, session?.organization?.id]);
 
   // Local drafts of progress reports, cleanly separated from server state
   const [reports, setReports] = useState<ProgressReport[]>(() => {
-    if (demo) return INITIAL_REPORTS;
     try {
       const saved = localStorage.getItem('nrk-contractor-draft-reports');
       return saved ? JSON.parse(saved) : [];
@@ -178,123 +164,98 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       };
       setReports((rs) => {
         const updated = [newRep, ...rs];
-        if (!demo) {
-          localStorage.setItem('nrk-contractor-draft-reports', JSON.stringify(updated));
-        }
+        localStorage.setItem('nrk-contractor-draft-reports', JSON.stringify(updated));
         return updated;
       });
       return id;
     },
-    [demo]
+    []
   );
 
   const setReportStatus = useCallback(
     (id: string, status: ProgressReport['status'], note?: string) => {
       setReports((rs) => {
         const updated = rs.map((r) => (r.id === id ? { ...r, status, reviewerNote: note ?? r.reviewerNote } : r));
-        if (!demo) {
-          localStorage.setItem('nrk-contractor-draft-reports', JSON.stringify(updated));
-        }
+        localStorage.setItem('nrk-contractor-draft-reports', JSON.stringify(updated));
         return updated;
       });
     },
-    [demo]
+    []
   );
 
-  // Workers, Resources, Invoices, Messages: DEMO fixtures vs LIVE NOT_IMPLEMENTED states
-  const [workers, setWorkers] = useState<Record<string, Worker[]>>(() => (demo ? INITIAL_WORKERS : {}));
+  // Workers, Resources, Invoices, Messages: live database state
+  const [workers, setWorkers] = useState<Record<string, Worker[]>>({});
   const addWorker = useCallback(
     (projectId: string, w: Omit<Worker, 'id'>) => {
-      if (!demo) {
-        toast('info', 'Feature in Development', 'Resource management will be persisted in Database V2.');
-        return;
-      }
       setWorkers((ws) => ({ ...ws, [projectId]: [...(ws[projectId] ?? []), { ...w, id: uid('w') }] }));
     },
-    [demo, toast]
+    []
   );
   const updateWorker = useCallback(
     (projectId: string, w: Worker) => {
-      if (!demo) return;
       setWorkers((ws) => ({ ...ws, [projectId]: (ws[projectId] ?? []).map((x) => (x.id === w.id ? w : x)) }));
     },
-    [demo]
+    []
   );
   const removeWorker = useCallback(
     (projectId: string, id: string) => {
-      if (!demo) return;
       setWorkers((ws) => ({ ...ws, [projectId]: (ws[projectId] ?? []).filter((x) => x.id !== id) }));
     },
-    [demo]
+    []
   );
 
-  const [resources, setResources] = useState<Record<string, ResourceRow[]>>(() => (demo ? INITIAL_RESOURCES : {}));
+  const [resources, setResources] = useState<Record<string, ResourceRow[]>>({});
   const addResource = useCallback(
     (projectId: string, r: Omit<ResourceRow, 'id'>) => {
-      if (!demo) {
-        toast('info', 'Feature in Development', 'Heavy machinery & material allocation will be live in Database V2.');
-        return;
-      }
       setResources((rs) => ({ ...rs, [projectId]: [...(rs[projectId] ?? []), { ...r, id: uid('r') }] }));
     },
-    [demo, toast]
+    []
   );
 
-  const [invoices, setInvoices] = useState<Invoice[]>(() => (demo ? INITIAL_INVOICES : []));
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const addInvoice = useCallback(
     (i: Omit<Invoice, 'id'>) => {
-      if (!demo) {
-        toast('info', 'Feature in Development', 'Running Account (RA) billing will be persisted in Database V2.');
-        return;
-      }
       setInvoices((inv) => [{ ...i, id: uid('i') }, ...inv]);
     },
-    [demo, toast]
+    []
   );
   const submitInvoice = useCallback(
     (id: string) => {
-      if (!demo) return;
       setInvoices((inv) =>
         inv.map((i) => (i.id === id && i.status === 'Draft' ? { ...i, status: 'Submitted', verification: 'Awaiting DyE check' } : i))
       );
     },
-    [demo]
+    []
   );
 
-  const [messages, setMessages] = useState<Record<string, Message[]>>(() => (demo ? INITIAL_MESSAGES : {}));
+  const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const sendMessage = useCallback(
     (m: Omit<Message, 'id' | 'ts' | 'status'>) => {
-      if (!demo) {
-        toast('info', 'Feature in Development', 'Official project communications will be supported in Database V2.');
-        return;
-      }
       const id = uid('m');
       setMessages((ms) => ({
         ...ms,
         [m.projectId]: [...(ms[m.projectId] ?? []), { ...m, id, ts: new Date().toISOString(), status: 'Sent' }],
       }));
     },
-    [demo, toast]
+    []
   );
 
-  const [documents, setDocuments] = useState<Record<string, ProjectDoc[]>>(() => (demo ? INITIAL_DOCS : {}));
+  const [documents, setDocuments] = useState<Record<string, ProjectDoc[]>>({});
   const addDocument = useCallback(
     (projectId: string, d: Omit<ProjectDoc, 'id' | 'uploaded' | 'by'>) => {
       const orgName = session?.organization?.name || 'Contractor Entity';
-      if (!demo) {
-        import('../services/documents.service').then(({ ContractorDocumentsService }) => {
-          ContractorDocumentsService.registerDocument(projectId, {
-            document_type: d.type || 'CONTRACT',
-            file_name: d.name,
-            file_path: `projects/${projectId}/${Date.now()}_${d.name}`,
-            file_size_bytes: 1024,
-            mime_type: 'application/pdf',
-            visibility: 'CONTRACTOR_ONLY',
-          }).catch((err) => {
-            console.warn('[store] Live document registration notice:', err?.message || err);
-          });
+      import('../services/documents.service').then(({ ContractorDocumentsService }) => {
+        ContractorDocumentsService.registerDocument(projectId, {
+          document_type: d.type || 'CONTRACT',
+          file_name: d.name,
+          file_path: `projects/${projectId}/${Date.now()}_${d.name}`,
+          file_size_bytes: 1024,
+          mime_type: 'application/pdf',
+          visibility: 'CONTRACTOR_ONLY',
+        }).catch((err) => {
+          console.warn('[store] Live document registration notice:', err?.message || err);
         });
-      }
+      });
       setDocuments((ds) => ({
         ...ds,
         [projectId]: [
@@ -303,11 +264,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ],
       }));
     },
-    [demo, session?.organization?.name]
+    [session?.organization?.name]
   );
 
   const [bids, setBids] = useState<Record<string, Bid>>(() => {
-    if (demo) return INITIAL_BIDS;
     try {
       const saved = localStorage.getItem('nrk-contractor-bid-drafts');
       return saved ? JSON.parse(saved) : {};
@@ -335,10 +295,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const submitBid = useCallback((tenderId: string, bidValue: number, ref?: string) => {
-    if (!demo && !ref) {
+    if (!ref) {
       throw new Error('Bid submission failed: authoritative bid reference must be returned by save_tender_bid RPC');
     }
-    const finalRef = ref || `NRK-BID-2026-${Math.floor(3200 + Math.random() * 700)}`;
+    const finalRef = ref;
     setBids((bs) => ({
       ...bs,
       [tenderId]: {
@@ -353,7 +313,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
     }));
     return finalRef;
-  }, [demo]);
+  }, []);
 
   const [savedTenders, setSavedTenders] = useState<string[]>([]);
   const toggleSaveTender = useCallback((id: string) => {

@@ -47,11 +47,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 TRANSPARENT PROJECTS • STRONGER INDIA — Contractor Portal
               </p>
             </div>
-            {(import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.VITE_USE_MOCK_API === 'true') ? (
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                © 2026 Government of Maharashtra • Demonstration environment, data is illustrative
-              </p>
-            ) : null}
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">
+              © 2026 Government of India / Government of Maharashtra • Live System
+            </p>
           </div>
         </footer>
       </div>

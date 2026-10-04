@@ -123,7 +123,7 @@ BEGIN
     'recorded_at', NEW.created_at
   );
 
-  v_payload_hash := encode(digest(v_payload::text, 'sha256'), 'hex');
+  v_payload_hash := encode(extensions.digest(v_payload::text, 'sha256'), 'hex');
   v_dedupe_key := 'PAYMENT:' || NEW.id || ':RECORDED:' || COALESCE(NEW.payment_reference, NEW.id::text);
 
   PERFORM public.enqueue_blockchain_anchor(
@@ -168,7 +168,7 @@ BEGIN
       'awarded_at', NEW.created_at
     );
 
-    v_payload_hash := encode(digest(v_payload::text, 'sha256'), 'hex');
+    v_payload_hash := encode(extensions.digest(v_payload::text, 'sha256'), 'hex');
     v_dedupe_key := 'CONTRACT:' || NEW.id || ':AWARDED:' || COALESCE(NEW.contract_number, NEW.id::text);
 
     PERFORM public.enqueue_blockchain_anchor(

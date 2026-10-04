@@ -18,7 +18,7 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const isDev = !import.meta.env.PROD || import.meta.env.VITE_SHOW_DEMO_CREDENTIALS === 'true';
+  const isDev = import.meta.env.VITE_SHOW_DEMO_CREDENTIALS === 'true';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -22,7 +22,7 @@ export function LoginPage(): JSX.Element {
   const [helpOpen, setHelpOpen] = useState(false);
   const { t } = useT();
 
-  const isDev = !import.meta.env.PROD || import.meta.env.VITE_SHOW_DEMO_CREDENTIALS === "true";
+  const isDev = import.meta.env.VITE_SHOW_DEMO_CREDENTIALS === "true";
 
   const handleLogin = async (e?: React.FormEvent): Promise<void> => {
     if (e) e.preventDefault();

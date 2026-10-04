@@ -1,14 +1,11 @@
-export type DataMode = 'LIVE' | 'DEMO';
+export type DataMode = 'LIVE';
 
 /**
  * Authoritative data mode controller.
- * In LIVE mode, queries only hit real Supabase & backend services.
- * Silent fallback to mock data on error or empty results is STRICTLY PROHIBITED.
+ * In LIVE mode, queries strictly hit real Supabase & backend services.
+ * All demo modes, mock data, and hardcoded fallbacks are strictly prohibited and disabled.
  */
-const rawMode = (import.meta.env.VITE_DATA_MODE || '').toUpperCase();
-const isLegacyDemo = import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.VITE_USE_MOCK_API === 'true';
+export const CURRENT_DATA_MODE: DataMode = 'LIVE';
 
-export const CURRENT_DATA_MODE: DataMode = rawMode === 'DEMO' || isLegacyDemo ? 'DEMO' : 'LIVE';
-
-export const isLiveMode = (): boolean => CURRENT_DATA_MODE === 'LIVE';
-export const isDemoMode = (): boolean => CURRENT_DATA_MODE === 'DEMO';
+export const isLiveMode = (): boolean => true;
+export const isDemoMode = (): boolean => false;

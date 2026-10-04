@@ -10,7 +10,6 @@ import { KPISection, Card, SectionTitle, Pills, RiskBadge, StatusBadge, Progress
 import type { KPIItem } from '../components/ui';
 import { DataTable } from '../components/DataTable';
 import { StackedBar, HBars, GroupedBars } from '../components/charts';
-import { CONTRACTOR, pendingForProject } from '../lib/data';
 import type { Project } from '../lib/data';
 import { useAuth } from '@/core/auth/useAuth';
 import { cls, cr, fmtDate, fmtDateCompact, daysUntil, daysLeftLabel, money } from '../lib/utils';

@@ -2,7 +2,6 @@ import { LayoutDashboard, Folders, Gauge, Calendar, Sparkles, Bell, Gavel } from
 import { isActive, Link, usePath } from '../lib/router';
 import { cls } from '../lib/utils';
 import { useStore } from '../lib/store';
-import { CONTRACTOR } from '../lib/data';
 import { Avatar } from './ui';
 import Logo from './Logo';
 import { useAuth } from '@/core/auth/useAuth';

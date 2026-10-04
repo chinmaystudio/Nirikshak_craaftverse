@@ -4,7 +4,6 @@ import { Card, SectionTitle, StatusBadge, Spinner, AIRecommendation } from '../.
 import { Link } from '../../lib/router';
 import type { Project } from '../../lib/data';
 import { cr, fmtDate } from '../../lib/utils';
-import { isDemoMode } from '@/lib/config/dataMode';
 import { contractorAiService, type ContractorAiAnalysis } from '../../services/ai.service';
 
 interface Msg {
@@ -158,16 +157,9 @@ export default function AIGuide({ project }: { project: Project }) {
     setMsgs((m) => [...m, { role: 'user', text: q }]);
     setInput('');
     setThinking(true);
-    if (!isDemoMode()) {
-      const answer = await fetchLiveAnswer(q);
-      setMsgs((m) => [...m, { role: 'ai', answer }]);
-      setThinking(false);
-    } else {
-      window.setTimeout(() => {
-        setMsgs((m) => [...m, { role: 'ai', answer: answerFor(q) }]);
-        setThinking(false);
-      }, 850);
-    }
+    const answer = await fetchLiveAnswer(q);
+    setMsgs((m) => [...m, { role: 'ai', answer }]);
+    setThinking(false);
   };
 
 

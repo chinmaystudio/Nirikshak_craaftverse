@@ -4,7 +4,6 @@ import { Card, SectionTitle, StatusBadge, Tabs, Field, Select, Modal } from '../
 import { DataTable } from '../../components/DataTable';
 import { StepFlow } from '../../components/charts';
 import { useStore } from '../../lib/store';
-import { PROJECTS } from '../../lib/data';
 import type { Invoice, InvoiceStatus, Project } from '../../lib/data';
 import { fmtDate, money } from '../../lib/utils';
 

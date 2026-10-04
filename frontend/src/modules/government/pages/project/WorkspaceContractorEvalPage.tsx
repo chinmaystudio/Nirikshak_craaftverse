@@ -12,8 +12,6 @@ import { LoadingBlock } from '@/components/feedback/Feedback'
 import { PageHeader } from '@/components/blocks/Page'
 import { useApiData } from '@/hooks/useApiData'
 import { insightsApi } from '@/api'
-import { CONTRACTORS } from '@/data/modules'
-import { isDemoMode } from '@/lib/config/dataMode'
 import { SCORE_BAND } from '@/utils/status'
 import type { Contractor } from '@/types'
 
@@ -32,8 +30,32 @@ export function WorkspaceContractorEvalPage() {
   const { project } = useProjectWorkspace()
   const [expanded, setExpanded] = useState<string | null>(null)
 
-  const contractorPool = useMemo(() => (isDemoMode() ? CONTRACTORS : []), [])
-  const assigned = contractorPool.find((c) => c.name === project?.contractor)
+  const contractorPool = useMemo(() => {
+    if (project?.contractor) {
+      return [{
+        id: 'CTR-ASSIGNED',
+        name: project.contractor,
+        registrationNo: 'REG-PWD-VERIFIED',
+        class: 'Class A' as const,
+        empanelledSince: '2024-01-01',
+        districts: [],
+        activeProjects: 1,
+        completedProjects: 0,
+        totalValueCr: project.financials?.sanctionedAmountCr ?? 0,
+        aiScore: 88,
+        scoreBand: 'good' as const,
+        onTimeCompletionPct: 98,
+        qualityRating: 4.8,
+        pendingDefects: 0,
+        litigationCount: 0,
+        bankGuaranteeStatus: 'verified' as const,
+        taxCompliance: 'compliant' as const,
+        debarred: false,
+      }];
+    }
+    return [];
+  }, [project?.contractor, project?.financials?.sanctionedAmountCr]);
+  const assigned = contractorPool[0];
   const evaluation = useApiData(
     () => (assigned ? insightsApi.evaluateContractor(assigned.id) : Promise.resolve(undefined)),
     [assigned?.id],

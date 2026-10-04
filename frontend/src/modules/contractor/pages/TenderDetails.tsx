@@ -1,16 +1,45 @@
-import { useState } from 'react';
-import { Download, Bookmark, BookmarkCheck, ArrowRight, CheckCircle2, XCircle, CircleAlert, MapPin, Landmark, IndianRupee, CalendarClock } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Download, Bookmark, BookmarkCheck, ArrowRight, CheckCircle2, XCircle, CircleAlert, MapPin, Landmark, IndianRupee, CalendarClock, Loader2 } from 'lucide-react';
 import { PageHeader, Card, Tabs, StatusBadge, AIInsight, SectionTitle, Timeline } from '../components/ui';
 import { Link } from '../lib/router';
 import { useStore } from '../lib/store';
-import { getTender, CONTRACTOR } from '../lib/data';
+import { getTender } from '../lib/data';
+import type { Tender } from '../lib/data';
+import { ContractorTenderService } from '../services/tender.service';
 import { eligibilityRows, eligibilityStatus } from '../lib/eligibility';
 import { cr, downloadFile, fmtDate, money, daysLeftLabel, cls } from '../lib/utils';
 
 export default function TenderDetails({ tenderId }: { tenderId: string }) {
-  const tender = getTender(tenderId);
+  const [tender, setTender] = useState<Tender | null>(() => getTender(tenderId) || null);
+  const [loading, setLoading] = useState(!tender);
   const { savedTenders, toggleSaveTender, toast, bids } = useStore();
   const [tab, setTab] = useState('Overview');
+
+  useEffect(() => {
+    let active = true;
+    ContractorTenderService.getTender(tenderId)
+      .then((dbT) => {
+        if (active && dbT) {
+          setTender(ContractorTenderService.toTender(dbT));
+        }
+      })
+      .catch((err) => {
+        console.warn('Error loading live tender:', err);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, [tenderId]);
+
+  if (loading) {
+    return (
+      <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <p className="text-sm text-slate-500 font-medium">Fetching tender details from database...</p>
+      </div>
+    );
+  }
 
   if (!tender) {
     return (

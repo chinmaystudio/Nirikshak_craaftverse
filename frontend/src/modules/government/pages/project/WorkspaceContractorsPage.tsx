@@ -14,7 +14,6 @@ import { formatCr, formatDate } from '@/utils/format'
 import { BILL_STATUS, SCORE_BAND } from '@/utils/status'
 import { CONTRACTORS } from '@/data/modules'
 import { CONTRACTOR_EXTRA } from '@/data/workspace'
-import { isDemoMode } from '@/lib/config/dataMode'
 import type { Contractor } from '@/types'
 
 /** Project workspace — Contractor Management: register, verification,
@@ -30,7 +29,6 @@ export function WorkspaceContractorsPage() {
   const [verified, setVerified] = useState<Record<string, boolean>>({})
 
   const contractorPool = useMemo(() => {
-    if (isDemoMode()) return CONTRACTORS
     if (project?.contractor) {
       return [{
         id: 'CTR-ASSIGNED',

@@ -1,10 +1,22 @@
 import { useMemo, useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageHeader, Card, SectionTitle } from '../components/ui';
-import { CALENDAR_EVENTS } from '../lib/data';
+import { useStore } from '../lib/store';
 import { Link, navigate } from '../lib/router';
-import { cls, fmtDate, NOW } from '../lib/utils';
-import type { EventType } from '../lib/data';
+import { cls, fmtDate } from '../lib/utils';
+
+export type EventType = 'Project' | 'Inspection' | 'Payment' | 'Tender' | 'Government' | 'Compliance';
+
+export interface CalendarEvent {
+  id: string;
+  date: string;
+  time?: string;
+  title: string;
+  type: EventType;
+  project?: string;
+  location?: string;
+  link?: string;
+}
 
 const FILTERS: { key: string; label: string; types: EventType[] }[] = [
   { key: 'All', label: 'All', types: ['Project', 'Inspection', 'Payment', 'Tender', 'Government', 'Compliance'] },
@@ -28,13 +40,87 @@ const WD = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export default function CalendarPage() {
+  const { projects, invoices } = useStore();
   const [filter, setFilter] = useState('All');
-  const [month, setMonth] = useState(8); // Sep (0-indexed)
-  const [year, setYear] = useState(2026);
-  const [selected, setSelected] = useState('2026-09-11');
+  
+  const today = new Date();
+  const [month, setMonth] = useState(today.getMonth());
+  const [year, setYear] = useState(today.getFullYear());
+  const [selected, setSelected] = useState(today.toISOString().slice(0, 10));
+
+  // Synthesize events strictly from live database projects and invoices
+  const liveEvents = useMemo<CalendarEvent[]>(() => {
+    const list: CalendarEvent[] = [];
+
+    projects.forEach((p) => {
+      if (p.deadline) {
+        list.push({
+          id: `${p.id}-deadline`,
+          date: p.deadline.slice(0, 10),
+          title: `${p.name} — Contract Completion Target`,
+          type: 'Project',
+          project: p.name,
+          location: p.location,
+          link: `/projects/${p.id}`,
+        });
+      }
+      if (p.start) {
+        list.push({
+          id: `${p.id}-start`,
+          date: p.start.slice(0, 10),
+          title: `${p.name} — Scheduled Commencement`,
+          type: 'Project',
+          project: p.name,
+          location: p.location,
+          link: `/projects/${p.id}`,
+        });
+      }
+      (p.upcoming || []).forEach((u, idx) => {
+        if (u.date) {
+          list.push({
+            id: `${p.id}-insp-${idx}`,
+            date: u.date.slice(0, 10),
+            time: u.time || '10:00',
+            title: `${p.name} — ${u.title || 'Site Inspection'}`,
+            type: 'Inspection',
+            project: p.name,
+            location: p.location,
+            link: `/projects/${p.id}/inspections`,
+          });
+        }
+      });
+      (p.milestones || []).forEach((m, idx) => {
+        if (m.date) {
+          list.push({
+            id: `${p.id}-ms-${idx}`,
+            date: m.date.slice(0, 10),
+            title: `${p.name} — ${m.title}`,
+            type: 'Compliance',
+            project: p.name,
+            location: p.location,
+            link: `/projects/${p.id}`,
+          });
+        }
+      });
+    });
+
+    invoices.forEach((inv) => {
+      if (inv.date) {
+        list.push({
+          id: `inv-${inv.id}`,
+          date: inv.date.slice(0, 10),
+          title: `Invoice #${inv.num} (${inv.status})`,
+          type: 'Payment',
+          link: `/projects/${inv.projectId}/bills`,
+        });
+      }
+    });
+
+    return list;
+  }, [projects, invoices]);
 
   const types = FILTERS.find((f) => f.key === filter)?.types ?? FILTERS[0].types;
-  const events = useMemo(() => CALENDAR_EVENTS.filter((e) => types.includes(e.type)), [filter]);
+  const events = useMemo(() => liveEvents.filter((e) => types.includes(e.type)), [liveEvents, types]);
 
   const cells = useMemo(() => {
     const first = new Date(year, month, 1);
@@ -50,7 +136,7 @@ export default function CalendarPage() {
     return arr;
   }, [month, year]);
 
-  const todayStr = `${NOW.getFullYear()}-${String(NOW.getMonth() + 1).padStart(2, '0')}-${String(NOW.getDate()).padStart(2, '0')}`;
+  const todayStr = today.toISOString().slice(0, 10);
   const selectedEvents = events.filter((e) => e.date === selected);
   const upcoming = [...events].filter((e) => e.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 7);
 

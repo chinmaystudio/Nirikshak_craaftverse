@@ -15,8 +15,7 @@ import { PageHeader, KpiRow, FilterBar, ConfirmDialog, DetailField, KpiCard } fr
 import { SegmentBar, BarChart } from '@/components/charts/Charts'
 import { formatCr, formatDate } from '@/utils/format'
 import { APPROVAL_STATUS, BILL_FLAG, BILL_STATUS } from '@/utils/status'
-import { BUDGET_HEADS, MONTHLY_SPEND, billRiskFor } from '@/data/workspace'
-import { isDemoMode } from '@/lib/config/dataMode'
+import { billRiskFor } from '@/data/workspace'
 import type { BudgetHead } from '@/data/workspace'
 import type { BillItem } from '@/types'
 import { FUNDING_SOURCES } from '@/constants'
@@ -29,7 +28,7 @@ export function WorkspaceBudgetPage() {
   const { showToast } = useToast()
   const { project, approvals, bills } = useProjectWorkspace()
   const [billState, setBillState] = useState<BillItem[]>(bills)
-  const [headState, setHeadState] = useState<BudgetHead[]>(isDemoMode() && project ? (BUDGET_HEADS[project.id] ?? []) : [])
+  const [headState, setHeadState] = useState<BudgetHead[]>([])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
@@ -47,7 +46,7 @@ export function WorkspaceBudgetPage() {
   const overrunCr = revised != null && fin ? revised - fin.sanctionedAmountCr : 0
   const remaining = fin ? fin.sanctionedAmountCr - fin.amountUtilizedCr : 0
   const releaseApprovals = approvals.filter((a) => a.type.includes('Fund Release'))
-  const spend = isDemoMode() && project ? (MONTHLY_SPEND[project.id] ?? []) : []
+  const spend: { month: string; amountCr: number; budgetCr: number }[] = []
   const heads = useMemo(() => headState, [headState])
 
   const filteredHeads = heads.filter(

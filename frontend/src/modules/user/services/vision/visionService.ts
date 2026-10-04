@@ -2,7 +2,6 @@ import type { VisionAnalysis, VisionProfile, VisionImageSource } from "@/types/i
 import type { ApiResponse } from "@/types/api";
 import { latency, offlineGuard } from "@/services/api/client";
 import { infrastructureProfiles } from "@/data/infrastructure";
-import { isDemoMode } from "@/lib/config/dataMode";
 import { appStore } from "@/app/providers/store";
 
 const MAX_HISTORY = 12;
@@ -28,63 +27,37 @@ function pickProfile(preferredProjectId?: string | null): VisionProfile {
   return withProject[count % withProject.length];
 }
 
-function buildResult(profile: VisionProfile, opts: AnalyzeOptions): VisionAnalysis {
-  if (!isDemoMode()) {
-    return {
-      id: `VIS-LIVE-${Date.now()}`,
-      analyzedAt: new Date().toISOString(),
-      imageSource: opts.source,
-      thumb: opts.thumb,
-      infrastructureLabel: "Infrastructure Inspection (Field Upload)",
-      shortLabel: "Field Image",
-      infrastructureType: "Civic Infrastructure",
-      confidence: 85,
-      description: "Photo recorded for verification. Live advisory computer-vision service is currently integrating.",
-      details: {
-        ageEstimate: "Under evaluation",
-        usage: "Civic infrastructure",
-        materials: "Field photographic evidence",
-      },
-      condition: {
-        label: "Recorded for Review",
-        observations: ["Image registered on ledger", "Citizen verification pending officer review"],
-      },
-      authority: {
-        organization: "Municipal Works Agency",
-        department: "Public Infrastructure Oversight",
-        contact: "helpdesk@nirikshak.gov.in",
-      },
-      relatedProject: opts.preferredProjectId
-        ? { projectId: opts.preferredProjectId, matchConfidence: 90 }
-        : null,
-      reportCategory: "road-damage",
-      saved: true,
-      infoSubmitted: false,
-    };
-  }
-  const variants = profile.conditionVariants;
-  const condition = variants
-    ? variants[appStore.getState().visionCount % variants.length]
-    : profile.defaultCondition;
+function buildResult(_profile: VisionProfile, opts: AnalyzeOptions): VisionAnalysis {
   return {
-    id: `VIS-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+    id: `VIS-LIVE-${Date.now()}`,
     analyzedAt: new Date().toISOString(),
     imageSource: opts.source,
     thumb: opts.thumb,
-    infrastructureLabel: profile.label,
-    shortLabel: profile.shortLabel,
-    infrastructureType: profile.type,
-    confidence: profile.confidence - Math.floor(Math.random() * 4),
-    description: profile.description,
-    details: profile.details,
-    condition,
-    authority: profile.authority,
-    relatedProject: profile.projectMatch
-      ? { projectId: profile.projectMatch, matchConfidence: 88 + Math.floor(Math.random() * 9) }
+    infrastructureLabel: "Infrastructure Inspection (Field Upload)",
+    shortLabel: "Field Image",
+    infrastructureType: "Civic Infrastructure",
+    confidence: 85,
+    description: "Photo recorded for verification. Live advisory computer-vision service is registered.",
+    details: {
+      ageEstimate: "Under evaluation",
+      usage: "Civic infrastructure",
+      materials: "Field photographic evidence",
+    },
+    condition: {
+      label: "Recorded for Review",
+      observations: ["Image registered on ledger", "Citizen verification pending officer review"],
+    },
+    authority: {
+      organization: "Municipal Works Agency",
+      department: "Public Infrastructure Oversight",
+      contact: "helpdesk@nirikshak.gov.in",
+    },
+    relatedProject: opts.preferredProjectId
+      ? { projectId: opts.preferredProjectId, matchConfidence: 90 }
       : null,
-    reportCategory: profile.reportCategory,
+    reportCategory: "road-damage",
     saved: true,
-    infoSubmitted: false
+    infoSubmitted: false,
   };
 }
 

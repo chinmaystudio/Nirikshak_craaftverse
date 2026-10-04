@@ -4,7 +4,6 @@ import { Link } from '../lib/router';
 import { useStore } from '../lib/store';
 import { PageHeader, Card, StatusBadge, RiskBadge, ProgressBar, Select, SearchInput } from '../components/ui';
 import { DataTable } from '../components/DataTable';
-import { CONTRACTOR } from '../lib/data';
 import type { Project } from '../lib/data';
 import { useAuth } from '@/core/auth/useAuth';
 import { cr, daysLeftLabel, daysUntil, downloadCSV, fmtDate, fmtDateCompact } from '../lib/utils';
