@@ -4,6 +4,19 @@ import { env } from '../config/env';
 import type { User, Session } from '@supabase/supabase-js';
 import type { AppRole, AppSession, Profile, Organization, PendingApproval } from './authTypes';
 
+type AuthChangeListener = (session: Session | null) => void;
+const internalAuthListeners = new Set<AuthChangeListener>();
+
+export function emitAuthChange(session: Session | null): void {
+  internalAuthListeners.forEach((listener) => {
+    try {
+      listener(session);
+    } catch (e) {
+      console.warn('[AuthClient] Listener error:', e);
+    }
+  });
+}
+
 export class AuthClient {
   private static friendlyError(message?: string): string {
     const value = (message || '').toLowerCase();
@@ -275,7 +288,15 @@ export class AuthClient {
           email,
           password,
         });
-        return this.buildSessionFromApiUser(res.user);
+        const appSession = this.buildSessionFromApiUser(res.user);
+        emitAuthChange({
+          access_token: 'opaque-cookie-managed',
+          refresh_token: '',
+          expires_in: 604800,
+          token_type: 'bearer',
+          user: appSession.user,
+        } as unknown as Session);
+        return appSession;
       } catch (err: any) {
         throw new Error(this.friendlyError(err?.message));
       }
@@ -293,6 +314,16 @@ export class AuthClient {
     const safePath = this.sanitizeRedirectPath(
       redirectTo || (typeof window !== 'undefined' ? window.location.pathname : '/')
     );
+
+    // In LIVE mode, delegate strictly through Express BFF
+    if (env.DATA_MODE !== 'DEMO') {
+      const bffUrl = `/api/auth/oauth/google/start?redirect_to=${encodeURIComponent(safePath)}`;
+      if (typeof window !== 'undefined') {
+        window.location.href = bffUrl;
+      }
+      return;
+    }
+
     const redirectUrl = `${origin}${safePath}`;
 
     const { error } = await supabase.auth.signInWithOAuth({
@@ -336,6 +367,8 @@ export class AuthClient {
       } catch (err) {
         console.warn('[AuthClient] BFF logout error:', err);
       }
+      emitAuthChange(null);
+      return;
     }
     await supabase.auth.signOut().catch(() => {});
   }
@@ -415,6 +448,18 @@ export class AuthClient {
   }
 
   static onAuthStateChange(callback: (session: Session | null) => void) {
+    if (env.DATA_MODE !== 'DEMO') {
+      internalAuthListeners.add(callback);
+      return {
+        data: {
+          subscription: {
+            unsubscribe: () => {
+              internalAuthListeners.delete(callback);
+            },
+          },
+        },
+      };
+    }
     return supabase.auth.onAuthStateChange((_event, session) => {
       callback(session);
     });

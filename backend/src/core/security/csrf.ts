@@ -6,7 +6,7 @@ export function generateCsrfToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
-function timingSafeEqualStr(a: string, b: string): boolean {
+export function timingSafeEqualStr(a: string, b: string): boolean {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
   const bufA = Buffer.from(a, 'utf8');
   const bufB = Buffer.from(b, 'utf8');
@@ -14,42 +14,43 @@ function timingSafeEqualStr(a: string, b: string): boolean {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
-const CSRF_EXEMPT_PATHS = new Set([
+const CSRF_TOKEN_EXEMPT_PATHS = new Set([
   '/api/auth/login',
   '/api/auth/register',
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
   '/api/auth/csrf',
+  '/api/auth/oauth/google/start',
+  '/api/auth/oauth/google/callback',
 ]);
 
 export function csrfProtection(req: Request, res: Response, next: NextFunction): void {
-  // Safe methods do not require CSRF token validation
+  // Safe HTTP verbs do not mutate state
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     return next();
   }
 
-  // Exact path matching for CSRF exemptions (No prefix wildcards)
   const fullPath = req.baseUrl ? `${req.baseUrl}${req.path}` : req.path;
-  if (CSRF_EXEMPT_PATHS.has(fullPath) || CSRF_EXEMPT_PATHS.has(req.path)) {
-    return next();
-  }
 
-  // Verify Origin / Referer for state-changing requests
+  // 1. Mandatory Origin / Referer verification for ALL mutating browser requests
   const origin = req.headers['origin'] as string;
   const referer = req.headers['referer'] as string;
   const allowedOrigins = env.ALLOWED_ORIGINS;
 
-  if (origin && !allowedOrigins.includes(origin)) {
-    res.status(403).json({
-      success: false,
-      error: 'FORBIDDEN',
-      code: 'CSRF_ORIGIN_MISMATCH',
-      message: 'Cross-origin state-changing requests are strictly forbidden.',
-    });
-    return;
-  }
+  // Check if request is authenticated via internal service secret (machine-to-machine)
+  const isInternalService = req.headers['x-internal-service-secret'] === process.env.INTERNAL_HEALTH_SECRET;
 
-  if (!origin && referer) {
+  if (origin) {
+    if (!allowedOrigins.includes(origin)) {
+      res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        code: 'CSRF_ORIGIN_MISMATCH',
+        message: 'Cross-origin state-changing requests are strictly forbidden.',
+      });
+      return;
+    }
+  } else if (referer) {
     try {
       const refererOrigin = new URL(referer).origin;
       if (!allowedOrigins.includes(refererOrigin)) {
@@ -70,9 +71,25 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
       });
       return;
     }
+  } else {
+    // Fail-closed in production if neither Origin nor Referer is provided
+    if (process.env.NODE_ENV === 'production' && !isInternalService) {
+      res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        code: 'CSRF_ORIGIN_REQUIRED',
+        message: 'State-changing requests must include a valid Origin or Referer header.',
+      });
+      return;
+    }
   }
 
-  // If request uses cookie session, require valid x-csrf-token matching bound cookie
+  // 2. Token exemption check for unauthenticated bootstrap endpoints (AFTER Origin verification)
+  if (CSRF_TOKEN_EXEMPT_PATHS.has(fullPath) || CSRF_TOKEN_EXEMPT_PATHS.has(req.path)) {
+    return next();
+  }
+
+  // 3. For session-based requests, validate double-submit cookie & header
   const sessionCookie = req.cookies?.['nirikshak_session'];
   if (sessionCookie) {
     const csrfHeader = req.headers['x-csrf-token'] as string;
@@ -91,3 +108,4 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
 
   next();
 }
+

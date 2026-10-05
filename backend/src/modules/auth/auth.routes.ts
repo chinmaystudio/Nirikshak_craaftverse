@@ -88,3 +88,17 @@ authRouter.get(
   requireAuth,
   (req, res, next) => authController.getMfaStatus(req, res, next)
 );
+
+// Phase 14: Google OAuth BFF Routes
+authRouter.get(
+  '/oauth/google/start',
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }),
+  (req, res, next) => authController.googleOAuthStart(req, res, next)
+);
+
+authRouter.get(
+  '/oauth/google/callback',
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }),
+  (req, res, next) => authController.googleOAuthCallback(req, res, next)
+);
+

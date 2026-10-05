@@ -49,8 +49,11 @@ const GOV_EVENTS = new Set([
   'SETTLEMENT_APPROVED',
   'SETTLEMENT_EXECUTED',
   'PROJECT_COMPLETED',
+  'AI_ANALYSIS_COMPLETED',
   'AI_ACTION_ACCEPTED',
   'AI_OUTCOME_RECORDED',
+  'LITIGATION_CREATED',
+  'DOCUMENT_FINALIZED',
 ]);
 
 const CONTRACTOR_EVENTS = new Set([
@@ -63,6 +66,7 @@ const CONTRACTOR_EVENTS = new Set([
 const AUDITOR_EVENTS = new Set([
   'AUDIT_FINDING_RECORDED',
   'AUDIT_REPORT_PUBLISHED',
+  'INSPECTION_COMPLETED',
 ]);
 
 const ALLOWED_PAYLOAD_FIELDS = new Set([
@@ -104,12 +108,18 @@ export class NirikshakAuditContract extends ContractClass {
   }
 
   private getAndValidateSubmitterMsp(ctx: Context): string {
-    let clientMsp = 'GovernmentOrgMSP';
+    let clientMsp: string | undefined;
     try {
       if (ctx.clientIdentity && typeof ctx.clientIdentity.getMSPID === 'function') {
         clientMsp = ctx.clientIdentity.getMSPID();
       }
-    } catch {}
+    } catch {
+      throw new Error('IDENTITY_RESOLUTION_FAILED: Failed to extract MSP identity from transaction context.');
+    }
+
+    if (!clientMsp) {
+      throw new Error('IDENTITY_REQUIRED: Client MSP identity could not be resolved from transaction context.');
+    }
 
     if (!ALLOWED_MSPS.has(clientMsp)) {
       throw new Error(`UNAUTHORIZED_MSP: Submitter MSP '${clientMsp}' is not authorized to interact with Nirikshak application ledger.`);
@@ -117,6 +127,7 @@ export class NirikshakAuditContract extends ContractClass {
 
     return clientMsp;
   }
+
 
   private validateEventAuthorization(submitterMsp: string, eventType: string): void {
     if (submitterMsp === 'GovernmentOrgMSP') {

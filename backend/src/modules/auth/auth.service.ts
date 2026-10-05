@@ -46,6 +46,11 @@ export class AuthService {
     const role = membership?.role || 'citizen';
     const orgId = membership?.organization_id || null;
 
+    // Encrypt Supabase session credentials at rest
+    const { encryptSecret } = await import('../../core/security/encryption.js');
+    const encAccess = encryptSecret(authData.session.access_token, 'SESSION_TOKEN_ENCRYPTION_KEY');
+    const encRefresh = encryptSecret(authData.session.refresh_token, 'SESSION_TOKEN_ENCRYPTION_KEY');
+
     // Generate opaque session token & bound CSRF token
     const rawSessionToken = crypto.randomBytes(32).toString('hex');
     const sessionTokenHash = crypto.createHash('sha256').update(rawSessionToken).digest('hex');
@@ -53,7 +58,7 @@ export class AuthService {
     const csrfToken = generateCsrfToken();
     const csrfTokenHash = crypto.createHash('sha256').update(csrfToken).digest('hex');
 
-    // Persist opaque session in gateway_sessions
+    // Persist opaque session in gateway_sessions with zero plaintext credentials
     const sessionExpiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(); // 7 days
     const accessExpiresAt = new Date(Date.now() + (authData.session.expires_in || 3600) * 1000).toISOString();
 
@@ -61,8 +66,13 @@ export class AuthService {
       user_id: authData.user.id,
       session_token_hash: sessionTokenHash,
       csrf_token_hash: csrfTokenHash,
-      supabase_access_token: authData.session.access_token,
-      supabase_refresh_token: authData.session.refresh_token,
+      supabase_access_token_ciphertext: encAccess.ciphertext,
+      supabase_access_token_iv: encAccess.iv,
+      supabase_access_token_tag: encAccess.tag,
+      supabase_refresh_token_ciphertext: encRefresh.ciphertext,
+      supabase_refresh_token_iv: encRefresh.iv,
+      supabase_refresh_token_tag: encRefresh.tag,
+      encryption_key_version: encAccess.keyVersion,
       access_token_expires_at: accessExpiresAt,
       mfa_verified: false,
       ip_address: metadata?.ip || null,
@@ -96,13 +106,21 @@ export class AuthService {
   }
 
   async enrollMfa(userId: string, email: string): Promise<{ secret: string; otpauthUri: string }> {
-    const secret = generateBase32Secret(20);
-    const otpauthUri = `otpauth://totp/NIRIKSHAK:${encodeURIComponent(email)}?secret=${secret}&issuer=NIRIKSHAK`;
+    const rawSecret = generateBase32Secret(20);
+    const otpauthUri = `otpauth://totp/NIRIKSHAK:${encodeURIComponent(email)}?secret=${rawSecret}&issuer=NIRIKSHAK`;
+
+    // Encrypt TOTP secret at rest
+    const { encryptSecret } = await import('../../core/security/encryption.js');
+    const encSecret = encryptSecret(rawSecret, 'MFA_ENCRYPTION_KEY');
 
     const { error } = await supabaseAdmin.from('user_mfa_factors').upsert({
       user_id: userId,
       factor_type: 'TOTP',
-      secret,
+      secret_ciphertext: encSecret.ciphertext,
+      secret_iv: encSecret.iv,
+      secret_auth_tag: encSecret.tag,
+      key_version: encSecret.keyVersion,
+      last_used_time_step: 0,
       status: 'UNVERIFIED',
       enrolled_at: new Date().toISOString(),
     }, { onConflict: 'user_id,factor_type' });
@@ -111,17 +129,22 @@ export class AuthService {
       throw new ValidationError(`Failed to initiate MFA enrollment: ${error.message}`);
     }
 
-    return { secret, otpauthUri };
+    return { secret: rawSecret, otpauthUri };
   }
 
   async verifyMfa(
     userId: string,
     code: string,
     rawSessionToken?: string
-  ): Promise<{ verified: boolean; elevatedUntil: string }> {
+  ): Promise<{ 
+    verified: boolean; 
+    elevatedUntil: string;
+    newRawSessionToken?: string;
+    newCsrfToken?: string;
+  }> {
     const { data: factor, error } = await supabaseAdmin
       .from('user_mfa_factors')
-      .select('id, secret, status')
+      .select('id, secret, secret_ciphertext, secret_iv, secret_auth_tag, key_version, last_used_time_step, status')
       .eq('user_id', userId)
       .eq('factor_type', 'TOTP')
       .maybeSingle();
@@ -130,34 +153,120 @@ export class AuthService {
       throw new ValidationError('No active MFA enrollment found for this account.');
     }
 
-    const isValid = verifyTotpCode(code, factor.secret);
+    // Decrypt TOTP secret
+    let secret = factor.secret;
+    if (factor.secret_ciphertext) {
+      const { decryptSecret } = await import('../../core/security/encryption.js');
+      secret = decryptSecret({
+        ciphertext: factor.secret_ciphertext,
+        iv: factor.secret_iv,
+        tag: factor.secret_auth_tag,
+        keyVersion: factor.key_version || 1,
+      }, 'MFA_ENCRYPTION_KEY');
+    }
+
+    if (!secret) {
+      throw new AuthenticationError('MFA secret unavailable or corrupted.');
+    }
+
+    // Verify TOTP code
+    const isValid = verifyTotpCode(code, secret);
     if (!isValid) {
       throw new AuthenticationError('Invalid multi-factor authentication code.');
     }
 
-    // Mark factor as verified
+    // Phase 38: TOTP replay protection within same 30-second time-step
+    const currentTimeStep = Math.floor(Date.now() / 1000 / 30);
+    if (factor.last_used_time_step && Number(factor.last_used_time_step) >= currentTimeStep) {
+      throw new AuthenticationError('MFA verification code has already been used. Please wait for the next token.');
+    }
+
+    // Mark factor as verified & update last_used_time_step
     await supabaseAdmin
       .from('user_mfa_factors')
       .update({
         status: 'VERIFIED',
         last_used_at: new Date().toISOString(),
+        last_used_time_step: currentTimeStep,
       })
       .eq('id', factor.id);
 
-    // Elevate current gateway session for 15 minutes
-    let elevatedUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    const elevatedUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    let newRawSessionToken: string | undefined;
+    let newCsrfToken: string | undefined;
+
+    // Phase 8: Session Rotation after successful MFA elevation
     if (rawSessionToken) {
-      const sessionTokenHash = crypto.createHash('sha256').update(rawSessionToken).digest('hex');
-      await supabaseAdmin.rpc('elevate_gateway_session', {
-        p_session_token_hash: sessionTokenHash,
-        p_duration_minutes: 15,
-      });
+      const oldSessionHash = crypto.createHash('sha256').update(rawSessionToken).digest('hex');
+
+      // Fetch old session details
+      const { data: oldSession } = await supabaseAdmin
+        .from('gateway_sessions')
+        .select('*')
+        .eq('session_token_hash', oldSessionHash)
+        .is('revoked_at', null)
+        .maybeSingle();
+
+      if (oldSession) {
+        // Revoke old session immediately
+        await supabaseAdmin.rpc('revoke_gateway_session', { p_session_token_hash: oldSessionHash });
+
+        // Generate rotated credentials
+        newRawSessionToken = crypto.randomBytes(32).toString('hex');
+        const newSessionHash = crypto.createHash('sha256').update(newRawSessionToken).digest('hex');
+        newCsrfToken = generateCsrfToken();
+        const newCsrfHash = crypto.createHash('sha256').update(newCsrfToken).digest('hex');
+
+        // Insert new rotated session
+        await supabaseAdmin.from('gateway_sessions').insert({
+          user_id: oldSession.user_id,
+          session_token_hash: newSessionHash,
+          csrf_token_hash: newCsrfHash,
+          supabase_access_token_ciphertext: oldSession.supabase_access_token_ciphertext,
+          supabase_access_token_iv: oldSession.supabase_access_token_iv,
+          supabase_access_token_tag: oldSession.supabase_access_token_tag,
+          supabase_refresh_token_ciphertext: oldSession.supabase_refresh_token_ciphertext,
+          supabase_refresh_token_iv: oldSession.supabase_refresh_token_iv,
+          supabase_refresh_token_tag: oldSession.supabase_refresh_token_tag,
+          encryption_key_version: oldSession.encryption_key_version,
+          access_token_expires_at: oldSession.access_token_expires_at,
+          mfa_verified: true,
+          mfa_verified_at: new Date().toISOString(),
+          elevated_until: elevatedUntil,
+          ip_address: oldSession.ip_address,
+          user_agent: oldSession.user_agent,
+          expires_at: oldSession.expires_at,
+        });
+      }
     }
 
-    return { verified: true, elevatedUntil };
+    return { 
+      verified: true, 
+      elevatedUntil,
+      newRawSessionToken,
+      newCsrfToken,
+    };
   }
 
-  async unenrollMfa(userId: string): Promise<void> {
+  async unenrollMfa(userId: string, rawSessionToken?: string): Promise<void> {
+    // Phase 40: MFA unenrollment requires an active elevated session
+    if (!rawSessionToken) {
+      throw new AuthorizationError('MFA unenrollment requires an active elevated MFA session.');
+    }
+
+    const sessionTokenHash = crypto.createHash('sha256').update(rawSessionToken).digest('hex');
+    const { data: session } = await supabaseAdmin
+      .from('gateway_sessions')
+      .select('mfa_verified, elevated_until')
+      .eq('session_token_hash', sessionTokenHash)
+      .is('revoked_at', null)
+      .maybeSingle();
+
+    const isElevated = session && session.mfa_verified && session.elevated_until && (new Date(session.elevated_until).getTime() > Date.now());
+    if (!isElevated) {
+      throw new AuthorizationError('MFA unenrollment requires fresh MFA elevation. Verify MFA before unenrolling.');
+    }
+
     const { error } = await supabaseAdmin
       .from('user_mfa_factors')
       .delete()
@@ -214,11 +323,8 @@ export class AuthService {
   }
 
   async resetPassword(tokenOrProof: string, newPassword: string): Promise<void> {
-    // Phase 34: Must verify recovery session proof, never blindly update by arbitrary ID
-    // If tokenOrProof is a Supabase recovery access token
     const { data: userData, error: userError } = await supabase.auth.getUser(tokenOrProof);
     if (userError || !userData?.user) {
-      // In production, reject invalid recovery proof
       throw new AuthenticationError('Invalid or expired password reset recovery proof.');
     }
 
@@ -229,6 +335,13 @@ export class AuthService {
     if (error) {
       throw new ValidationError(error.message);
     }
+
+    // Phase 42: Revoke all existing sessions for the user after password reset
+    await supabaseAdmin
+      .from('gateway_sessions')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('user_id', userData.user.id)
+      .is('revoked_at', null);
   }
 
   async register(input: RegisterInput): Promise<RegisterResult> {

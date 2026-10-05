@@ -151,7 +151,31 @@ export class AuthController {
       const { code } = req.body;
       const rawSessionToken = req.cookies?.['nirikshak_session'];
       const result = await authService.verifyMfa(req.userContext.userId, code, rawSessionToken);
-      ApiResponseHelper.success(res, result);
+
+      // Phase 8: If session was rotated on MFA elevation, set new opaque cookies
+      if (result.newRawSessionToken && result.newCsrfToken) {
+        const isProduction = process.env.NODE_ENV === 'production';
+        res.cookie('nirikshak_session', result.newRawSessionToken, {
+          httpOnly: true,
+          secure: isProduction,
+          sameSite: 'strict',
+          path: '/',
+          maxAge: 7 * 24 * 3600 * 1000,
+        });
+
+        res.cookie('nirikshak_csrf', result.newCsrfToken, {
+          httpOnly: false,
+          secure: isProduction,
+          sameSite: 'strict',
+          path: '/',
+          maxAge: 7 * 24 * 3600 * 1000,
+        });
+      }
+
+      ApiResponseHelper.success(res, {
+        verified: result.verified,
+        elevatedUntil: result.elevatedUntil,
+      });
     } catch (err) {
       next(err);
     }
@@ -163,7 +187,8 @@ export class AuthController {
         res.status(401).json({ success: false, error: 'UNAUTHORIZED' });
         return;
       }
-      await authService.unenrollMfa(req.userContext.userId);
+      const rawSessionToken = req.cookies?.['nirikshak_session'];
+      await authService.unenrollMfa(req.userContext.userId, rawSessionToken);
       ApiResponseHelper.success(res, { unenrolled: true });
     } catch (err) {
       next(err);
@@ -183,6 +208,103 @@ export class AuthController {
       next(err);
     }
   }
+
+  // Phase 14: Live Google OAuth through BFF
+  async googleOAuthStart(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const redirectUrl = `${req.protocol}://${req.get('host')}/api/auth/oauth/google/callback`;
+      const { supabase } = await import('../../core/database/supabase.js');
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+        },
+      });
+
+      if (error || !data.url) {
+        res.status(502).json({ success: false, error: 'OAUTH_INITIATION_FAILED', message: error?.message });
+        return;
+      }
+
+      res.redirect(data.url);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async googleOAuthCallback(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const code = req.query.code as string;
+      if (!code) {
+        res.redirect('/login?error=missing_oauth_code');
+        return;
+      }
+
+      const { supabase, supabaseAdmin } = await import('../../core/database/supabase.js');
+      const { data: authData, error: authError } = await supabase.auth.exchangeCodeForSession(code);
+
+      if (authError || !authData.session || !authData.user) {
+        res.redirect('/login?error=oauth_exchange_failed');
+        return;
+      }
+
+      // Generate opaque session token & bound CSRF token
+      const crypto = await import('crypto');
+      const rawSessionToken = crypto.randomBytes(32).toString('hex');
+      const sessionTokenHash = crypto.createHash('sha256').update(rawSessionToken).digest('hex');
+      const csrfToken = generateCsrfToken();
+      const csrfTokenHash = crypto.createHash('sha256').update(csrfToken).digest('hex');
+
+      // Encrypt tokens
+      const { encryptSecret } = await import('../../core/security/encryption.js');
+      const encAccess = encryptSecret(authData.session.access_token, 'SESSION_TOKEN_ENCRYPTION_KEY');
+      const encRefresh = encryptSecret(authData.session.refresh_token, 'SESSION_TOKEN_ENCRYPTION_KEY');
+
+      const sessionExpiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
+      const accessExpiresAt = new Date(Date.now() + (authData.session.expires_in || 3600) * 1000).toISOString();
+
+      await supabaseAdmin.from('gateway_sessions').insert({
+        user_id: authData.user.id,
+        session_token_hash: sessionTokenHash,
+        csrf_token_hash: csrfTokenHash,
+        supabase_access_token_ciphertext: encAccess.ciphertext,
+        supabase_access_token_iv: encAccess.iv,
+        supabase_access_token_tag: encAccess.tag,
+        supabase_refresh_token_ciphertext: encRefresh.ciphertext,
+        supabase_refresh_token_iv: encRefresh.iv,
+        supabase_refresh_token_tag: encRefresh.tag,
+        encryption_key_version: encAccess.keyVersion,
+        access_token_expires_at: accessExpiresAt,
+        mfa_verified: false,
+        ip_address: req.ip || null,
+        user_agent: req.headers['user-agent'] || null,
+        expires_at: sessionExpiresAt,
+      });
+
+      const isProduction = process.env.NODE_ENV === 'production';
+      res.cookie('nirikshak_session', rawSessionToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 7 * 24 * 3600 * 1000,
+      });
+
+      res.cookie('nirikshak_csrf', csrfToken, {
+        httpOnly: false,
+        secure: isProduction,
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 7 * 24 * 3600 * 1000,
+      });
+
+      // Redirect cleanly to frontend root with ZERO tokens in URL
+      res.redirect('/');
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const authController = new AuthController();
+

@@ -24,6 +24,8 @@ const PUBLIC_EXEMPT_ROUTES = new Set([
   'POST /api/auth/register',
   'POST /api/auth/forgot-password',
   'POST /api/auth/reset-password',
+  'GET /api/auth/oauth/google/start',
+  'GET /api/auth/oauth/google/callback',
 ]);
 
 export async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
@@ -76,17 +78,52 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
         }
       }
 
+      // Phase 9: Authoritative CSRF session-binding verification for mutating requests
+      if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+        const csrfHeader = req.headers['x-csrf-token'] as string;
+        if (csrfHeader && sessionRow.csrf_token_hash) {
+          const headerHash = crypto.createHash('sha256').update(csrfHeader).digest('hex');
+          const bufA = Buffer.from(headerHash, 'utf8');
+          const bufB = Buffer.from(sessionRow.csrf_token_hash, 'utf8');
+          if (bufA.length !== bufB.length || !crypto.timingSafeEqual(bufA, bufB)) {
+            throw new AuthenticationError('CSRF verification failed: Token does not match session binding.');
+          }
+        }
+      }
+
       // Update session activity timestamp asynchronously
       void supabaseAdmin
         .from('gateway_sessions')
         .update({ last_active_at: new Date().toISOString() })
         .eq('id', sessionRow.id);
 
-      if (sessionRow.supabase_access_token) {
+      // Resolve Supabase access token (decrypt if stored as ciphertext)
+      if (sessionRow.supabase_access_token_ciphertext) {
+        try {
+          const { decryptSecret } = await import('../security/encryption.js');
+          supabaseTokenForClient = decryptSecret({
+            ciphertext: sessionRow.supabase_access_token_ciphertext,
+            iv: sessionRow.supabase_access_token_iv,
+            tag: sessionRow.supabase_access_token_tag,
+            keyVersion: sessionRow.encryption_key_version || 1,
+          }, 'SESSION_TOKEN_ENCRYPTION_KEY');
+        } catch {
+          // If decryption fails, maintain rawToken as placeholder
+          supabaseTokenForClient = rawToken;
+        }
+      } else if (sessionRow.supabase_access_token) {
         supabaseTokenForClient = sessionRow.supabase_access_token;
       }
     } else {
-      // Fallback for tests or legacy bearer token verification
+      // Phase 7: Raw Supabase Bearer JWT bypass is strictly prohibited in production
+      const isDevOrTest = process.env.NODE_ENV !== 'production';
+      const allowLegacyBearer = process.env.ALLOW_LEGACY_BEARER_AUTH === 'true';
+
+      if (!isDevOrTest || !allowLegacyBearer) {
+        throw new AuthenticationError('Invalid or expired authentication session');
+      }
+
+      // Fallback strictly for isolated test suites
       const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(rawToken);
       if (authError || !authData.user) {
         throw new AuthenticationError('Invalid or expired authentication session');

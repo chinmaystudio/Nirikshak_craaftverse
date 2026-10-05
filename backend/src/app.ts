@@ -47,35 +47,30 @@ app.use(csrfProtection);
 // 6. Global Rate Limiter (120 req / min)
 app.use(rateLimit({ windowMs: 60 * 1000, max: 120 }));
 
-// 7. Root service identity (no leaked metadata)
+// 7. Root service (Phase 13: Zero root advertisement, returns 404)
 app.get('/', (_req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-  res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
-  res.type('html').send(`<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="robots" content="noindex,nofollow">
-  <title>NIRIKSHAK Backend Service</title>
-  <style>
-    :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#07111f;color:#e7eef8;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.card{width:min(92vw,560px);padding:42px;border:1px solid #25364d;border-radius:20px;background:linear-gradient(145deg,#101e31,#0a1626);box-shadow:0 24px 70px #0008;text-align:center}.mark{width:58px;height:58px;margin:0 auto 20px;display:grid;place-items:center;border-radius:16px;background:#eefc55;color:#07111f;font-size:30px;font-weight:900}h1{margin:0;font-size:clamp(24px,5vw,38px);letter-spacing:.04em}p{margin:14px auto 0;max-width:420px;color:#aebed3;line-height:1.6}.status{display:inline-flex;align-items:center;gap:8px;margin-top:26px;padding:8px 13px;border:1px solid #294c44;border-radius:999px;background:#102a27;color:#9ce8ce;font-size:13px;font-weight:700}.dot{width:8px;height:8px;border-radius:50%;background:#48d6a4;box-shadow:0 0 14px #48d6a4}</style>
-</head>
-<body><main class="card"><div class="mark">N</div><h1>NIRIKSHAK</h1><p>Secure backend services for infrastructure monitoring and public accountability.</p><div class="status"><span class="dot"></span>Service operational</div></main></body>
-</html>`);
+  res.status(404).json({ success: false, error: 'NOT_FOUND' });
 });
 
-// 8. Internal Health Check (Zero-Trust Private Monitoring)
+// 8. Internal Health Check (Phase 12 & 34: Zero-Trust Private Monitoring)
 app.get('/internal/health', (req, res) => {
   const secret = req.headers?.['x-internal-secret'] || req.query?.secret;
   const configuredSecret = process.env.INTERNAL_HEALTH_SECRET;
-  const isLocal = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.ip || '');
-  const isAuthorized = (configuredSecret && secret === configuredSecret) || (process.env.NODE_ENV === 'test') || (process.env.NODE_ENV !== 'production' && isLocal);
+  const isLoopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.ip || '');
 
-  if (!isAuthorized) {
-    res.status(403).json({ success: false, error: 'FORBIDDEN', message: 'Internal diagnostics endpoint restricted.' });
-    return;
+  // In production, INTERNAL_HEALTH_SECRET is mandatory and must match
+  if (process.env.NODE_ENV === 'production') {
+    if (!configuredSecret || secret !== configuredSecret || !isLoopback) {
+      res.status(404).json({ success: false, error: 'NOT_FOUND' });
+      return;
+    }
+  } else {
+    // In dev/test: authorized if secret matches or running in test or local loopback
+    const isAuthorized = (configuredSecret && secret === configuredSecret) || (process.env.NODE_ENV === 'test') || isLoopback;
+    if (!isAuthorized) {
+      res.status(403).json({ success: false, error: 'FORBIDDEN', message: 'Internal diagnostics endpoint restricted.' });
+      return;
+    }
   }
 
   res.json({
@@ -84,16 +79,15 @@ app.get('/internal/health', (req, res) => {
   });
 });
 
-// 9. Public /health lockdown (requires internal secret or private ingress in production)
-app.get('/health', (req, res) => {
-  const secret = req.headers?.['x-internal-secret'];
-  const configuredSecret = process.env.INTERNAL_HEALTH_SECRET;
-  if (process.env.NODE_ENV === 'production' && configuredSecret && secret !== configuredSecret) {
+// 9. Public /health lockdown (Phase 12: In production, public /health returns 404)
+app.get('/health', (_req, res) => {
+  if (process.env.NODE_ENV === 'production') {
     res.status(404).json({ success: false, error: 'NOT_FOUND' });
     return;
   }
   res.json({ status: 'ok' });
 });
+
 
 // 10. Default Zero-Trust authentication guard for /api
 // Automatically guards every /api route unless in AUTH_BOOTSTRAP_PUBLIC

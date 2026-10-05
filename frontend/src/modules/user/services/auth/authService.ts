@@ -22,25 +22,65 @@ export function currentUser(): Citizen | null {
   return appStore.getState().user;
 }
 
+import { env } from "@/lib/config/env";
+
 export function isLoggedIn(): boolean {
   return appStore.getState().user !== null;
 }
 
-// Automatically sync citizen state when Supabase session changes
+// Automatically sync citizen state when session changes
 if (typeof window !== 'undefined') {
-  supabase.auth.onAuthStateChange((_event, session) => {
-    if (!session?.user) {
-      if (appStore.getState().user !== null) {
-        appStore.setState({ user: null });
+  if (env.DATA_MODE === 'DEMO') {
+    supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) {
+        if (appStore.getState().user !== null) {
+          appStore.setState({ user: null });
+        }
       }
-    }
-  });
+    });
+  } else {
+    AuthService.onAuthStateChange((session) => {
+      if (!session?.user) {
+        if (appStore.getState().user !== null) {
+          appStore.setState({ user: null });
+        }
+      }
+    });
+  }
 }
 
 /**
- * Synchronizes appStore citizen state with the authoritative Supabase Auth session.
+ * Synchronizes appStore citizen state with the authoritative session.
  */
 export async function syncCitizenSession(): Promise<Citizen | null> {
+  if (env.DATA_MODE !== 'DEMO') {
+    const user = await AuthService.getCurrentUser();
+    if (!user) {
+      if (appStore.getState().user !== null) {
+        appStore.setState({ user: null });
+      }
+      return null;
+    }
+    const current = appStore.getState().user;
+    if (current && current.id === user.id) {
+      return current;
+    }
+    const appSession = await AuthService.resolveUserSession(user);
+    const citizen: Citizen = {
+      id: user.id,
+      name: appSession.profile?.full_name || user.email?.split('@')[0] || 'Citizen',
+      email: user.email,
+      mobile: appSession.profile?.phone || '',
+      city: appSession.profile?.city || 'Pune',
+      ward: 'Ward 12 — Kothrud West',
+      preferredLanguage: 'en',
+      verified: true,
+      joinedAt: user.created_at ? user.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+    };
+    appStore.setState({ user: citizen });
+    return citizen;
+  }
+
   const { data } = await supabase.auth.getSession();
   if (!data.session?.user) {
     if (appStore.getState().user !== null) {
