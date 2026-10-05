@@ -122,75 +122,40 @@ jobs:
         run: npm run build
 
   database-migrations:
-    name: Database Clean Migration Gate (001 -> Final)
+    name: Supabase Clean Migration and RLS Gate (001 -> Final)
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: nirikshak_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgrespassword
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
-      - name: Run Clean Migration Pipeline (001 -> Final)
-        env:
-          DATABASE_URL: postgresql://postgres:postgrespassword@127.0.0.1:5432/nirikshak_test
-        run: npx tsx scripts/migrate-all.ts
-
-  security-integration:
-    name: Security & RLS Permission Gate
-    runs-on: ubuntu-latest
-    needs: [database-migrations]
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: nirikshak_sec
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgrespassword
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-    defaults:
-      run:
         working-directory: backend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: backend/package-lock.json
-      - run: npm ci
-      - name: Setup Migrated Schema
+      - name: Start real local Supabase services
+        working-directory: backend
+        run: supabase start
+      - name: Reset and apply all migrations against Supabase schemas
+        working-directory: backend
+        run: supabase db reset --local --yes
+      - name: Execute tenant and RLS integration tests
+        working-directory: backend
         env:
-          DATABASE_URL: postgresql://postgres:postgrespassword@127.0.0.1:5432/nirikshak_sec
-        run: npx tsx scripts/migrate-all.ts
-      - name: Execute Security & RLS Isolation Tests
-        env:
-          DATABASE_URL: postgresql://postgres:postgrespassword@127.0.0.1:5432/nirikshak_sec
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: npx tsx scripts/security-integration-test.ts
+      - name: Prove cross-tenant row isolation
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: npx tsx scripts/tenant-rls-integration-test.ts
+      - name: Stop local Supabase services
+        if: always()
+        working-directory: backend
+        run: supabase stop --no-backup
 
   fabric-integration:
     name: Real Hyperledger Fabric Integration Network
@@ -224,7 +189,6 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
       - name: Rigorous Secret Scan
         run: |
           echo "Scanning for leaked private keys, production tokens, or cloud secrets..."
@@ -242,10 +206,10 @@ jobs:
           node-version: 22
       - name: Audit Frontend Dependencies
         working-directory: frontend
-        run: npm audit --audit-level=critical || true
+        run: npm audit --audit-level=high
       - name: Audit Backend Dependencies
         working-directory: backend
-        run: npm audit --audit-level=critical || true
+        run: npm audit --audit-level=high
       - name: Audit Chaincode Dependencies
         working-directory: blockchain/chaincode/nirikshak-audit
-        run: npm audit --audit-level=critical || true
+        run: npm audit --audit-level=high

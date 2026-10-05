@@ -8,7 +8,7 @@
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "test": "tsx tests/security-suite.ts && tsx tests/ai-gateway.test.ts && tsx tests/zero-trust-blockchain.test.ts",
+    "test": "tsx tests/encryption.test.ts && tsx tests/security-suite.ts && tsx tests/ai-gateway.test.ts && tsx tests/zero-trust-blockchain.test.ts",
     "test:security": "tsx tests/security-suite.ts",
     "test:ai": "tsx tests/ai-gateway.test.ts",
     "test:blockchain": "tsx tests/zero-trust-blockchain.test.ts",

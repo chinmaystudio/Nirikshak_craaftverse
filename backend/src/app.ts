@@ -7,6 +7,7 @@ import { csrfProtection } from './core/security/csrf.js';
 import { requireAuthByDefault } from './core/auth/auth.middleware.js';
 import { safeErrorHandler } from './core/http/errorHandler.js';
 import { ApiResponseHelper } from './core/http/response.js';
+import { supabaseProxy } from './core/database/supabaseProxy.js';
 
 // Domain Module Route Imports
 import { authRouter } from './modules/auth/auth.routes.js';
@@ -92,6 +93,8 @@ app.get('/health', (_req, res) => {
 // 10. Default Zero-Trust authentication guard for /api
 // Automatically guards every /api route unless in AUTH_BOOTSTRAP_PUBLIC
 app.use('/api', requireAuthByDefault);
+
+app.use('/api/supabase-proxy', (req, res) => { void supabaseProxy(req, res); });
 
 // 11. Domain Module API Routes
 app.use('/api/auth', authRouter);

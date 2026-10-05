@@ -7,6 +7,7 @@
  * through specialized, testable domain services.
  */
 import { supabase } from '@/core/supabase/client';
+import { AuthClient } from '@/lib/auth/authClient';
 import type { Officer } from '@/modules/government/types';
 
 import {
@@ -56,31 +57,32 @@ export const insightsApi = {
 
 export const authApi = {
   async signIn(_employeeId: string, _password: string): Promise<Officer> {
-    const { data } = await supabase.auth.getUser();
-    if (!data?.user) throw new Error('Not authenticated');
+    await AuthClient.signIn(_employeeId, _password);
+    const user = await AuthClient.getCurrentUser();
+    if (!user) throw new Error('Not authenticated');
     return this.currentOfficer().then(
       (o) =>
         o || {
-          id: data.user.id,
-          name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Officer',
-          designation: (data.user.user_metadata?.designation as string) || 'Not available',
+          id: user.id,
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Officer',
+          designation: (user.user_metadata?.designation as string) || 'Not available',
           department: 'Not available',
-          employeeNo: (data.user.user_metadata?.employee_id as string) || 'Not available',
+          employeeNo: (user.user_metadata?.employee_id as string) || 'Not available',
           roles: ['government_engineer'],
         }
     );
   },
 
   async currentOfficer(): Promise<Officer | null> {
-    const { data } = await supabase.auth.getUser();
-    if (!data?.user) return null;
+    const user = await AuthClient.getCurrentUser();
+    if (!user) return null;
 
     const [{ data: profile }, { data: members }] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', data.user.id).maybeSingle(),
+      supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
       supabase
         .from('organization_members')
         .select('role, organizations(name, department)')
-        .eq('user_id', data.user.id)
+        .eq('user_id', user.id)
         .ilike('status', 'active')
         .limit(1),
     ]);
@@ -89,11 +91,11 @@ export const authApi = {
     const org = (activeMember as any)?.organizations;
 
     return {
-      id: data.user.id,
-      name: profile?.full_name || data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Officer',
-      designation: (data.user.user_metadata?.designation as string) || (profile as any)?.designation || 'Not available',
+      id: user.id,
+      name: profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Officer',
+      designation: (user.user_metadata?.designation as string) || (profile as any)?.designation || 'Not available',
       department: org?.department || org?.name || 'Not available',
-      employeeNo: (data.user.user_metadata?.employee_id as string) || (profile as any)?.employee_id || 'Not available',
+      employeeNo: (user.user_metadata?.employee_id as string) || (profile as any)?.employee_id || 'Not available',
       roles: [activeMember?.role || 'government_engineer'],
     };
   },

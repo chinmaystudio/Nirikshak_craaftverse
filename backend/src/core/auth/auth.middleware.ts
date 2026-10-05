@@ -4,7 +4,7 @@ import type { User, SupabaseClient } from '@supabase/supabase-js';
 import { supabaseAdmin, createAuthenticatedClient } from '../database/supabase.js';
 import { UserContext } from './userContext.js';
 import { AppRole, isGovernmentRole, isContractorRole } from './roles.js';
-import { AuthenticationError, AuthorizationError } from '../http/errors.js';
+import { AuthenticationError, AuthorizationError, SessionCorruptError } from '../http/errors.js';
 
 export interface AuthenticatedRequest extends Request {
   user?: User;
@@ -13,6 +13,7 @@ export interface AuthenticatedRequest extends Request {
   role?: AppRole;
   organizationId?: string | null;
   supabase?: SupabaseClient;
+  supabaseAccessToken?: string;
   mfaVerified?: boolean;
   sessionId?: string;
 }
@@ -108,8 +109,8 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
             keyVersion: sessionRow.encryption_key_version || 1,
           }, 'SESSION_TOKEN_ENCRYPTION_KEY');
         } catch {
-          // If decryption fails, maintain rawToken as placeholder
-          supabaseTokenForClient = rawToken;
+          await supabaseAdmin.from('gateway_sessions').update({ revoked_at: new Date().toISOString() }).eq('id', sessionRow.id);
+          throw new SessionCorruptError('Encrypted authentication credentials could not be decrypted');
         }
       } else if (sessionRow.supabase_access_token) {
         supabaseTokenForClient = sessionRow.supabase_access_token;
@@ -178,9 +179,10 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     };
 
     req.supabase = await createAuthenticatedClient(supabaseTokenForClient);
+    req.supabaseAccessToken = supabaseTokenForClient;
     next();
   } catch (err: any) {
-    next(err instanceof AuthenticationError ? err : new AuthenticationError(err.message));
+    next(err instanceof AuthenticationError ? err : new AuthenticationError(err?.message));
   }
 }
 

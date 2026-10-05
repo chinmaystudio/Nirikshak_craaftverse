@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/core/supabase/client';
+import { apiClient } from '@/lib/api/apiClient';
 
 export default function ContractorForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -14,8 +14,7 @@ export default function ContractorForgotPasswordPage() {
     setBusy(true);
     setErrorMsg(null);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
-      if (error) throw error;
+      await apiClient.post('/api/auth/forgot-password', { email: email.trim() });
       setSent(true);
     } catch (err: any) {
       console.error('Password reset error:', err);

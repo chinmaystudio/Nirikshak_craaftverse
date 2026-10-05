@@ -19,6 +19,13 @@ export class AuthenticationError extends AppError {
   }
 }
 
+export class SessionCorruptError extends AuthenticationError {
+  constructor(message = 'Authentication session is no longer valid') {
+    super(message);
+    (this as any).code = 'AUTH_SESSION_CORRUPT';
+  }
+}
+
 export class AuthorizationError extends AppError {
   constructor(message = 'Access denied by authorization policy') {
     super(message, 403, 'FORBIDDEN');
