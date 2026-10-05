@@ -1,37 +1,38 @@
-# NIRIKSHAK non-blockchain production readiness
+# NIRIKSHAK non-blockchain release assessment
 
-**Status: NOT CERTIFIED.** This document records evidence for the code in PR #16, based on `main` at `af366433332c1110190c802c802d27e202523174`. Do not use this as deployment approval. Hyperledger Fabric and blockchain anchoring are outside this release decision and must remain disabled for a non-blockchain deployment.
+**Status: NOT PRODUCTION-CERTIFIED.** This is evidence for PR #16, not deployment approval. Hyperledger Fabric anchoring remains out of scope and must be disabled for a non-blockchain release. The connected hosted Supabase project has not been migrated or tested by this work; CI uses an ephemeral local Supabase stack (`nirikshak-ci`).
 
-## Release evidence (2026-10-05)
+## Verified release gates
 
-| Gate | Result | Evidence / limitation |
-| --- | --- | --- |
-| Frontend typecheck and build | Passed locally | Three TypeScript configurations and Vite production build. The build emits a non-fatal ineffective dynamic-import warning. |
-| Backend typecheck and build | Passed locally | TypeScript and production build. |
-| Backend tests | Passed locally | Encryption-key, security, AI gateway, and zero-trust suites with CI-equivalent environment variables. These are not a substitute for database-backed integration tests. |
-| Frontend tests | Passed locally | `npm test` currently runs the three TypeScript typechecks; there is no browser test suite. |
-| Dependency audits | Passed locally | `npm audit --audit-level=high` reported zero findings for frontend, backend, and chaincode on the reviewed lockfiles. |
-| AI tests and smoke test | Passed on PR CI | Python pytest and model smoke validation. |
-| Supabase clean migration | **Failed** | PR CI starts real local Supabase, but historical `001_initial_schema.sql` references `environmental_observations` before migration `012` creates it. A diagnostic additive bootstrap exposed a second blocker: `001_extensions.sql` and `001_initial_schema.sql` share version `001`, violating `schema_migrations_pkey`. The diagnostic bootstrap was removed. |
-| Tenant RLS integration | **Blocked** | CI contains Government A/B, Contractor A/B, auditor-assignment, and citizen private-finance/legal checks, but cannot execute them until clean migration succeeds. |
-| Secret scanning | Passed on PR CI | Fail-closed Gitleaks and the repository private-key-file scan passed on the second PR run. |
-| End-to-end deployment | Not run | No staged production-like deployment, browser journey, recovery drill, or live operational sign-off has been verified. |
+On 2026-10-05, [CI run 37321895329](https://github.com/chinmaystudio/Nirikshak_craaftverse/actions/runs/37321895329) passed all seven jobs on commit `f43f7b67bb8a907e35d338a4951a743ab7f20746`:
 
-## Controls implemented in this PR
+| Gate | Evidence |
+| --- | --- |
+| Clean Supabase migration | `supabase start` and `supabase db reset --local --yes` applied `000` through `078` and the two additive release migrations against real local Auth, Storage, roles, and Postgres. |
+| Database security | Five privilege/diagnostic assertions passed, including no client access to session or MFA secrets and RLS enabled on every public table. |
+| Tenant isolation | Ten assertions passed: Government A/B private projects, Contractor A/B private bids, assigned/unassigned auditor projects, and citizen denial of private payment claims and litigation. |
+| Frontend | Typecheck, configured `npm test` (currently TypeScript checks), Vite build, static LIVE Supabase scan, and bundle secret check passed. |
+| Backend | Typecheck, existing security/AI/zero-trust tests, and build passed. |
+| AI | Pytest and model smoke test passed. |
+| Supply chain | Gitleaks and private-key-file scan passed; high-severity npm audits passed for frontend, backend, and chaincode. The chaincode unit/build job passed, but this does **not** certify a Fabric network. |
 
-- CI dependency audits, Gitleaks, security tests, typechecks, builds, and migration tests now fail the job on errors. Existing migrations `001`–`078` are untouched; the tenant policy repair file is additive. Clean migration remains blocked by historical migration order and duplicate version defects.
-- Production session and MFA encryption keys must decode as exactly 32 bytes from canonical 64-character hex or 32-byte base64. Operators must generate them with a cryptographic random-number generator; syntax validation alone cannot prove entropy.
-- Gateway-session credential decryption failure revokes the session and returns `AUTH_SESSION_CORRUPT` (HTTP 401). A failed revocation write still rejects authentication; operational monitoring must alert on revocation-write failures.
-- LIVE browser Supabase REST and Storage requests are sent to the same-origin Express BFF using the opaque HttpOnly gateway cookie, session-bound CSRF token, and validated user JWT. The browser does not send its Supabase key or token to the upstream. Realtime in LIVE uses polling instead of a direct Supabase websocket. The BFF proxy is transitional and depends on correct RLS; it is not equivalent to domain-specific authorization for every data operation.
-- A new tenant policy migration removes earlier permissive SELECT policies on projects, tender bids, and litigations. Its effectiveness must be established by the clean migration and RLS CI job.
+The workflow fails on any of these checks; no audit or security check is configured to continue on error. Each later commit requires its own complete green CI run before this evidence applies to it.
 
-## Remaining release blockers
+## Changes and deployment implications
 
-1. Establish an approved migration-history repair that preserves deployed data and resolves the `001` missing-table and duplicate-version defects. The current constraint to keep files `001`–`078` unchanged prevents a direct correction. More legacy migration issues may be exposed afterward (notably `046_seed_support_v2.sql`, whose columns/types differ from the earlier schema). Do not treat a CI-only skip or ignore as a migration pass.
-2. All required checks on the **exact final commit** must pass, including clean Supabase migrations, RLS integration, frontend/backend/AI, dependency audit, and Gitleaks. Do not waive a failing security check.
-3. Complete production-like E2E journeys for each role, including login/MFA, session expiry, uploads, private data access, project/procurement/finance workflows, and failure recovery. Browser automation and real external service configuration are not available in the local review.
-4. Verify LIVE frontend network traffic, cookie attributes, CSRF behavior, and that no authoritative browser traffic reaches Supabase directly in the deployed topology. A source-level bridge and typecheck do not establish this alone.
-5. Review operational readiness: generated production secrets, key rotation, backups and restore, monitoring/alerts, trusted origins, deployment configuration, privacy/legal approval, and sign-off by the responsible owners.
-6. If blockchain functionality is required in the intended release, this non-blockchain assessment is insufficient; resolve and certify the Fabric network and identity path separately.
+- CI now tests a real local Supabase environment instead of plain PostgreSQL. Historical migration files were repaired so a fresh installation completes. This includes renaming the duplicate `001_extensions.sql` to `000_extensions.sql` and replacing the `046` development-data seed with a no-op. These are source-history corrections, **not** an automatic repair of a database that already recorded those migration versions. Back up and assess the actual deployed migration history before applying the branch. In particular, existing development seed rows are not removed automatically.
+- Additive release migrations replace permissive project/bid/litigation SELECT policies and restrict import batches/staging to their government creator. The clean-install RLS tests prove the specified roles and rows, not every possible endpoint, storage object, or SQL function.
+- Production encryption keys accept only canonical 64-character hex or 32-byte base64. Operators must generate random 32-byte values; format validation cannot prove entropy. Session-credential decryption failures reject the request and attempt session revocation, returning `AUTH_SESSION_CORRUPT`. A revocation-write failure must be monitored.
+- LIVE frontend Supabase REST/Storage calls route through the same-origin Express BFF with an opaque HttpOnly cookie and CSRF binding. The client blocks direct LIVE Supabase requests outside the supported bridge. LIVE Realtime uses polling. This is source-level and build verification; browser network traces in a deployed topology have not been collected.
+- Gateway cookies are valid for up to seven days while Supabase user JWTs are short-lived. A server-side refresh path has been implemented after the green CI run above; it still needs a final green run and end-to-end expiry/rotation testing. Refresh failures fail closed. Multi-instance refresh races and key rotation need staging validation.
 
-**Release rule:** mark production-ready only after the final commit passes every required gate and the staged E2E and operational sign-offs are recorded. Until then the correct answer is **not production-ready**.
+## Remaining blockers before deployment approval
+
+1. Pass the full CI release gate on the **final** commit, including the new session-refresh code and any further changes. Do not waive a failure.
+2. Rehearse a migration of a representative copy of the actual hosted database, verify historical version differences and existing seed data, and test rollback/restore. A clean local reset does not establish a safe upgrade path for an already-deployed database.
+3. Complete production-like browser E2E journeys for each role: login, MFA, token expiry/refresh, logout/revocation, upload/download, cross-tenant denial, procurement, progress, finance, legal, and failure recovery. Verify LIVE network traffic sends no authoritative browser request directly to Supabase and inspect `Secure`, `HttpOnly`, `SameSite`, Origin, and CSRF behavior.
+4. Review Storage object policies and all privileged server operations beyond the tested row matrix; add role-specific negative tests for private files and sensitive RPCs.
+5. Configure real production secrets, trusted origins, external AI service, observability and alerts, backup/restore, key rotation, privacy/legal controls, and responsible-owner approval. None of these hosted operational settings was verified here.
+6. If the intended release requires blockchain anchoring, perform a separate Fabric identity/network/event certification. Chaincode build success is insufficient.
+
+**Release rule:** only the exact final commit with a complete green gate, tested hosted upgrade, staged role/E2E checks, and operational sign-off can be called production-ready. Until then the answer is **not production-ready**.

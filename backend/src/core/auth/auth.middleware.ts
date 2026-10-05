@@ -1,10 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import type { User, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { supabaseAdmin, createAuthenticatedClient } from '../database/supabase.js';
+import { env } from '../config/env.js';
+import { decryptSecret, encryptSecret } from '../security/encryption.js';
 import { UserContext } from './userContext.js';
 import { AppRole, isGovernmentRole, isContractorRole } from './roles.js';
-import { AuthenticationError, AuthorizationError, SessionCorruptError } from '../http/errors.js';
+import { AuthenticationError, AuthorizationError, SessionCorruptError, SessionExpiredError } from '../http/errors.js';
+
+async function revokeCorruptSession(sessionId: string): Promise<void> {
+  try {
+    const { error } = await supabaseAdmin.from('gateway_sessions')
+      .update({ revoked_at: new Date().toISOString() }).eq('id', sessionId);
+    if (error) console.error('[requireAuth] Session revocation failed:', error.message);
+  } catch (error) {
+    console.error('[requireAuth] Session revocation failed:', error);
+  }
+}
 
 export interface AuthenticatedRequest extends Request {
   user?: User;
@@ -98,10 +111,10 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
         .update({ last_active_at: new Date().toISOString() })
         .eq('id', sessionRow.id);
 
-      // Resolve Supabase access token (decrypt if stored as ciphertext)
+      // Resolve and rotate the short-lived user JWT behind the longer-lived
+      // opaque gateway cookie. Never use a service-role JWT for user data.
       if (sessionRow.supabase_access_token_ciphertext) {
         try {
-          const { decryptSecret } = await import('../security/encryption.js');
           supabaseTokenForClient = decryptSecret({
             ciphertext: sessionRow.supabase_access_token_ciphertext,
             iv: sessionRow.supabase_access_token_iv,
@@ -109,11 +122,91 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
             keyVersion: sessionRow.encryption_key_version || 1,
           }, 'SESSION_TOKEN_ENCRYPTION_KEY');
         } catch {
-          await supabaseAdmin.from('gateway_sessions').update({ revoked_at: new Date().toISOString() }).eq('id', sessionRow.id);
+          await revokeCorruptSession(sessionRow.id);
           throw new SessionCorruptError('Encrypted authentication credentials could not be decrypted');
         }
-      } else if (sessionRow.supabase_access_token) {
+        const accessExpiry = Date.parse(sessionRow.access_token_expires_at || '');
+        if (!Number.isFinite(accessExpiry) || accessExpiry <= Date.now() + 60_000) {
+          let refreshToken: string;
+          try {
+            refreshToken = decryptSecret({
+              ciphertext: sessionRow.supabase_refresh_token_ciphertext,
+              iv: sessionRow.supabase_refresh_token_iv,
+              tag: sessionRow.supabase_refresh_token_tag,
+              keyVersion: sessionRow.encryption_key_version || 1,
+            }, 'SESSION_TOKEN_ENCRYPTION_KEY');
+          } catch {
+            await revokeCorruptSession(sessionRow.id);
+            throw new SessionCorruptError('Encrypted refresh credentials could not be decrypted');
+          }
+
+          const authClient = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+            auth: { persistSession: false, autoRefreshToken: false },
+          });
+          let refreshResult;
+          try {
+            refreshResult = await authClient.auth.refreshSession({ refresh_token: refreshToken });
+          } catch {
+            await revokeCorruptSession(sessionRow.id);
+            throw new SessionExpiredError('Authentication credentials could not be refreshed');
+          }
+          const { data, error } = refreshResult;
+          if (error || !data.session || data.user?.id !== userId) {
+            await revokeCorruptSession(sessionRow.id);
+            throw new SessionExpiredError('Authentication credentials could not be refreshed');
+          }
+
+          const newAccess = encryptSecret(data.session.access_token, 'SESSION_TOKEN_ENCRYPTION_KEY');
+          const newRefresh = encryptSecret(data.session.refresh_token, 'SESSION_TOKEN_ENCRYPTION_KEY');
+          const { data: updated, error: updateError } = await supabaseAdmin.from('gateway_sessions')
+            .update({
+              supabase_access_token_ciphertext: newAccess.ciphertext,
+              supabase_access_token_iv: newAccess.iv,
+              supabase_access_token_tag: newAccess.tag,
+              supabase_refresh_token_ciphertext: newRefresh.ciphertext,
+              supabase_refresh_token_iv: newRefresh.iv,
+              supabase_refresh_token_tag: newRefresh.tag,
+              encryption_key_version: newAccess.keyVersion,
+              access_token_expires_at: new Date(Date.now() + data.session.expires_in * 1000).toISOString(),
+            })
+            .eq('id', sessionRow.id)
+            .eq('supabase_refresh_token_ciphertext', sessionRow.supabase_refresh_token_ciphertext)
+            .is('revoked_at', null)
+            .select('id')
+            .maybeSingle();
+          if (updateError) {
+            await revokeCorruptSession(sessionRow.id);
+            throw new SessionExpiredError('Authentication session could not be refreshed');
+          }
+          if (updated) {
+            supabaseTokenForClient = data.session.access_token;
+          } else {
+            // Another request or server rotated the token first. Re-read its
+            // committed value, rather than overwriting it with a stale token.
+            const { data: latest, error: latestError } = await supabaseAdmin.from('gateway_sessions')
+              .select('supabase_access_token_ciphertext,supabase_access_token_iv,supabase_access_token_tag,encryption_key_version,access_token_expires_at')
+              .eq('id', sessionRow.id).is('revoked_at', null).maybeSingle();
+            if (latestError || !latest || Date.parse(latest.access_token_expires_at || '') <= Date.now()) {
+              throw new SessionExpiredError('Authentication session was rotated or revoked');
+            }
+            try {
+              supabaseTokenForClient = decryptSecret({
+                ciphertext: latest.supabase_access_token_ciphertext,
+                iv: latest.supabase_access_token_iv,
+                tag: latest.supabase_access_token_tag,
+                keyVersion: latest.encryption_key_version || 1,
+              }, 'SESSION_TOKEN_ENCRYPTION_KEY');
+            } catch {
+              await revokeCorruptSession(sessionRow.id);
+              throw new SessionCorruptError('Rotated authentication credentials could not be decrypted');
+            }
+          }
+        }
+      } else if (process.env.NODE_ENV !== 'production' && sessionRow.supabase_access_token) {
         supabaseTokenForClient = sessionRow.supabase_access_token;
+      } else {
+        await revokeCorruptSession(sessionRow.id);
+        throw new SessionCorruptError('Authentication credentials are missing');
       }
     } else {
       // Phase 7: Raw Supabase Bearer JWT bypass is strictly prohibited in production
