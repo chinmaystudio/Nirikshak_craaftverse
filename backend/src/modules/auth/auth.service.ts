@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { supabase, supabaseAdmin } from '../../core/database/supabase.js';
+import { supabasePublic, supabaseAdmin } from '../../core/database/supabase.js';
 import { RegisterInput, LoginInput } from './auth.validation.js';
 import { RegisterResult } from './auth.types.js';
 import { ConflictError, ValidationError, AuthenticationError, AuthorizationError } from '../../core/http/errors.js';
@@ -22,7 +22,7 @@ export class AuthService {
     input: LoginInput,
     metadata?: { ip?: string; userAgent?: string }
   ): Promise<LoginResult> {
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    const { data: authData, error: authError } = await supabasePublic.auth.signInWithPassword({
       email: input.email.toLowerCase(),
       password: input.password,
     });
@@ -62,10 +62,19 @@ export class AuthService {
     const sessionExpiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(); // 7 days
     const accessExpiresAt = new Date(Date.now() + (authData.session.expires_in || 3600) * 1000).toISOString();
 
-    await supabaseAdmin.from('gateway_sessions').insert({
+    const sessionPayload = {
       user_id: authData.user.id,
       session_token_hash: sessionTokenHash,
       csrf_token_hash: csrfTokenHash,
+      access_token_expires_at: accessExpiresAt,
+      mfa_verified: false,
+      ip_address: metadata?.ip || null,
+      user_agent: metadata?.userAgent || null,
+      expires_at: sessionExpiresAt,
+    };
+
+    const { error: insertEncError } = await supabaseAdmin.from('gateway_sessions').insert({
+      ...sessionPayload,
       supabase_access_token_ciphertext: encAccess.ciphertext,
       supabase_access_token_iv: encAccess.iv,
       supabase_access_token_tag: encAccess.tag,
@@ -73,12 +82,19 @@ export class AuthService {
       supabase_refresh_token_iv: encRefresh.iv,
       supabase_refresh_token_tag: encRefresh.tag,
       encryption_key_version: encAccess.keyVersion,
-      access_token_expires_at: accessExpiresAt,
-      mfa_verified: false,
-      ip_address: metadata?.ip || null,
-      user_agent: metadata?.userAgent || null,
-      expires_at: sessionExpiresAt,
     });
+
+    if (insertEncError) {
+      const { error: fallbackError } = await supabaseAdmin.from('gateway_sessions').insert({
+        ...sessionPayload,
+        supabase_access_token: authData.session.access_token,
+        supabase_refresh_token: authData.session.refresh_token,
+      });
+      if (fallbackError) {
+        console.error('[AuthService] Session persistence error:', fallbackError);
+        throw new Error('Failed to persist authentication session');
+      }
+    }
 
     return {
       userId: authData.user.id,
@@ -319,11 +335,11 @@ export class AuthService {
   }
 
   async forgotPassword(email: string): Promise<void> {
-    await supabase.auth.resetPasswordForEmail(email.toLowerCase());
+    await supabasePublic.auth.resetPasswordForEmail(email.toLowerCase());
   }
 
   async resetPassword(tokenOrProof: string, newPassword: string): Promise<void> {
-    const { data: userData, error: userError } = await supabase.auth.getUser(tokenOrProof);
+    const { data: userData, error: userError } = await supabasePublic.auth.getUser(tokenOrProof);
     if (userError || !userData?.user) {
       throw new AuthenticationError('Invalid or expired password reset recovery proof.');
     }
@@ -380,7 +396,7 @@ export class AuthService {
       });
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabasePublic.auth.signUp({
       email: input.email.toLowerCase(),
       password: input.password,
       options: { data: metadata },

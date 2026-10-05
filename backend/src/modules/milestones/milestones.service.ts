@@ -57,14 +57,12 @@ export class MilestonesService {
       .from('project_milestones')
       .insert({
         project_id: input.project_id,
-        milestone_code: input.milestone_code,
-        title: input.title,
+        milestone_name: input.title,
         description: input.description || null,
-        sequence_number: input.sequence_number,
-        weight_percentage: input.weight_percentage,
+        display_order: input.sequence_number,
+        weight_percent: input.weight_percentage,
         planned_start_date: input.planned_start_date || null,
-        planned_completion_date: input.planned_completion_date,
-        payment_percentage: input.payment_percentage || null,
+        planned_end_date: input.planned_completion_date,
         status: 'PENDING',
       })
       .select()
@@ -119,7 +117,7 @@ export class MilestonesService {
       .from('project_milestones')
       .select('*')
       .eq('project_id', projectId)
-      .order('sequence_number', { ascending: true });
+      .order('display_order', { ascending: true });
 
     if (error) {
       throw new ValidationError(`Failed to fetch milestones: ${error.message}`);

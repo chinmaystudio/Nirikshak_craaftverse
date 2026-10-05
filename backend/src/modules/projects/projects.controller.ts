@@ -18,7 +18,7 @@ export class ProjectsController {
   async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const authHeader = req.header('authorization');
-      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : undefined;
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : (req as any).token;
       const result = await projectsService.getProject(req.params.id, token);
       ApiResponseHelper.success(res, result);
     } catch (err) {

@@ -38,7 +38,7 @@ export class NotificationsService {
     let query = scopedClient
       .from('notifications')
       .select('id', { count: 'exact', head: true })
-      .eq('is_read', false);
+      .is('read_at', null);
 
     if (userContext.organizationId) {
       query = query.or(`recipient_user_id.eq.${userContext.userId},recipient_organization_id.eq.${userContext.organizationId}`);

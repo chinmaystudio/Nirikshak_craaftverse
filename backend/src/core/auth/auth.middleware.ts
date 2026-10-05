@@ -166,7 +166,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     req.role = role;
     req.organizationId = orgId;
     req.mfaVerified = mfaVerified;
-    req.token = rawToken;
+    req.token = supabaseTokenForClient;
     req.userContext = {
       userId,
       email: userEmail,

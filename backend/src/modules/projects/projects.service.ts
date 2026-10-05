@@ -74,7 +74,7 @@ export class ProjectsService {
     // Public / Citizen projection (zero private contracts or unverified progress)
     let query = supabasePublic
       .from('projects')
-      .select('id, nirikshak_project_id, project_name, description, sector, subsector, project_authority, state, city, location_text, latitude, longitude, total_cost_inr_crore, planned_start_date, original_completion_date, normalized_status, physical_progress_percent, current_status_verified, is_public, project_milestones(id, milestone_name, sequence_order, target_completion_date, verified_progress, status)')
+      .select('id, nirikshak_project_id, project_name, description, sector, subsector, project_authority, state, city, location_text, latitude, longitude, total_cost_inr_crore, planned_start_date, original_completion_date, normalized_status, physical_progress_percent, current_status_verified, is_public, project_milestones(id, milestone_name, display_order, planned_end_date, verified_progress, status)')
       .eq('is_public', true)
       .is('deleted_at', null);
 

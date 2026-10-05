@@ -1,0 +1,397 @@
+[
+  {
+    "file": "001_extensions.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "001_initial_schema.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "002_profiles.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "003_organizations.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "004_projects.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "005_tenders.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "006_contracts.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "007_milestones.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "008_progress.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "009_complaints.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "010_inspections.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "011_finance.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "012_environment.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "013_documents.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "014_notifications.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "015_ai.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "016_audit.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "017_rls.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "018_indexes.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "019_realtime_and_workflow.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "020_secure_workflows.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "021_procurement_progress_ai.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "022_rls_security_hardening.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "023_complete_rls_policies.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "024_multi_tenant_gov_contractor_architecture.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "025_complete_security_hardening.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "026_security_access_hardening.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "027_function_execute_privileges.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "028_public_rls_helper_privileges.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "029_database_v2_foundation.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "030_procurement_contracts_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "031_milestones_progress_delays_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "032_resources_workforce_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "033_finance_payment_claims_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "034_inspections_documents_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "035_environment_compliance_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "036_complaints_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "037_legal_litigation_settlements_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "038_notifications_audit_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "039_ai_intelligence_lifecycle_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "040_external_telemetry_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "041_views_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "042_rls_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "043_secure_rpc_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "044_storage_policies_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "045_realtime_indexes_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "046_seed_support_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "047_production_security_hardening.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "048_ai_lifecycle_runtime_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "049_finance_integrity_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "050_legal_rls_hardening_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "051_status_and_constraint_alignment_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "052_rpc_privilege_hardening_v2.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "053_v2_runtime_views_indexes.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "054_production_validation_helpers.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "055_fix_payment_claims_audit_entity_uuid.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "056_complete_missing_rls_policies.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "057_strict_tenant_rls_final.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "058_platform_and_auditor_scope.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "059_private_gateway_session_support.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "060_blockchain_audit_schema.sql",
+    "category": "BLOCKCHAIN-ONLY",
+    "details": "Creates public.blockchain_anchors table, indexes, and RLS"
+  },
+  {
+    "file": "061_blockchain_outbox.sql",
+    "category": "BLOCKCHAIN-ONLY",
+    "details": "Creates public.blockchain_anchor_outbox table, indexes, and RLS"
+  },
+  {
+    "file": "062_blockchain_rls.sql",
+    "category": "BLOCKCHAIN-ONLY",
+    "details": "Creates RLS policies on blockchain_anchors and blockchain_anchor_outbox"
+  },
+  {
+    "file": "063_blockchain_rpc_integration.sql",
+    "category": "BLOCKCHAIN-ONLY",
+    "details": "Defines enqueue_blockchain_anchor RPC, trg_anchor_payment_recorded, trg_anchor_contract_awarded"
+  },
+  {
+    "file": "064_final_production_constraints.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "065_final_security_validation.sql",
+    "category": "MIXED",
+    "details": "Defines verify_production_security_readiness(): safe table/view/RLS audit (lines 8-54, 78-80) + blockchain-dependent queries on blockchain_anchors & outbox (lines 56-57)"
+  },
+  {
+    "file": "066_blockchain_runtime_correctness.sql",
+    "category": "BLOCKCHAIN-ONLY",
+    "details": "Alters blockchain_anchors payload_hash, updates enqueue_blockchain_anchor, recreates payment & contract triggers"
+  },
+  {
+    "file": "067_blockchain_rpc_lockdown.sql",
+    "category": "BLOCKCHAIN-ONLY",
+    "details": "Revokes execution on enqueue_blockchain_anchor and blockchain triggers"
+  },
+  {
+    "file": "068_blockchain_worker_claiming.sql",
+    "category": "BLOCKCHAIN-ONLY",
+    "details": "Defines claim_blockchain_outbox_jobs and recover_stale_blockchain_jobs"
+  },
+  {
+    "file": "069_rls_relationship_corrections.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "070_gateway_session_security.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "071_mfa_security.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "072_final_zero_trust_validation.sql",
+    "category": "MIXED",
+    "details": "trg_sync_dead_letter_anchor on blockchain_anchor_outbox (lines 10-35, blockchain) + verify_all_tables_rls_enabled() (lines 37-61, safe core RLS check)"
+  },
+  {
+    "file": "073_final_constraints_and_grants.sql",
+    "category": "MIXED",
+    "details": "Privilege revokes/grants on gateway_sessions, mfa_challenges, user_mfa_factors (safe core auth) + blockchain_anchors, outbox (blockchain)"
+  },
+  {
+    "file": "074_gateway_session_confidentiality.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "075_encrypted_auth_secret_support.sql",
+    "category": "CORE",
+    "details": ""
+  },
+  {
+    "file": "076_final_security_privilege_lockdown.sql",
+    "category": "MIXED",
+    "details": "Locks down user_mfa_factors table and elevate/revoke_gateway_session RPCs (safe core auth) + IF EXISTS checks on enqueue_blockchain_anchor and worker claiming RPCs (blockchain)"
+  },
+  {
+    "file": "077_blockchain_event_coverage.sql",
+    "category": "BLOCKCHAIN-ONLY",
+    "details": "Adds outbox enqueue triggers calling enqueue_blockchain_anchor across 11 core tables"
+  },
+  {
+    "file": "078_final_security_diagnostics.sql",
+    "category": "CORE",
+    "details": "Defines verify_system_security_posture(): validates public tables RLS, gateway_sessions and user_mfa_factors permission lockdown and zero plaintext tokens"
+  }
+]
