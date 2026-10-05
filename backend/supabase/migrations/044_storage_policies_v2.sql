@@ -44,7 +44,7 @@ BEGIN
             FOR SELECT USING (
                 bucket_id = 'bid-documents' AND (
                     -- Owner of the uploaded object
-                    owner = auth.uid()::text OR
+                    owner = auth.uid() OR
                     -- Government user
                     EXISTS (
                         SELECT 1 FROM public.organization_members om
@@ -84,7 +84,7 @@ BEGIN
         CREATE POLICY "Complaint evidence select" ON storage.objects
             FOR SELECT USING (
                 bucket_id = 'complaint-evidence' AND (
-                    owner = auth.uid()::text OR
+                    owner = auth.uid() OR
                     EXISTS (
                         SELECT 1 FROM public.organization_members om
                         JOIN public.organizations o ON o.id = om.organization_id
@@ -107,7 +107,7 @@ BEGIN
         CREATE POLICY "Inspection evidence select" ON storage.objects
             FOR SELECT USING (
                 bucket_id = 'inspection-evidence' AND (
-                    owner = auth.uid()::text OR
+                    owner = auth.uid() OR
                     EXISTS (
                         SELECT 1 FROM public.organization_members om
                         JOIN public.organizations o ON o.id = om.organization_id
