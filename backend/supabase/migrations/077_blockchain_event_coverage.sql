@@ -32,7 +32,7 @@ BEGIN
       'project_id', NEW.id,
       'project_name', NEW.project_name,
       'approved_cost_inr_crore', NEW.approved_cost_inr_crore,
-      'status', COALESCE(NEW.normalized_status, NEW.reported_status, 'DRAFT'),
+      'status', COALESCE(NEW.normalized_status::text, NEW.reported_status, 'DRAFT'),
       'created_at', NEW.created_at
     );
     v_dedupe_key := 'PROJECT:' || NEW.id || ':CREATED';
