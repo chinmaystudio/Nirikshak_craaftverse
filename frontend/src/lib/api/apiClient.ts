@@ -46,7 +46,7 @@ class ApiClient {
       response = await fetch(url, {
         ...options,
         headers,
-        credentials: 'same-origin', // Zero-trust: HttpOnly session cookie handles authentication
+        credentials: 'include', // Required for the cross-origin Pages → Render session cookie
       });
     } catch (err: any) {
       throw new ApiError(err?.message || 'Network connection failed', 'NETWORK_ERROR', 0);

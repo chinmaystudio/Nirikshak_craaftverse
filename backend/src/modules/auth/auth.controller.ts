@@ -20,7 +20,7 @@ export class AuthController {
       res.cookie('nirikshak_session', result.rawSessionToken, {
         httpOnly: true,
         secure: isProduction,
-        sameSite: 'strict',
+        sameSite: isProduction ? 'none' : 'strict',
         path: '/',
         maxAge: 7 * 24 * 3600 * 1000, // 7 days
       });
@@ -29,7 +29,7 @@ export class AuthController {
       res.cookie('nirikshak_csrf', result.csrfToken, {
         httpOnly: false,
         secure: isProduction,
-        sameSite: 'strict',
+        sameSite: isProduction ? 'none' : 'strict',
         path: '/',
         maxAge: 7 * 24 * 3600 * 1000,
       });
@@ -59,7 +59,7 @@ export class AuthController {
     const clearOpts = {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'strict' as const,
+      sameSite: isProduction ? 'none' as const : 'strict' as const,
       path: '/',
     };
 
@@ -77,7 +77,7 @@ export class AuthController {
     res.cookie('nirikshak_csrf', csrfToken, {
       httpOnly: false,
       secure: isProduction,
-      sameSite: 'strict',
+      sameSite: isProduction ? 'none' : 'strict',
       path: '/',
       maxAge: 3600 * 1000,
     });
@@ -158,7 +158,7 @@ export class AuthController {
         res.cookie('nirikshak_session', result.newRawSessionToken, {
           httpOnly: true,
           secure: isProduction,
-          sameSite: 'strict',
+          sameSite: isProduction ? 'none' : 'strict',
           path: '/',
           maxAge: 7 * 24 * 3600 * 1000,
         });
@@ -166,7 +166,7 @@ export class AuthController {
         res.cookie('nirikshak_csrf', result.newCsrfToken, {
           httpOnly: false,
           secure: isProduction,
-          sameSite: 'strict',
+          sameSite: isProduction ? 'none' : 'strict',
           path: '/',
           maxAge: 7 * 24 * 3600 * 1000,
         });
@@ -285,7 +285,7 @@ export class AuthController {
       res.cookie('nirikshak_session', rawSessionToken, {
         httpOnly: true,
         secure: isProduction,
-        sameSite: 'strict',
+        sameSite: isProduction ? 'none' : 'strict',
         path: '/',
         maxAge: 7 * 24 * 3600 * 1000,
       });
@@ -293,7 +293,7 @@ export class AuthController {
       res.cookie('nirikshak_csrf', csrfToken, {
         httpOnly: false,
         secure: isProduction,
-        sameSite: 'strict',
+        sameSite: isProduction ? 'none' : 'strict',
         path: '/',
         maxAge: 7 * 24 * 3600 * 1000,
       });
@@ -307,4 +307,3 @@ export class AuthController {
 }
 
 export const authController = new AuthController();
-
