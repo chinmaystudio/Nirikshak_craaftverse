@@ -4,7 +4,7 @@
 
 ## Verified release gates
 
-On 2026-10-05, [CI run 37321895329](https://github.com/chinmaystudio/Nirikshak_craaftverse/actions/runs/37321895329) passed all seven jobs on commit `f43f7b67bb8a907e35d338a4951a743ab7f20746`:
+On 2026-10-05, [CI run 37324089812](https://github.com/chinmaystudio/Nirikshak_craaftverse/actions/runs/37324089812) passed all seven jobs on commit `9f70cc774f3021f8f193b06553aad8c55b6dcbdd`:
 
 | Gate | Evidence |
 | --- | --- |
@@ -13,7 +13,7 @@ On 2026-10-05, [CI run 37321895329](https://github.com/chinmaystudio/Nirikshak_c
 | Tenant isolation | Ten assertions passed: Government A/B private projects, Contractor A/B private bids, assigned/unassigned auditor projects, and citizen denial of private payment claims and litigation. |
 | Frontend | Typecheck, configured `npm test` (currently TypeScript checks), Vite build, static LIVE Supabase scan, and bundle secret check passed. |
 | Backend | Typecheck, existing security/AI/zero-trust tests, and build passed. |
-| AI | Pytest and model smoke test passed. |
+| AI | Pytest, model smoke test, and four Express-to-Python integration flows passed. |
 | Supply chain | Gitleaks and private-key-file scan passed; high-severity npm audits passed for frontend, backend, and chaincode. The chaincode unit/build job passed, but this does **not** certify a Fabric network. |
 
 The workflow fails on any of these checks; no audit or security check is configured to continue on error. Each later commit requires its own complete green CI run before this evidence applies to it.
@@ -24,12 +24,12 @@ The workflow fails on any of these checks; no audit or security check is configu
 - Additive release migrations replace permissive project/bid/litigation SELECT policies and restrict import batches/staging to their government creator. The clean-install RLS tests prove the specified roles and rows, not every possible endpoint, storage object, or SQL function.
 - Production encryption keys accept only canonical 64-character hex or 32-byte base64. Operators must generate random 32-byte values; format validation cannot prove entropy. Session-credential decryption failures reject the request and attempt session revocation, returning `AUTH_SESSION_CORRUPT`. A revocation-write failure must be monitored.
 - LIVE frontend Supabase REST/Storage calls route through the same-origin Express BFF with an opaque HttpOnly cookie and CSRF binding. The client blocks direct LIVE Supabase requests outside the supported bridge. LIVE Realtime uses polling. This is source-level and build verification; browser network traces in a deployed topology have not been collected.
-- Gateway cookies are valid for up to seven days while Supabase user JWTs are short-lived. A server-side refresh path has been implemented after the green CI run above; it still needs a final green run and end-to-end expiry/rotation testing. Refresh failures fail closed. Multi-instance refresh races and key rotation need staging validation.
-- The existing Express-to-Python AI integration test was updated to match the current feedback and verified-learning contract. All four flows passed against a temporary local AI process. It has been added to CI after the green run cited above; the final commit must pass it there too. This does not replace full browser or hosted-service E2E.
+- Gateway cookies are valid for up to seven days while Supabase user JWTs are short-lived. A server-side refresh path passes CI typecheck, tests, and build, but token expiry/rotation E2E has not been run. Refresh failures fail closed. Multi-instance refresh races and key rotation need staging validation.
+- The Express-to-Python AI integration test now matches the current feedback and verified-learning contract. All four flows passed locally and in the cited CI run. This does not replace full browser or hosted-service E2E.
 
 ## Remaining blockers before deployment approval
 
-1. Pass the full CI release gate on the **final** commit, including the new session-refresh code and any further changes. Do not waive a failure.
+1. Keep the full CI release gate green on the **exact final** commit; a subsequent documentation or code change also needs its own run. Do not waive a failure.
 2. Rehearse a migration of a representative copy of the actual hosted database, verify historical version differences and existing seed data, and test rollback/restore. A clean local reset does not establish a safe upgrade path for an already-deployed database.
 3. Complete production-like browser E2E journeys for each role: login, MFA, token expiry/refresh, logout/revocation, upload/download, cross-tenant denial, procurement, progress, finance, legal, and failure recovery. Verify LIVE network traffic sends no authoritative browser request directly to Supabase and inspect `Secure`, `HttpOnly`, `SameSite`, Origin, and CSRF behavior.
 4. Review Storage object policies and all privileged server operations beyond the tested row matrix; add role-specific negative tests for private files and sensitive RPCs.
