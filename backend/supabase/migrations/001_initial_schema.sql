@@ -853,6 +853,38 @@ ALTER TABLE public.delay_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.environmental_clearances ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.environmental_baselines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.environmental_commitments ENABLE ROW LEVEL SECURITY;
+-- These two tables were previously first created in 012, after this migration's
+-- RLS statements. Keep their definitions here so a clean CLI reset is possible.
+CREATE TABLE IF NOT EXISTS public.environmental_observations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+    metric TEXT NOT NULL,
+    value NUMERIC NOT NULL,
+    unit TEXT NOT NULL,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    source_type TEXT NOT NULL,
+    observed_at TIMESTAMPTZ DEFAULT now(),
+    submitted_by UUID REFERENCES auth.users(id),
+    evidence_path TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.environmental_incidents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+    incident_type TEXT NOT NULL,
+    description TEXT NOT NULL,
+    severity TEXT DEFAULT 'MEDIUM',
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    reported_by UUID REFERENCES auth.users(id),
+    status TEXT DEFAULT 'REPORTED',
+    detected_at TIMESTAMPTZ DEFAULT now(),
+    resolved_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
 ALTER TABLE public.environmental_observations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.environmental_incidents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.project_documents ENABLE ROW LEVEL SECURITY;
