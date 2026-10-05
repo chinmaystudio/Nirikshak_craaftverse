@@ -25,6 +25,7 @@ The workflow fails on any of these checks; no audit or security check is configu
 - Production encryption keys accept only canonical 64-character hex or 32-byte base64. Operators must generate random 32-byte values; format validation cannot prove entropy. Session-credential decryption failures reject the request and attempt session revocation, returning `AUTH_SESSION_CORRUPT`. A revocation-write failure must be monitored.
 - LIVE frontend Supabase REST/Storage calls route through the same-origin Express BFF with an opaque HttpOnly cookie and CSRF binding. The client blocks direct LIVE Supabase requests outside the supported bridge. LIVE Realtime uses polling. This is source-level and build verification; browser network traces in a deployed topology have not been collected.
 - Gateway cookies are valid for up to seven days while Supabase user JWTs are short-lived. A server-side refresh path has been implemented after the green CI run above; it still needs a final green run and end-to-end expiry/rotation testing. Refresh failures fail closed. Multi-instance refresh races and key rotation need staging validation.
+- The existing Express-to-Python AI integration test was updated to match the current feedback and verified-learning contract. All four flows passed against a temporary local AI process. It has been added to CI after the green run cited above; the final commit must pass it there too. This does not replace full browser or hosted-service E2E.
 
 ## Remaining blockers before deployment approval
 

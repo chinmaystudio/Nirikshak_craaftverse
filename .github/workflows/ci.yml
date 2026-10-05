@@ -101,6 +101,24 @@ jobs:
         run: python -m pytest tests/ -v
       - name: Run AI Model Smoke Test
         run: python scripts/model_smoke_test.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+        working-directory: backend
+      - name: Run Express-to-Python AI integration
+        run: |
+          python run_api.py &
+          ai_pid=$!
+          trap 'kill "$ai_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8000/health >/dev/null
+          (cd ../backend && npx tsx tests/e2e-integration.test.ts)
 
   chaincode:
     name: Hyperledger Fabric Chaincode Tests & Build
