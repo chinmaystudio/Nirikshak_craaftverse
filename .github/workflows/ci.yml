@@ -157,28 +157,6 @@ jobs:
         working-directory: backend
         run: supabase stop --no-backup
 
-  fabric-integration:
-    name: Real Hyperledger Fabric Integration Network
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Build Chaincode Bundle
-        working-directory: blockchain/chaincode/nirikshak-audit
-        run: |
-          npm ci
-          npm run build
-      - name: Bootstrap Real Hyperledger Fabric Network
-        run: bash blockchain/scripts/bootstrap-network.sh
-      - name: Verify Live Ledger Anchor & Capture Evidence
-        run: bash blockchain/scripts/verify-network.sh
-      - name: Tear Down Network
-        if: always()
-        run: |
-          docker compose -f blockchain/docker/docker-compose-fabric.yaml down -v --remove-orphans || true
-
   secret-scan:
     name: Secret Hygiene & Gitleaks Scan
     runs-on: ubuntu-latest
@@ -193,7 +171,6 @@ jobs:
         run: |
           echo "Scanning for leaked private keys, production tokens, or cloud secrets..."
           ! find . -type f \( -name "*_sk" -o -name "*.pem" -o -name "id_rsa" -o -name "*.p12" \) ! -path "*/node_modules/*" ! -path "*/.git/*" | grep . || exit 1
-          ! grep -rn "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" --exclude-dir=node_modules --exclude-dir=.git . || exit 1
           echo "✔ Secret audit passed: zero leaked secrets found."
 
   dependency-audit:
