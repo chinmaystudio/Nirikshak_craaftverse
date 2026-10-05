@@ -1,7 +1,7 @@
 -- 017_rls.sql
 CREATE OR REPLACE FUNCTION public.get_user_role()
 RETURNS public.app_role_enum AS $$
-    SELECT role FROM public.organization_members
+    SELECT NULLIF(role, 'member')::public.app_role_enum FROM public.organization_members
     WHERE user_id = auth.uid()
     LIMIT 1;
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
