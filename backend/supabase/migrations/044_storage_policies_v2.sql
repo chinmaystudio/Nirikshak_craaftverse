@@ -44,14 +44,14 @@ BEGIN
             FOR SELECT USING (
                 bucket_id = 'bid-documents' AND (
                     -- Owner of the uploaded object
-                    owner = auth.uid() OR
+                    owner = auth.uid()::text OR
                     -- Government user
                     EXISTS (
                         SELECT 1 FROM public.organization_members om
                         JOIN public.organizations o ON o.id = om.organization_id
                         WHERE om.user_id = auth.uid()
-                          AND om.status = 'ACTIVE'
-                          AND o.organization_type = 'GOVERNMENT'
+                          AND lower(om.status) = 'active'
+                          AND (o.type IN ('government', 'authority', 'ULB', 'PSU') OR om.role IN ('government_admin', 'project_officer', 'government_engineer', 'chief_engineer'))
                     )
                 )
             );
@@ -84,13 +84,13 @@ BEGIN
         CREATE POLICY "Complaint evidence select" ON storage.objects
             FOR SELECT USING (
                 bucket_id = 'complaint-evidence' AND (
-                    owner = auth.uid() OR
+                    owner = auth.uid()::text OR
                     EXISTS (
                         SELECT 1 FROM public.organization_members om
                         JOIN public.organizations o ON o.id = om.organization_id
                         WHERE om.user_id = auth.uid()
-                          AND om.status = 'ACTIVE'
-                          AND o.organization_type = 'GOVERNMENT'
+                          AND lower(om.status) = 'active'
+                          AND (o.type IN ('government', 'authority', 'ULB', 'PSU') OR om.role IN ('government_admin', 'project_officer', 'government_engineer', 'chief_engineer'))
                     )
                 )
             );
@@ -107,13 +107,13 @@ BEGIN
         CREATE POLICY "Inspection evidence select" ON storage.objects
             FOR SELECT USING (
                 bucket_id = 'inspection-evidence' AND (
-                    owner = auth.uid() OR
+                    owner = auth.uid()::text OR
                     EXISTS (
                         SELECT 1 FROM public.organization_members om
                         JOIN public.organizations o ON o.id = om.organization_id
                         WHERE om.user_id = auth.uid()
-                          AND om.status = 'ACTIVE'
-                          AND o.organization_type IN ('GOVERNMENT', 'AUDITOR')
+                          AND lower(om.status) = 'active'
+                          AND (o.type IN ('government', 'authority', 'ULB', 'PSU') OR om.role IN ('government_admin', 'project_officer', 'government_engineer', 'chief_engineer', 'auditor'))
                     )
                 )
             );
@@ -126,8 +126,8 @@ BEGIN
                     SELECT 1 FROM public.organization_members om
                     JOIN public.organizations o ON o.id = om.organization_id
                     WHERE om.user_id = auth.uid()
-                      AND om.status = 'ACTIVE'
-                      AND o.organization_type IN ('GOVERNMENT', 'AUDITOR')
+                      AND lower(om.status) = 'active'
+                      AND (o.type IN ('government', 'authority', 'ULB', 'PSU') OR om.role IN ('government_admin', 'project_officer', 'government_engineer', 'chief_engineer', 'auditor'))
                 )
             );
 
