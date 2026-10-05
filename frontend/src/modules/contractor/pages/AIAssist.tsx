@@ -3,12 +3,24 @@ import { Sparkles, Send, RotateCcw, ShieldCheck, Banknote, Map, Gavel, AlertTria
 import { PageHeader, Card, SectionTitle, StatusBadge, Spinner } from '../components/ui';
 import { Link } from '../lib/router';
 import { useStore } from '../lib/store';
+import { useAuth } from '@/core/auth/useAuth';
 import { cls, cr, money } from '../lib/utils';
 
 interface Msg {
   role: 'user' | 'ai';
   text?: string;
   answer?: any;
+}
+
+interface AIAnswerBlock {
+  kind: 'text' | 'list' | 'actions';
+  text?: string;
+  items?: Array<{ label: string; value?: string; link?: string; tone?: 'ok' | 'warn' | 'info' | 'bad' }>;
+}
+
+interface AIAnswer {
+  title: string;
+  blocks: AIAnswerBlock[];
 }
 
 const SUGGESTIONS = [
@@ -20,12 +32,14 @@ const SUGGESTIONS = [
 ];
 
 export default function AIAssist() {
-  const { projects, invoices } = useStore();
+  const { session } = useAuth();
+  const { projects, invoices, bids } = useStore();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
 
+  const contractorName = session?.organization?.name || 'Contractor Entity';
   const active = projects.filter((p) => p.status !== 'Completed');
   const atRiskProjects = projects.filter((p) => p.status === 'At Risk' || p.status === 'Delayed');
   const pendingAmt = invoices.filter((i) => ['Submitted', 'Under Verification', 'Approved'].includes(i.status)).reduce((s, i) => s + (i.amount || 0), 0);
@@ -36,7 +50,7 @@ export default function AIAssist() {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: 'smooth' });
   }, [msgs, thinking]);
 
-  const resolve = (question: string) => {
+  const resolve = (question: string): AIAnswer => {
     const q = question.toLowerCase();
 
     if (q.includes('risk') || q.includes('delay')) {
@@ -75,7 +89,7 @@ export default function AIAssist() {
           {
             kind: 'list' as const,
             items: invoices.slice(0, 5).map((inv) => ({
-              label: `Invoice #${inv.num} — ${inv.status}`,
+              label: `Invoice #${inv.no || inv.id} — ${inv.status}`,
               value: `${money(inv.amount)} (${inv.verification || 'In processing'})`,
               link: `/projects/${inv.projectId}/bills`,
               tone: inv.status === 'Approved' ? 'ok' as const : 'warn' as const,
@@ -93,7 +107,7 @@ export default function AIAssist() {
             kind: 'list' as const,
             items: allUpcoming.length > 0
               ? allUpcoming.slice(0, 4).map((insp) => ({
-                  label: `${insp.projectName} — ${insp.title || 'Site Inspection'}`,
+                  label: `${insp.projectName} — ${insp.stage || 'Site Inspection'}`,
                   value: `${insp.date} ${insp.time ? `at ${insp.time} IST` : ''}`,
                   tone: 'info' as const,
                 }))
@@ -210,7 +224,7 @@ export default function AIAssist() {
               </div>
               <div>
                 <p className="text-sm font-bold text-slate-800 dark:text-slate-100">NIRIKSHAK AI Assistant</p>
-                <p className="text-[10px] font-semibold text-green-700 dark:text-green-400">● Contractor context loaded — {CONTRACTOR.short}</p>
+                <p className="text-[10px] font-semibold text-green-700 dark:text-green-400">● Contractor context loaded — {contractorName}</p>
               </div>
             </div>
           </div>
@@ -273,7 +287,7 @@ export default function AIAssist() {
   );
 }
 
-function AIAnswerCard({ answer }: { answer: (typeof AI_ANSWERS)[number] }) {
+function AIAnswerCard({ answer }: { answer: AIAnswer }) {
   return (
     <div className="max-w-[92%]">
       <div className="rounded-lg border border-blue-200 bg-white overflow-hidden dark:border-blue-900 dark:bg-slate-900">

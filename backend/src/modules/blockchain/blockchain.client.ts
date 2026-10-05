@@ -5,6 +5,9 @@ import * as grpc from '@grpc/grpc-js';
 import { connect, Contract, Gateway, Identity, Signer, signers } from '@hyperledger/fabric-gateway';
 import { AuditRecord, VerificationResult, AnchorSubmissionResult } from './blockchain.types.js';
 
+export type BlockchainState = 'DISABLED' | 'CONNECTING' | 'READY' | 'UNAVAILABLE' | 'DEGRADED';
+export type BlockchainMode = 'test' | 'development' | 'production';
+
 export interface FabricConfig {
   channelName: string;
   chaincodeName: string;
@@ -15,20 +18,25 @@ export interface FabricConfig {
   clientKeyPath?: string;
   tlsCertPath?: string;
   enabled?: boolean;
+  mode?: BlockchainMode;
 }
 
 export class FabricClient {
   private gateway: Gateway | null = null;
   private contract: Contract | null = null;
   private config: FabricConfig;
-  private isConnected = false;
+  private state: BlockchainState = 'DISABLED';
+  private mode: BlockchainMode;
 
-  // In-memory ledger fallback for local dev / offline testing
+  // In-memory ledger strictly isolated for test/mock modes
   private inMemoryLedger: Map<string, AuditRecord> = new Map();
   private projectIndex: Map<string, Set<string>> = new Map();
   private entityIndex: Map<string, Set<string>> = new Map();
 
   constructor(config?: Partial<FabricConfig>) {
+    const rawMode = (process.env.BLOCKCHAIN_MODE || (process.env.NODE_ENV === 'production' ? 'production' : process.env.NODE_ENV === 'test' ? 'test' : 'development')) as BlockchainMode;
+    this.mode = config?.mode || rawMode;
+
     this.config = {
       channelName: process.env.FABRIC_CHANNEL_NAME || config?.channelName || 'nirikshakchannel',
       chaincodeName: process.env.FABRIC_CHAINCODE_NAME || config?.chaincodeName || 'nirikshak-audit',
@@ -42,10 +50,32 @@ export class FabricClient {
     };
   }
 
+  public getState(): BlockchainState {
+    return this.state;
+  }
+
+  public getMode(): BlockchainMode {
+    return this.mode;
+  }
+
+  public isMockAllowed(): boolean {
+    if (this.mode === 'production') return false;
+    if (this.mode === 'test' && (process.env.NODE_ENV === 'test' || process.env.BLOCKCHAIN_TEST_MODE === 'true')) {
+      return true;
+    }
+    if (this.mode === 'development' && process.env.BLOCKCHAIN_TEST_MODE === 'true') {
+      return true;
+    }
+    return false;
+  }
+
   public async connect(): Promise<boolean> {
     if (!this.config.enabled) {
+      this.state = 'DISABLED';
       return false;
     }
+
+    this.state = 'CONNECTING';
 
     try {
       if (
@@ -80,21 +110,40 @@ export class FabricClient {
           signer,
           evaluateOptions: () => ({ deadline: Date.now() + 5000 }),
           endorseOptions: () => ({ deadline: Date.now() + 15000 }),
-          submitOptions: () => ({ deadline: Date.now() + 5000 }),
+          submitOptions: () => ({ deadline: Date.now() + 10000 }),
           commitStatusOptions: () => ({ deadline: Date.now() + 60000 }),
         });
 
         const network = this.gateway.getNetwork(this.config.channelName);
         this.contract = network.getContract(this.config.chaincodeName);
-        this.isConnected = true;
+        this.state = 'READY';
         return true;
       }
     } catch (err: any) {
-      console.warn(`[FabricClient] Real Fabric gateway connection not available (${err.message}). Using resilient verified local fallback.`);
+      this.contract = null;
+      if (this.gateway) {
+        try { this.gateway.close(); } catch {}
+        this.gateway = null;
+      }
+
+      if (this.mode === 'production') {
+        this.state = 'UNAVAILABLE';
+        throw new Error(`BLOCKCHAIN_UNAVAILABLE: Production Hyperledger Fabric gateway connection failed: ${err.message}`);
+      }
+
+      console.warn(`[FabricClient] Real Fabric gateway connection not available (${err.message}).`);
     }
 
-    this.isConnected = true;
-    return true;
+    if (this.isMockAllowed()) {
+      this.state = 'READY';
+      return true;
+    }
+
+    this.state = 'UNAVAILABLE';
+    if (this.mode === 'production') {
+      throw new Error('BLOCKCHAIN_UNAVAILABLE: Real Hyperledger Fabric credentials or connectivity required in production mode.');
+    }
+    return false;
   }
 
   public async createAnchor(record: AuditRecord): Promise<AnchorSubmissionResult> {
@@ -104,22 +153,30 @@ export class FabricClient {
         const parsed = JSON.parse(Buffer.from(resultBytes).toString());
         return {
           auditId: parsed.auditId,
-          transactionId: parsed.fabricTxId || crypto.randomUUID(),
+          transactionId: parsed.fabricTxId,
           blockTimestamp: parsed.blockTimestamp || new Date().toISOString(),
           status: 'CONFIRMED',
         };
       } catch (err: any) {
-        console.warn(`[FabricClient] Gateway submit error, falling back to verified local ledger: ${err.message}`);
+        if (this.mode === 'production') {
+          throw new Error(`BLOCKCHAIN_SUBMISSION_FAILED: Real ledger endorsement/commit failed: ${err.message}`);
+        }
+        console.warn(`[FabricClient] Gateway submit error in dev/test: ${err.message}`);
       }
     }
 
-    // Deterministic in-memory ledger execution (matching chaincode invariants)
+    // In production, fallback is strictly prohibited
+    if (!this.isMockAllowed()) {
+      throw new Error('BLOCKCHAIN_UNAVAILABLE: Real Hyperledger Fabric ledger connection is required. In-memory ledger fallback is strictly prohibited in production.');
+    }
+
+    // Isolated In-Memory Ledger for Unit/Integration Mock Tests
     const existing = this.inMemoryLedger.get(record.auditId);
     if (existing) {
       if (existing.payloadHash.toLowerCase() === record.payloadHash.toLowerCase()) {
         return {
           auditId: existing.auditId,
-          transactionId: existing.fabricTxId || `tx-${existing.auditId}`,
+          transactionId: existing.fabricTxId || `mock-tx-${existing.auditId}`,
           blockTimestamp: existing.blockTimestamp || existing.timestamp,
           status: 'CONFIRMED',
         };
@@ -127,7 +184,7 @@ export class FabricClient {
       throw new Error(`ANCHOR_CONFLICT: Audit anchor with id '${record.auditId}' already exists with differing payload hash.`);
     }
 
-    const txId = `tx-fabric-${crypto.randomBytes(16).toString('hex')}`;
+    const txId = `mock-test-tx-${crypto.randomBytes(16).toString('hex')}`;
     const blockTimestamp = new Date().toISOString();
 
     const storedRecord: AuditRecord = {
@@ -170,7 +227,14 @@ export class FabricClient {
         if (err.message && err.message.includes('ANCHOR_NOT_FOUND')) {
           return null;
         }
+        if (this.mode === 'production') {
+          throw new Error(`BLOCKCHAIN_EVALUATE_FAILED: ${err.message}`);
+        }
       }
+    }
+
+    if (!this.isMockAllowed()) {
+      throw new Error('BLOCKCHAIN_UNAVAILABLE: Real Fabric gateway connection required.');
     }
 
     return this.inMemoryLedger.get(auditId) || null;
@@ -182,8 +246,15 @@ export class FabricClient {
         const resultBytes = await this.contract.evaluateTransaction('VerifyAnchor', auditId, expectedHash);
         return JSON.parse(Buffer.from(resultBytes).toString());
       } catch (err: any) {
+        if (this.mode === 'production') {
+          throw new Error(`BLOCKCHAIN_EVALUATE_FAILED: ${err.message}`);
+        }
         console.warn(`[FabricClient] Gateway evaluate error: ${err.message}`);
       }
+    }
+
+    if (!this.isMockAllowed()) {
+      throw new Error('BLOCKCHAIN_UNAVAILABLE: Real Fabric gateway connection required.');
     }
 
     const record = this.inMemoryLedger.get(auditId);
@@ -207,7 +278,9 @@ export class FabricClient {
       transactionId: record.fabricTxId,
       entityType: record.entityType,
       entityId: record.entityId,
-      details: isMatch ? 'Cryptographic SHA-256 state matches Hyperledger Fabric anchor.' : 'CRITICAL: Authoritative database state differs from immutable ledger anchor!',
+      details: isMatch
+        ? 'Cryptographic SHA-256 state matches Hyperledger Fabric anchor.'
+        : 'CRITICAL: Authoritative database state differs from immutable ledger anchor!',
     };
   }
 
@@ -216,7 +289,15 @@ export class FabricClient {
       try {
         const resultBytes = await this.contract.evaluateTransaction('GetProjectAuditTrail', projectId);
         return JSON.parse(Buffer.from(resultBytes).toString());
-      } catch {}
+      } catch (err: any) {
+        if (this.mode === 'production') {
+          throw new Error(`BLOCKCHAIN_EVALUATE_FAILED: ${err.message}`);
+        }
+      }
+    }
+
+    if (!this.isMockAllowed()) {
+      throw new Error('BLOCKCHAIN_UNAVAILABLE: Real Fabric gateway connection required.');
     }
 
     const auditIds = this.projectIndex.get(projectId);
@@ -235,7 +316,15 @@ export class FabricClient {
       try {
         const resultBytes = await this.contract.evaluateTransaction('GetEntityHistory', entityType, entityId);
         return JSON.parse(Buffer.from(resultBytes).toString());
-      } catch {}
+      } catch (err: any) {
+        if (this.mode === 'production') {
+          throw new Error(`BLOCKCHAIN_EVALUATE_FAILED: ${err.message}`);
+        }
+      }
+    }
+
+    if (!this.isMockAllowed()) {
+      throw new Error('BLOCKCHAIN_UNAVAILABLE: Real Fabric gateway connection required.');
     }
 
     const entityKey = `${entityType}:${entityId}`;
@@ -252,10 +341,12 @@ export class FabricClient {
 
   public close(): void {
     if (this.gateway) {
-      this.gateway.close();
+      try {
+        this.gateway.close();
+      } catch {}
       this.gateway = null;
       this.contract = null;
-      this.isConnected = false;
+      this.state = 'DISABLED';
     }
   }
 }

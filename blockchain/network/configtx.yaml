@@ -7,7 +7,7 @@ Organizations:
   - &OrdererOrg
     Name: OrdererOrg
     ID: OrdererMSP
-    MSPDir: ../network/crypto-config/ordererOrganizations/example.com/msp
+    MSPDir: ../network/organizations/ordererOrganizations/example.com/msp
     Policies:
       Readers:
         Type: Signature
@@ -22,7 +22,7 @@ Organizations:
   - &GovernmentOrg
     Name: GovernmentOrgMSP
     ID: GovernmentOrgMSP
-    MSPDir: ../network/crypto-config/peerOrganizations/government.example.com/msp
+    MSPDir: ../network/organizations/peerOrganizations/government.example.com/msp
     Policies:
       Readers:
         Type: Signature
@@ -43,7 +43,7 @@ Organizations:
   - &ContractorOrg
     Name: ContractorOrgMSP
     ID: ContractorOrgMSP
-    MSPDir: ../network/crypto-config/peerOrganizations/contractor.example.com/msp
+    MSPDir: ../network/organizations/peerOrganizations/contractor.example.com/msp
     Policies:
       Readers:
         Type: Signature
@@ -64,7 +64,7 @@ Organizations:
   - &AuditorOrg
     Name: AuditorOrgMSP
     ID: AuditorOrgMSP
-    MSPDir: ../network/crypto-config/peerOrganizations/auditor.example.com/msp
+    MSPDir: ../network/organizations/peerOrganizations/auditor.example.com/msp
     Policies:
       Readers:
         Type: Signature
@@ -124,16 +124,16 @@ Orderer: &OrdererDefaults
     Consenters:
       - Host: orderer1.example.com
         Port: 7050
-        ClientTLSCert: ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer1.example.com/tls/server.crt
-        ServerTLSCert: ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer1.example.com/tls/server.crt
+        ClientTLSCert: ../network/organizations/ordererOrganizations/example.com/orderers/orderer1.example.com/tls/server.crt
+        ServerTLSCert: ../network/organizations/ordererOrganizations/example.com/orderers/orderer1.example.com/tls/server.crt
       - Host: orderer2.example.com
         Port: 7050
-        ClientTLSCert: ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer2.example.com/tls/server.crt
-        ServerTLSCert: ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer2.example.com/tls/server.crt
+        ClientTLSCert: ../network/organizations/ordererOrganizations/example.com/orderers/orderer2.example.com/tls/server.crt
+        ServerTLSCert: ../network/organizations/ordererOrganizations/example.com/orderers/orderer2.example.com/tls/server.crt
       - Host: orderer3.example.com
         Port: 7050
-        ClientTLSCert: ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer3.example.com/tls/server.crt
-        ServerTLSCert: ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer3.example.com/tls/server.crt
+        ClientTLSCert: ../network/organizations/ordererOrganizations/example.com/orderers/orderer3.example.com/tls/server.crt
+        ServerTLSCert: ../network/organizations/ordererOrganizations/example.com/orderers/orderer3.example.com/tls/server.crt
   BatchTimeout: 2s
   BatchSize:
     MaxMessageCount: 100

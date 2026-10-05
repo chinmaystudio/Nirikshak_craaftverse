@@ -46,7 +46,7 @@ export function WorkspaceBudgetPage() {
   const overrunCr = revised != null && fin ? revised - fin.sanctionedAmountCr : 0
   const remaining = fin ? fin.sanctionedAmountCr - fin.amountUtilizedCr : 0
   const releaseApprovals = approvals.filter((a) => a.type.includes('Fund Release'))
-  const spend: { month: string; amountCr: number; budgetCr: number }[] = []
+  const spend: { month: string; actualCr: number; plannedCr: number }[] = []
   const heads = useMemo(() => headState, [headState])
 
   const filteredHeads = heads.filter(

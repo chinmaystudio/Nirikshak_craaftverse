@@ -34,12 +34,19 @@ const REQUIRED_DOCS = ['Experience Certificate', 'Equipment Ownership Proof', 'E
 
 export default function BidSubmission({ tenderId }: { tenderId: string }) {
   const { session } = useAuth();
+  const contractor = {
+    id: session?.organization?.id || 'CON-MH-2024-03487',
+    name: session?.organization?.name || 'Authorized Contractor Entity',
+    class: 'Class-A (Unlimited)',
+    gstin: '27AABCB1234C1ZV',
+    turnover: 68.4,
+  };
   const [tender, setTender] = useState<Tender | null>(() => getTender(tenderId) || null);
   const { bids, saveBidDraft, submitBid, toast } = useStore();
   const existing = tender ? bids[tender.id] : undefined;
   const [step, setStep] = useState(existing && existing.status === 'Draft' ? Math.min(existing.step, 6) : 0);
   const [data, setData] = useState<BidData>(() => ({
-    contact: session?.organization?.name || 'Authorized Contractor Entity',
+    contact: contractor.name,
     signatory: session?.profile?.full_name || '',
     designation: session?.role ? session.role.replace(/_/g, ' ') : 'Authorized Signatory',
     turnoverFY: '',
@@ -292,13 +299,13 @@ export default function BidSubmission({ tenderId }: { tenderId: string }) {
                 <input className="input" value={data.contact} onChange={(e) => set('contact', e.target.value)} onBlur={() => markTouched('contact')} />
               </Field>
               <Field label="Contractor ID">
-                <input className="input bg-slate-100 dark:bg-slate-800/70" value={CONTRACTOR.id} readOnly />
+                <input className="input bg-slate-100 dark:bg-slate-800/70" value={contractor.id} readOnly />
               </Field>
               <Field label="Class / Registration">
-                <input className="input bg-slate-100 dark:bg-slate-800/70" value={CONTRACTOR.class} readOnly />
+                <input className="input bg-slate-100 dark:bg-slate-800/70" value={contractor.class} readOnly />
               </Field>
               <Field label="GSTIN">
-                <input className="input bg-slate-100 dark:bg-slate-800/70" value={CONTRACTOR.gstin} readOnly />
+                <input className="input bg-slate-100 dark:bg-slate-800/70" value={contractor.gstin} readOnly />
               </Field>
               <Field label="Authorized Signatory Name" required error={err('signatory', 'Enter the signatory name')}>
                 <input className="input" placeholder="e.g. R. K. Sharma, Director" value={data.signatory} onChange={(e) => set('signatory', e.target.value)} onBlur={() => markTouched('signatory')} />
@@ -307,7 +314,7 @@ export default function BidSubmission({ tenderId }: { tenderId: string }) {
                 <input className="input" value={data.designation} onChange={(e) => set('designation', e.target.value)} onBlur={() => markTouched('designation')} />
               </Field>
               <Field label="Average Annual Turnover FY 2023-26 (₹ Cr)" required error={err('turnoverFY', 'Enter turnover as per audited statements')} hint={`Requirement: ≥ ₹${Math.round(tender.value / 2)} Cr for this tender`}>
-                <input className="input" type="number" placeholder={String(CONTRACTOR.turnover)} value={data.turnoverFY} onChange={(e) => set('turnoverFY', e.target.value)} onBlur={() => markTouched('turnoverFY')} />
+                <input className="input" type="number" placeholder={String(contractor.turnover)} value={data.turnoverFY} onChange={(e) => set('turnoverFY', e.target.value)} onBlur={() => markTouched('turnoverFY')} />
               </Field>
             </div>
           </div>
@@ -317,7 +324,7 @@ export default function BidSubmission({ tenderId }: { tenderId: string }) {
           <div className="max-w-2xl space-y-4">
             <SectionTitle icon={ShieldCheck} title="02 — Eligibility Declarations" />
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              AI pre-check against {CONTRACTOR.name}: <StatusBadge status={eligibilityStatus(tender)} />. Confirm the declarations below.
+              AI pre-check against {contractor.name}: <StatusBadge status={eligibilityStatus(tender)} />. Confirm the declarations below.
             </p>
             {[
               'We meet the turnover and class requirements specified in the tender.',

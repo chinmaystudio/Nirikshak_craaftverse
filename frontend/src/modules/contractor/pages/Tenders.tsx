@@ -4,7 +4,7 @@ import { PageHeader, Card, Tabs, StatusBadge, Select, SearchInput, EmptyState } 
 import { DataTable } from '../components/DataTable';
 import { Link } from '../lib/router';
 import { useStore } from '../lib/store';
-import type { Tender } from '../lib/data';
+import type { Tender, PastBid } from '../lib/data';
 import { eligibilityStatus } from '../lib/eligibility';
 import { cls, cr, daysUntil, fmtDate, timeAgo } from '../lib/utils';
 import { ContractorTenderService } from '../services/tender.service';
@@ -12,6 +12,7 @@ import { ContractorTenderService } from '../services/tender.service';
 export default function Tenders() {
   const { bids, savedTenders, toggleSaveTender, toast } = useStore();
   const [tenders, setTenders] = useState<Tender[]>([]);
+  const [pastBids] = useState<PastBid[]>([]);
   const [tab, setTab] = useState('open');
   const [q, setQ] = useState('');
   const [dept, setDept] = useState('All Departments');
@@ -128,7 +129,7 @@ export default function Tenders() {
             { key: 'open', label: 'Open Tenders', count: tenders.filter((t) => t.status === 'Open').length },
             { key: 'saved', label: 'Saved', count: saved.length },
             { key: 'bids', label: 'My Bids', count: bidRows.length },
-            { key: 'past', label: 'Past Bids', count: PAST_BIDS.length },
+            { key: 'past', label: 'Past Bids', count: pastBids.length },
           ]}
           active={tab}
           onChange={setTab}
@@ -218,16 +219,16 @@ export default function Tenders() {
 
         {tab === 'past' && (
           <DataTable
-            
             columns={[
-              { key: 'tender', label: 'Tender', render: (r: (typeof PAST_BIDS)[number]) => <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{r.tender}</span> },
-              { key: 'dept', label: 'Department', render: (r: (typeof PAST_BIDS)[number]) => <span className="text-xs font-semibold">{r.department}</span> },
-              { key: 'year', label: 'Year', sortVal: (r: (typeof PAST_BIDS)[number]) => r.year, render: (r: (typeof PAST_BIDS)[number]) => <span className="text-xs">{r.year}</span> },
-              { key: 'value', label: 'Value', sortVal: (r: (typeof PAST_BIDS)[number]) => r.value, render: (r: (typeof PAST_BIDS)[number]) => <span className="text-xs font-bold tabular-nums">{cr(r.value)}</span> },
-              { key: 'outcome', label: 'Outcome', sortVal: (r: (typeof PAST_BIDS)[number]) => r.outcome, render: (r: (typeof PAST_BIDS)[number]) => <StatusBadge status={r.outcome} /> },
-              { key: 'detail', label: 'Detail', render: (r: (typeof PAST_BIDS)[number]) => <span className="text-xs text-slate-600 dark:text-slate-400">{r.detail}</span> },
+              { key: 'tender', label: 'Tender', render: (r: PastBid) => <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{r.tender}</span> },
+              { key: 'dept', label: 'Department', render: (r: PastBid) => <span className="text-xs font-semibold">{r.department}</span> },
+              { key: 'year', label: 'Year', sortVal: (r: PastBid) => r.year, render: (r: PastBid) => <span className="text-xs">{r.year}</span> },
+              { key: 'value', label: 'Value', sortVal: (r: PastBid) => r.value, render: (r: PastBid) => <span className="text-xs font-bold tabular-nums">{cr(r.value)}</span> },
+              { key: 'outcome', label: 'Outcome', sortVal: (r: PastBid) => r.outcome, render: (r: PastBid) => <StatusBadge status={r.outcome} /> },
+              { key: 'detail', label: 'Detail', render: (r: PastBid) => <span className="text-xs text-slate-600 dark:text-slate-400">{r.detail}</span> },
             ]}
-            rows={PAST_BIDS}
+            rows={pastBids}
+            empty={<EmptyState title="No past bids" msg="Historical bid submissions will be displayed here." />}
           />
         )}
       </Card>

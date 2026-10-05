@@ -77,12 +77,12 @@ async function runAiTests() {
       assert.strictEqual(res.status, 401, `Expected 401, got ${res.status}`);
     });
 
-    // 3. AI Health endpoint exists and reports status
-    await test('Gateway: GET /api/ai/health responds with standardized status', async () => {
+    // 3. AI Health endpoint is protected under Zero-Trust
+    await test('Gateway: GET /api/ai/health requires authentication (401)', async () => {
       const res = await fetch(`${baseUrl}/api/ai/health`);
-      assert([200, 503].includes(res.status), `Expected 200 or 503, got ${res.status}`);
+      assert.strictEqual(res.status, 401, `Expected 401, got ${res.status}`);
       const body: any = await res.json();
-      assert(body.data !== undefined || body.error !== undefined, 'Expected standardized wrapper');
+      assert(body.error !== undefined, 'Expected standardized error wrapper');
     });
 
     // 4. AiFeedbackSchema validates feedback options strictly

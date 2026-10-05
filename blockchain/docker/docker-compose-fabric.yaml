@@ -42,8 +42,8 @@ services:
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric
     command: orderer
     volumes:
-      - ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer1.example.com/msp:/var/hyperledger/orderer/msp:ro
-      - ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer1.example.com/tls/:/var/hyperledger/orderer/tls:ro
+      - ../network/organizations/ordererOrganizations/example.com/orderers/orderer1.example.com/msp:/var/hyperledger/orderer/msp:ro
+      - ../network/organizations/ordererOrganizations/example.com/orderers/orderer1.example.com/tls/:/var/hyperledger/orderer/tls:ro
       - orderer1_data:/var/hyperledger/production/orderer
     networks:
       fabric-private:
@@ -72,8 +72,8 @@ services:
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric
     command: orderer
     volumes:
-      - ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer2.example.com/msp:/var/hyperledger/orderer/msp:ro
-      - ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer2.example.com/tls/:/var/hyperledger/orderer/tls:ro
+      - ../network/organizations/ordererOrganizations/example.com/orderers/orderer2.example.com/msp:/var/hyperledger/orderer/msp:ro
+      - ../network/organizations/ordererOrganizations/example.com/orderers/orderer2.example.com/tls/:/var/hyperledger/orderer/tls:ro
       - orderer2_data:/var/hyperledger/production/orderer
     networks:
       fabric-private:
@@ -102,8 +102,8 @@ services:
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric
     command: orderer
     volumes:
-      - ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer3.example.com/msp:/var/hyperledger/orderer/msp:ro
-      - ../network/crypto-config/ordererOrganizations/example.com/orderers/orderer3.example.com/tls/:/var/hyperledger/orderer/tls:ro
+      - ../network/organizations/ordererOrganizations/example.com/orderers/orderer3.example.com/msp:/var/hyperledger/orderer/msp:ro
+      - ../network/organizations/ordererOrganizations/example.com/orderers/orderer3.example.com/tls/:/var/hyperledger/orderer/tls:ro
       - orderer3_data:/var/hyperledger/production/orderer
     networks:
       fabric-private:
@@ -137,8 +137,8 @@ services:
     command: peer node start
     volumes:
       - /var/run/:/host/var/run/
-      - ../network/crypto-config/peerOrganizations/government.example.com/peers/peer0.government.example.com/msp:/etc/hyperledger/fabric/msp:ro
-      - ../network/crypto-config/peerOrganizations/government.example.com/peers/peer0.government.example.com/tls:/etc/hyperledger/fabric/tls:ro
+      - ../network/organizations/peerOrganizations/government.example.com/peers/peer0.government.example.com/msp:/etc/hyperledger/fabric/msp:ro
+      - ../network/organizations/peerOrganizations/government.example.com/peers/peer0.government.example.com/tls:/etc/hyperledger/fabric/tls:ro
       - peer0_gov_data:/var/hyperledger/production
     networks:
       fabric-private:
@@ -169,8 +169,8 @@ services:
     command: peer node start
     volumes:
       - /var/run/:/host/var/run/
-      - ../network/crypto-config/peerOrganizations/contractor.example.com/peers/peer0.contractor.example.com/msp:/etc/hyperledger/fabric/msp:ro
-      - ../network/crypto-config/peerOrganizations/contractor.example.com/peers/peer0.contractor.example.com/tls:/etc/hyperledger/fabric/tls:ro
+      - ../network/organizations/peerOrganizations/contractor.example.com/peers/peer0.contractor.example.com/msp:/etc/hyperledger/fabric/msp:ro
+      - ../network/organizations/peerOrganizations/contractor.example.com/peers/peer0.contractor.example.com/tls:/etc/hyperledger/fabric/tls:ro
       - peer0_contractor_data:/var/hyperledger/production
     networks:
       fabric-private:
@@ -201,8 +201,8 @@ services:
     command: peer node start
     volumes:
       - /var/run/:/host/var/run/
-      - ../network/crypto-config/peerOrganizations/auditor.example.com/peers/peer0.auditor.example.com/msp:/etc/hyperledger/fabric/msp:ro
-      - ../network/crypto-config/peerOrganizations/auditor.example.com/peers/peer0.auditor.example.com/tls:/etc/hyperledger/fabric/tls:ro
+      - ../network/organizations/peerOrganizations/auditor.example.com/peers/peer0.auditor.example.com/msp:/etc/hyperledger/fabric/msp:ro
+      - ../network/organizations/peerOrganizations/auditor.example.com/peers/peer0.auditor.example.com/tls:/etc/hyperledger/fabric/tls:ro
       - peer0_auditor_data:/var/hyperledger/production
     networks:
       fabric-private:

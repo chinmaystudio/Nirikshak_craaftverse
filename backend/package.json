@@ -12,6 +12,8 @@
     "test:security": "tsx tests/security-suite.ts",
     "test:ai": "tsx tests/ai-gateway.test.ts",
     "test:blockchain": "tsx tests/zero-trust-blockchain.test.ts",
+    "worker:blockchain:dev": "tsx watch src/workers/blockchainWorker.entry.ts",
+    "worker:blockchain": "node dist/workers/blockchainWorker.entry.js",
     "seed:test-users": "tsx scripts/seed-test-users.ts",
     "start": "node dist/index.js"
   },

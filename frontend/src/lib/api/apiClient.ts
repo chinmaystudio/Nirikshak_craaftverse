@@ -1,24 +1,10 @@
-import { supabase } from '../supabase/client';
 import { env } from '../config/env';
 import { ApiError } from './apiError';
 import type { ApiResponse } from './response';
 
 class ApiClient {
   private get baseUrl(): string {
-    return env.API_BASE_URL || '/api';
-  }
-
-  private async getAuthHeader(): Promise<Record<string, string>> {
-    try {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (token) {
-        return { Authorization: `Bearer ${token}` };
-      }
-    } catch {
-      // In cookie-only zero-trust session mode, auth is transmitted via HttpOnly cookie
-    }
-    return {};
+    return env.API_BASE_URL || '';
   }
 
   private getCsrfToken(): string | null {
@@ -28,12 +14,22 @@ class ApiClient {
   }
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
-    const authHeaders = await this.getAuthHeader();
-    const url = path.startsWith('http') ? path : `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+    let resolvedPath = path.startsWith('/') ? path : `/${path}`;
+    let url: string;
+    if (path.startsWith('http')) {
+      url = path;
+    } else if (this.baseUrl) {
+      const cleanBase = this.baseUrl.replace(/\/$/, '');
+      if (cleanBase.endsWith('/api') && resolvedPath.startsWith('/api/')) {
+        resolvedPath = resolvedPath.slice(4);
+      }
+      url = `${cleanBase}${resolvedPath}`;
+    } else {
+      url = resolvedPath;
+    }
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...authHeaders,
       ...(options.headers as Record<string, string>),
     };
 
@@ -50,7 +46,7 @@ class ApiClient {
       response = await fetch(url, {
         ...options,
         headers,
-        credentials: 'same-origin',
+        credentials: 'same-origin', // Zero-trust: HttpOnly session cookie handles authentication
       });
     } catch (err: any) {
       throw new ApiError(err?.message || 'Network connection failed', 'NETWORK_ERROR', 0);

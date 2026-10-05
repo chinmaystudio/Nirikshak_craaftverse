@@ -2,6 +2,8 @@ import { RegisterInput } from './auth.validation.js';
 
 export interface RegisterResult {
   userId: string;
-  accountType: 'citizen' | 'government' | 'contractor';
-  requiresApproval: boolean;
+  accountType?: 'citizen' | 'government' | 'contractor';
+  requiresApproval?: boolean;
+  email?: string;
+  message?: string;
 }

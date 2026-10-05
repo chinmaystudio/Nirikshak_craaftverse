@@ -10,7 +10,9 @@ export const ForgotPasswordSchema = z.object({
 });
 
 export const ResetPasswordSchema = z.object({
-  password: z.string().min(8).max(128),
+  token: z.string().optional(),
+  newPassword: z.string().min(8).max(128).optional(),
+  password: z.string().min(8).max(128).optional(),
 });
 
 export const RegisterCitizenSchema = z.object({

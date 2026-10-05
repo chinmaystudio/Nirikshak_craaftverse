@@ -5,8 +5,7 @@ import { rateLimit } from '../../core/security/rateLimit.js';
 
 export const aiRouter = Router();
 
-// GET /api/ai/health - AI service status
-aiRouter.get('/health', (req, res, next) => aiController.health(req, res, next));
+// AI service health is internal-only; public /api/ai/health removed
 
 // POST /api/ai/analyze/:projectId - Trigger advisory AI project risk analysis
 aiRouter.post(

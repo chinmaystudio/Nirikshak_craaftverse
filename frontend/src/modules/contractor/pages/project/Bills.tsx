@@ -17,7 +17,7 @@ const GROUPS: { key: string; label: string; statuses: InvoiceStatus[] }[] = [
 ];
 
 export default function Bills({ project }: { project: Project }) {
-  const { invoices, addInvoice, submitInvoice, toast } = useStore();
+  const { projects, invoices, addInvoice, submitInvoice, toast } = useStore();
   const [group, setGroup] = useState('all');
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -151,6 +151,7 @@ function CreateInvoiceModal({
   defaultProject: string;
   onSubmit: (inv: Omit<Invoice, 'id'>) => void;
 }) {
+  const { projects } = useStore();
   const [projectId, setProjectId] = useState(defaultProject);
   const [milestone, setMilestone] = useState('');
   const [amount, setAmount] = useState('');
@@ -189,7 +190,14 @@ function CreateInvoiceModal({
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field label="Project">
-          <Select value={projectId} onChange={setProjectId} options={PROJECTS.map((p) => ({ value: p.id, label: p.name }))} />
+          <Select
+            value={projectId}
+            onChange={setProjectId}
+            options={(projects.length > 0 ? projects : [{ id: defaultProject, name: 'Current Project' }]).map((p) => ({
+              value: p.id,
+              label: p.name,
+            }))}
+          />
         </Field>
         <Field label="Invoice Date">
           <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />

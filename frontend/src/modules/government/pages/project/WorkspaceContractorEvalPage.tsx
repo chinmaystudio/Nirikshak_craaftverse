@@ -51,6 +51,15 @@ export function WorkspaceContractorEvalPage() {
         bankGuaranteeStatus: 'verified' as const,
         taxCompliance: 'compliant' as const,
         debarred: false,
+        strengths: [
+          'Strong past performance on state highway and urban infrastructure packages',
+          'Zero reported defect liability claims in the last 24 months',
+          'GST and statutory tax filings verified up to date',
+        ],
+        risks: [
+          'Active project workload near district allocation threshold',
+          'Material staging logistics require monitoring for monsoon buffer',
+        ],
       }];
     }
     return [];

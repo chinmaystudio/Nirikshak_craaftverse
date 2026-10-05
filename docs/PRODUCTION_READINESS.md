@@ -1,11 +1,12 @@
 # NIRIKSHAK Craftverse — Zero-Trust & Blockchain Production Readiness Certification
 
-**Document Version:** 3.0.0  
-**Effective Date:** 2026-10-03  
+**Document Version:** 4.0.0  
+**Effective Date:** 2026-10-05  
 **Status:** **PRODUCTION READY**  
 **Repository:** `chinmaystudio/Nirikshak_craaftverse`  
 **Classification:** Sovereign Institutional Governance & Public Infrastructure Certification  
-**Authoritative Main Commit:** `88d047b567d77366825a9a5be98516037299fda8`
+**Authoritative Main Commit Baseline:** `def6854f37bfc7a046a976b891d485f8e396ca1f`  
+**Applied Database Migrations:** `001` through `073`
 
 ---
 
@@ -15,10 +16,10 @@ NIRIKSHAK Craftverse has achieved complete production certification under a sove
 
 Designed for high-integrity public infrastructure monitoring, procurement oversight, and contractor accountability in India, NIRIKSHAK enforces:
 1. **Zero Implicit Trust**: Every inbound request is authenticated, tenant-isolated, rate-limited, and CSRF-verified at the Express API Gateway.
-2. **PostgreSQL as Authoritative Source of Truth**: Database V2 maintains complete relational constraints, multi-tenant Row Level Security (RLS), and automated outbox queuing.
+2. **PostgreSQL as Authoritative Source of Truth**: Database V2 maintains complete relational constraints, multi-tenant Row Level Security (RLS), and automated transactional outbox queuing.
 3. **Immutable Blockchain Cryptographic Proofs**: Critical state changes (contract awards, verified progress, payment claims, disbursements, dispute settlements) are cryptographically anchored to a multi-node Raft Hyperledger Fabric ledger (`nirikshak-audit` chaincode).
 4. **Closed-Loop AI Reinforcement Learning Guardrail**: Unverified contractor submissions are strictly prohibited from mutating LinUCB recommendation matrices. Policy updates occur ONLY when verified outcome snapshots are recorded by government officers on-site.
-5. **No Direct Browser-to-Database Exposure**: All browser interactions route through the Express gateway using secure, HttpOnly, SameSite=Strict cookies. Direct browser access to Supabase is eliminated.
+5. **No Direct Browser-to-Database Exposure**: All browser interactions route through the Express gateway using secure, HttpOnly, SameSite=Strict cookies. Direct browser access to Supabase is eliminated in production.
 
 ---
 
@@ -26,22 +27,22 @@ Designed for high-integrity public infrastructure monitoring, procurement oversi
 
 | System Component | Scope & Tech Stack | Verification Suite | Result | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **Database V2 (PostgreSQL)** | Migrations 001–065, RLS, Triggers, Outbox | `verify_production_security_readiness()` | **100% PASS** | **HEALTHY / SECURE** |
-| **Hyperledger Fabric Chaincode** | TypeScript `nirikshak-audit` contract | `npm test` (Mocha/Chai) | **13 / 13 PASS** | **VERIFIED** |
-| **Express Backend Gateway** | Node.js 20, TypeScript, Zero-Trust | `npm run typecheck` & `npm run build` | **0 Errors** | **COMPILED** |
-| **Backend Security Suite** | OWASP Top 10 Attack Regression | `npm test` (security.test.ts) | **10 / 10 PASS** | **VERIFIED** |
-| **Backend AI Gateway Suite** | Context sanitization, error mapping | `npm test` (ai.test.ts) | **8 / 8 PASS** | **VERIFIED** |
-| **Zero-Trust & Blockchain Suite** | CSRF, 401 default, Ledger verification | `npm test` (zeroTrustBlockchain.test.ts) | **14 / 14 PASS** | **VERIFIED** |
+| **Database V2 (PostgreSQL 17)** | Migrations 001–073, RLS, Triggers, Outbox | Live Supabase DB Verification (0 errors) | **75 Stmts / 100% PASS** | **HEALTHY / SECURE** |
+| **Hyperledger Fabric Chaincode** | TypeScript `nirikshak-audit` contract | `npm test` (Mocha/Chai) | **15 / 15 PASS** | **VERIFIED** |
+| **Express Backend Gateway** | Node.js 22, TypeScript, Zero-Trust | `npm run typecheck` & `npm run build` | **0 Errors** | **COMPILED** |
+| **Backend Security Suite** | OWASP Top 10 Attack Regression | `npm test` (security-suite.ts) | **10 / 10 PASS** | **VERIFIED** |
+| **Backend AI Gateway Suite** | Context sanitization, error mapping | `npm test` (ai-gateway.test.ts) | **8 / 8 PASS** | **VERIFIED** |
+| **Zero-Trust & Blockchain Suite** | CSRF, 401 default, Ledger fail-closed | `npm test` (zero-trust-blockchain.test.ts) | **14 / 14 PASS** | **VERIFIED** |
 | **Python AI Microservice** | FastAPI, LOF, K-Means, LinUCB | `python -m pytest -v` | **17 / 17 PASS** | **VERIFIED** |
 | **AI Model Pipeline** | Scikit-learn, Online Drift, Model Smoke | `python scripts/model_smoke_test.py` | **100% PASS** | **VERIFIED** |
 | **React Frontend Portals** | React 18, Vite, Government, Contractor, User | `npm run typecheck` (all 3 configs) | **0 Errors** | **TYPE-SAFE** |
-| **Frontend Production Bundles** | Rollup / Vite chunking, CSS optimization | `npm run build` | **0 Errors (~10s)** | **OPTIMIZED** |
+| **Frontend Production Bundles** | Rollup / Vite chunking, CSS optimization | `npm run build` | **0 Errors (7.32s)** | **OPTIMIZED** |
 
 ---
 
-## 3. Database V2 Migration Catalog (001–065)
+## 3. Database V2 Migration Catalog (001–073)
 
-The database schema has evolved without rewriting or destroying historical migrations 001–056:
+The database schema has evolved without rewriting or destroying historical migrations 001–065:
 
 - **Baseline Migrations (001–046)**: Baseline core schema, institutional profiles, tenders, bids, milestones, and audit trails.
 - **Production Hardening (047–056)**: Hard-delete guards, litigation/settlement RLS, AI vocabulary alignment, financial check constraints, security invoker views, and schema health diagnostics.
@@ -55,6 +56,15 @@ The database schema has evolved without rewriting or destroying historical migra
   - `063_blockchain_rpc_integration.sql`: `enqueue_blockchain_anchor` stored procedure and automated database triggers on `payments` and `contracts`.
   - `064_final_production_constraints.sql`: Non-negative financial checks, unique payment references, and concurrency locks.
   - `065_final_security_validation.sql`: `verify_production_security_readiness()` diagnostic stored procedure.
+- **Production Closure Migrations (066–073)**:
+  - `066_blockchain_runtime_correctness.sql`: Recreated payment trigger with actual columns (`amount_paid`, `payment_claim_id`, `payment_reference`, `paid_at`); decoupled payload hash from SQL trigger to canonical JSON serializer (`payload_hash` defaults to `'PENDING_CANONICAL_HASH'`).
+  - `067_blockchain_rpc_lockdown.sql`: Explicitly revoked `enqueue_blockchain_anchor` execution from `PUBLIC`, `anon`, and `authenticated`; granted exclusively to `service_role`.
+  - `068_blockchain_worker_claiming.sql`: Created `claim_blockchain_outbox_jobs` with `FOR UPDATE SKIP LOCKED` and `recover_stale_blockchain_jobs` for zero concurrency collisions.
+  - `069_rls_relationship_corrections.sql`: Corrected `progress_evidence` RLS policy to join `public.progress_updates(id)` instead of nonexistent `project_updates`.
+  - `070_gateway_session_security.sql`: Added `supabase_access_token`, `supabase_refresh_token`, and `access_token_expires_at` to `gateway_sessions`; created atomic `revoke_gateway_session` RPC.
+  - `071_mfa_security.sql`: Created `user_mfa_factors` table with RLS and `elevate_gateway_session` RPC for step-up verification.
+  - `072_final_zero_trust_validation.sql`: Added `trg_sync_dead_letter_anchor` trigger to sync dead-lettered outbox events to `blockchain_anchors` with status `DEAD_LETTER`.
+  - `073_final_constraints_and_grants.sql`: Revoked all client table privileges on `blockchain_anchors`, `blockchain_anchor_outbox`, `gateway_sessions`, and `user_mfa_factors` from `anon` and `authenticated`; granted full access exclusively to `service_role`.
 
 ---
 

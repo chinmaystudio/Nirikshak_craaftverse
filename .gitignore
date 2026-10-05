@@ -45,3 +45,12 @@ pnpm-debug.log*
 .vercel
 .env*
 !**/.env.example
+
+# Hyperledger Fabric Crypto & Secrets Hygiene (Never Commit Private Material)
+blockchain/network/organizations/
+blockchain/network/crypto-config/
+blockchain/network/channel-artifacts/
+blockchain/wallet/
+*.key
+*.pem
+*.id

@@ -7,11 +7,12 @@ export interface AuditRecord {
   eventType: string;
   payloadHash: string;
   hashAlgorithm: string;
-  actorOrganizationId: string;
-  actorRole: string;
-  databaseVersion: string | number;
+  actorOrganizationId?: string;
+  actorRole?: string;
+  databaseVersion?: string | number;
   timestamp: string;
   previousEntityAnchorId?: string | null;
+  submitterMspId?: string;
   fabricTxId?: string;
   blockTimestamp?: string;
 }
@@ -25,4 +26,5 @@ export interface VerificationResult {
   transactionId?: string;
   entityType?: string;
   entityId?: string;
+  details?: string;
 }

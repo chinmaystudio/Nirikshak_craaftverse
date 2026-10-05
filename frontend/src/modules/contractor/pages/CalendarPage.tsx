@@ -81,7 +81,7 @@ export default function CalendarPage() {
             id: `${p.id}-insp-${idx}`,
             date: u.date.slice(0, 10),
             time: u.time || '10:00',
-            title: `${p.name} — ${u.title || 'Site Inspection'}`,
+            title: `${p.name} — ${u.stage || 'Site Inspection'}`,
             type: 'Inspection',
             project: p.name,
             location: p.location,
@@ -94,7 +94,7 @@ export default function CalendarPage() {
           list.push({
             id: `${p.id}-ms-${idx}`,
             date: m.date.slice(0, 10),
-            title: `${p.name} — ${m.title}`,
+            title: `${p.name} — ${m.name}`,
             type: 'Compliance',
             project: p.name,
             location: p.location,
@@ -109,7 +109,7 @@ export default function CalendarPage() {
         list.push({
           id: `inv-${inv.id}`,
           date: inv.date.slice(0, 10),
-          title: `Invoice #${inv.num} (${inv.status})`,
+          title: `Invoice #${inv.no || inv.id} (${inv.status})`,
           type: 'Payment',
           link: `/projects/${inv.projectId}/bills`,
         });

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 import type { User, SupabaseClient } from '@supabase/supabase-js';
 import { supabaseAdmin, createAuthenticatedClient } from '../database/supabase.js';
 import { UserContext } from './userContext.js';
@@ -13,50 +14,103 @@ export interface AuthenticatedRequest extends Request {
   organizationId?: string | null;
   supabase?: SupabaseClient;
   mfaVerified?: boolean;
+  sessionId?: string;
 }
 
-// Narrowly scoped public identity bootstrap endpoints
-export const AUTH_BOOTSTRAP_PUBLIC = [
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/forgot-password',
-  '/api/auth/reset-password',
-  '/api/auth/csrf',
-  '/api/ai/health',
-];
+// Phase 40: Exact Method + Path Auth Exemptions (Zero Prefix Wildcards)
+const PUBLIC_EXEMPT_ROUTES = new Set([
+  'GET /api/auth/csrf',
+  'POST /api/auth/login',
+  'POST /api/auth/register',
+  'POST /api/auth/forgot-password',
+  'POST /api/auth/reset-password',
+]);
 
 export async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
   try {
-    let token: string | undefined;
+    let rawToken: string | undefined;
 
-    // 1. Check Authorization: Bearer <token>
-    const authHeader = req.header('authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.slice(7).trim();
+    // 1. Check HttpOnly opaque session cookie first
+    if (req.cookies) {
+      rawToken = req.cookies['nirikshak_session'] || req.cookies['sb-access-token'];
     }
 
-    // 2. Check HttpOnly session cookie
-    if (!token && req.cookies) {
-      token = req.cookies['nirikshak_session'] || req.cookies['sb-access-token'];
+    // 2. Check Authorization: Bearer <token>
+    if (!rawToken) {
+      const authHeader = req.header('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        rawToken = authHeader.slice(7).trim();
+      }
     }
 
-    if (!token) {
+    if (!rawToken) {
       throw new AuthenticationError('Missing or malformed authentication credentials');
     }
 
-    const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !authData.user) {
-      throw new AuthenticationError('Invalid or expired authentication session');
+    let userId: string | null = null;
+    let userEmail: string | undefined = undefined;
+    let mfaVerified = false;
+    let supabaseTokenForClient = rawToken;
+
+    // Hash raw token to query gateway_sessions
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const { data: sessionRow, error: sessionErr } = await supabaseAdmin
+      .from('gateway_sessions')
+      .select('*')
+      .eq('session_token_hash', tokenHash)
+      .is('revoked_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+
+    if (sessionRow) {
+      userId = sessionRow.user_id;
+      req.sessionId = sessionRow.id;
+
+      // Check real MFA elevation state
+      if (sessionRow.mfa_verified) {
+        if (sessionRow.elevated_until) {
+          mfaVerified = new Date(sessionRow.elevated_until).getTime() > Date.now();
+        } else {
+          mfaVerified = true;
+        }
+      }
+
+      // Update session activity timestamp asynchronously
+      void supabaseAdmin
+        .from('gateway_sessions')
+        .update({ last_active_at: new Date().toISOString() })
+        .eq('id', sessionRow.id);
+
+      if (sessionRow.supabase_access_token) {
+        supabaseTokenForClient = sessionRow.supabase_access_token;
+      }
+    } else {
+      // Fallback for tests or legacy bearer token verification
+      const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(rawToken);
+      if (authError || !authData.user) {
+        throw new AuthenticationError('Invalid or expired authentication session');
+      }
+      userId = authData.user.id;
+      userEmail = authData.user.email;
     }
 
-    req.user = authData.user;
-    req.token = token;
+    if (!userId) {
+      throw new AuthenticationError('Authentication session could not be resolved');
+    }
+
+    // Fetch user details from auth.users or profiles
+    if (!userEmail) {
+      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+      userEmail = authUser?.user?.email || 'user@nirikshak.gov.in';
+      req.user = authUser?.user as User;
+    }
 
     // Resolve authoritative role & active membership from database
     const { data: memberRows, error: memberError } = await supabaseAdmin
       .from('organization_members')
       .select('role, organization_id, status, organizations(id, name, type)')
-      .eq('user_id', authData.user.id)
+      .eq('user_id', userId)
       .ilike('status', 'active')
       .order('created_at', { ascending: false })
       .limit(1);
@@ -74,9 +128,11 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
 
     req.role = role;
     req.organizationId = orgId;
+    req.mfaVerified = mfaVerified;
+    req.token = rawToken;
     req.userContext = {
-      userId: authData.user.id,
-      email: authData.user.email,
+      userId,
+      email: userEmail,
       role,
       organizationId: orgId,
       organizationType: orgType,
@@ -84,7 +140,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
       permissions: [],
     };
 
-    req.supabase = await createAuthenticatedClient(token);
+    req.supabase = await createAuthenticatedClient(supabaseTokenForClient);
     next();
   } catch (err: any) {
     next(err instanceof AuthenticationError ? err : new AuthenticationError(err.message));
@@ -94,16 +150,16 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
 /**
  * Secure default middleware:
  * Any route under /api must automatically require authentication unless
- * explicitly listed in AUTH_BOOTSTRAP_PUBLIC.
+ * explicitly matched in PUBLIC_EXEMPT_ROUTES.
  */
 export function requireAuthByDefault(req: Request, res: Response, next: NextFunction): void {
+  const method = req.method.toUpperCase();
   const fullPath = req.baseUrl ? `${req.baseUrl}${req.path}` : req.path;
+  const exactKey = `${method} ${fullPath}`;
 
-  // Check if matching any public bootstrap route
-  for (const publicEndpoint of AUTH_BOOTSTRAP_PUBLIC) {
-    if (fullPath === publicEndpoint || fullPath.startsWith(`${publicEndpoint}/`)) {
-      return next();
-    }
+  // Check exact method + path match (Phase 40: NO prefix matching)
+  if (PUBLIC_EXEMPT_ROUTES.has(exactKey)) {
+    return next();
   }
 
   // Enforce authentication on all other /api routes
@@ -112,7 +168,7 @@ export function requireAuthByDefault(req: Request, res: Response, next: NextFunc
 
 export function requireRole(allowedRoles: AppRole[]) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-    if (!req.user || !req.role) {
+    if (!req.userContext || !req.role) {
       return next(new AuthenticationError());
     }
 
@@ -139,15 +195,14 @@ export function requireContractor(req: AuthenticatedRequest, res: Response, next
 }
 
 /**
- * Require elevated authentication (recent login / MFA) for critical state operations
+ * Require elevated authentication (MFA verified session) for critical state operations
  * (e.g. contract awards, payment approvals, settlement authorizations).
  */
 export function requireElevatedAuth(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
-  if (!req.user) {
+  if (!req.userContext) {
     return next(new AuthenticationError('Authentication required'));
   }
 
-  // For high-privilege government roles, verify elevated authentication
   const sensitiveRoles: AppRole[] = [
     'government_admin',
     'chief_engineer',
@@ -155,17 +210,12 @@ export function requireElevatedAuth(req: AuthenticatedRequest, res: Response, ne
   ];
 
   if (req.role && sensitiveRoles.includes(req.role)) {
-    const authTimeStr = req.user.last_sign_in_at || req.user.created_at;
-    const authTime = new Date(authTimeStr).getTime();
-    const fifteenMinutes = 15 * 60 * 1000;
-
-    // Check if session authenticated within last 15 minutes or elevated
-    if (Date.now() - authTime > fifteenMinutes && !req.mfaVerified) {
+    if (!req.mfaVerified) {
       res.status(403).json({
         success: false,
         error: 'ELEVATED_AUTH_REQUIRED',
         code: 'MFA_REQUIRED',
-        message: 'This sensitive operation requires elevated authentication within the last 15 minutes.',
+        message: 'This sensitive operation requires verified multi-factor authentication (MFA) within the last 15 minutes.',
       });
       return;
     }

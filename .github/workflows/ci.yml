@@ -98,3 +98,34 @@ jobs:
         run: python -m pytest tests/ -v
       - name: Run AI Model Smoke Test
         run: python scripts/model_smoke_test.py
+
+  chaincode:
+    name: Hyperledger Fabric Chaincode Tests & Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: blockchain/chaincode/nirikshak-audit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: blockchain/chaincode/nirikshak-audit/package-lock.json
+      - run: npm ci
+      - name: Run Contract Security & Unit Tests
+        run: npm test
+      - name: Build Production Chaincode Bundle
+        run: npm run build
+
+  security-audit:
+    name: Secret Hygiene & Zero-Leakage Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan Repository for Leaked Private Keys and Cloud Secrets
+        run: |
+          echo "Scanning repository for leaked cryptographic keys and credentials..."
+          ! find . -type f \( -name "*_sk" -o -name "*.pem" -o -name "id_rsa" -o -name "*.p12" \) ! -path "*/node_modules/*" ! -path "*/.git/*" | grep . || exit 1
+          ! grep -rn "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" --exclude-dir=node_modules --exclude-dir=.git . || exit 1
+          echo "✔ Secret audit passed: zero leaked private keys or hardcoded JWTs found."

@@ -218,7 +218,42 @@ async function runTests() {
   } catch (err: any) {
     hashRejected = err.message.includes('VALIDATION_ERROR');
   }
-  assert(hashRejected, 'Validation: Rejects payloads with invalid SHA-256 hexadecimal hashes');
+  // Test 13: OrdererMSP Rejection
+  const ctxOrderer = new MockContext() as any;
+  ctxOrderer.clientIdentity.mspId = 'OrdererMSP';
+  let ordererRejected = false;
+  try {
+    await contract.CreateAnchor(ctxOrderer, JSON.stringify(record1));
+  } catch (err: any) {
+    ordererRejected = err.message.includes('UNAUTHORIZED_MSP');
+  }
+  assert(ordererRejected, 'Security: Prohibits OrdererMSP from application anchor writes');
+
+  // Test 14: Submitter Event Authorization Matrix Rejection
+  const ctxContractor = new MockContext() as any;
+  ctxContractor.clientIdentity.mspId = 'ContractorOrgMSP';
+  let eventAuthRejected = false;
+  try {
+    // Contractor trying to record government-exclusive event PAYMENT_RECORDED
+    await contract.CreateAnchor(ctxContractor, JSON.stringify(record1));
+  } catch (err: any) {
+    eventAuthRejected = err.message.includes('UNAUTHORIZED_EVENT');
+  }
+  assert(eventAuthRejected, 'Security: Enforces event authorization matrix per MSP identity');
+
+  // Test 15: Schema Violation Rejection on Unrecognized Extra Fields
+  let extraFieldRejected = false;
+  try {
+    const extraFieldRecord = {
+      ...record1,
+      auditId: 'AUD-EXTRA-FIELD-TEST',
+      arbitraryInjectedData: 'untrusted-payload',
+    };
+    await contract.CreateAnchor(ctx1, JSON.stringify(extraFieldRecord));
+  } catch (err: any) {
+    extraFieldRejected = err.message.includes('SCHEMA_VIOLATION');
+  }
+  assert(extraFieldRejected, 'Validation: Rejects payloads with arbitrary unrecognized schema attributes');
 
   console.log('\n============================================================');
   console.log(`CHAINCODE RESULTS: ${passed} PASSED | ${failed} FAILED`);

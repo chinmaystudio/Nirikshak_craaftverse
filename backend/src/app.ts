@@ -66,16 +66,32 @@ app.get('/', (_req, res) => {
 </html>`);
 });
 
-// 8. Internal Health Check (Zero-Trust)
-app.get('/internal/health', (_req, res) => {
+// 8. Internal Health Check (Zero-Trust Private Monitoring)
+app.get('/internal/health', (req, res) => {
+  const secret = req.headers?.['x-internal-secret'] || req.query?.secret;
+  const configuredSecret = process.env.INTERNAL_HEALTH_SECRET;
+  const isLocal = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.ip || '');
+  const isAuthorized = (configuredSecret && secret === configuredSecret) || (process.env.NODE_ENV === 'test') || (process.env.NODE_ENV !== 'production' && isLocal);
+
+  if (!isAuthorized) {
+    res.status(403).json({ success: false, error: 'FORBIDDEN', message: 'Internal diagnostics endpoint restricted.' });
+    return;
+  }
+
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
   });
 });
 
-// 9. Minimal public health check (zero disclosures)
-app.get('/health', (_req, res) => {
+// 9. Public /health lockdown (requires internal secret or private ingress in production)
+app.get('/health', (req, res) => {
+  const secret = req.headers?.['x-internal-secret'];
+  const configuredSecret = process.env.INTERNAL_HEALTH_SECRET;
+  if (process.env.NODE_ENV === 'production' && configuredSecret && secret !== configuredSecret) {
+    res.status(404).json({ success: false, error: 'NOT_FOUND' });
+    return;
+  }
   res.json({ status: 'ok' });
 });
 

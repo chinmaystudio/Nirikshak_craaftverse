@@ -43,6 +43,13 @@ authRouter.post(
   (req, res, next) => authController.forgotPassword(req, res, next)
 );
 
+// POST /api/auth/reset-password - Password reset execution
+authRouter.post(
+  '/reset-password',
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 5 }),
+  (req, res, next) => authController.resetPassword(req, res, next)
+);
+
 // POST /api/auth/register - Self-registration
 authRouter.post(
   '/register',
@@ -52,4 +59,32 @@ authRouter.post(
     message: 'Too many registration attempts. Please wait 15 minutes and try again.',
   }),
   (req, res, next) => authController.register(req, res, next)
+);
+
+// MFA Routes
+authRouter.post(
+  '/mfa/enroll',
+  requireAuth,
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }),
+  (req, res, next) => authController.enrollMfa(req, res, next)
+);
+
+authRouter.post(
+  '/mfa/verify',
+  requireAuth,
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 15 }),
+  (req, res, next) => authController.verifyMfa(req, res, next)
+);
+
+authRouter.post(
+  '/mfa/unenroll',
+  requireAuth,
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 5 }),
+  (req, res, next) => authController.unenrollMfa(req, res, next)
+);
+
+authRouter.get(
+  '/mfa/status',
+  requireAuth,
+  (req, res, next) => authController.getMfaStatus(req, res, next)
 );

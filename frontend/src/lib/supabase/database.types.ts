@@ -6129,6 +6129,264 @@ export type Database = {
         ]
       }
     }
+      blockchain_anchors: {
+        Row: {
+          id: string
+          audit_id: string
+          project_id: string | null
+          entity_type: string
+          entity_id: string | null
+          entity_external_id: string | null
+          event_type: string
+          canonical_version: number
+          payload_hash: string | null
+          hash_algorithm: string
+          anchor_nonce: string | null
+          fabric_network: string | null
+          channel_name: string | null
+          chaincode_name: string | null
+          transaction_id: string | null
+          block_number: number | null
+          status: string
+          attempt_count: number
+          last_error: string | null
+          submitted_at: string | null
+          confirmed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          audit_id: string
+          project_id?: string | null
+          entity_type: string
+          entity_id?: string | null
+          entity_external_id?: string | null
+          event_type: string
+          canonical_version?: number
+          payload_hash?: string | null
+          hash_algorithm?: string
+          anchor_nonce?: string | null
+          fabric_network?: string | null
+          channel_name?: string | null
+          chaincode_name?: string | null
+          transaction_id?: string | null
+          block_number?: number | null
+          status?: string
+          attempt_count?: number
+          last_error?: string | null
+          submitted_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          audit_id?: string
+          project_id?: string | null
+          entity_type?: string
+          entity_id?: string | null
+          entity_external_id?: string | null
+          event_type?: string
+          canonical_version?: number
+          payload_hash?: string | null
+          hash_algorithm?: string
+          anchor_nonce?: string | null
+          fabric_network?: string | null
+          channel_name?: string | null
+          chaincode_name?: string | null
+          transaction_id?: string | null
+          block_number?: number | null
+          status?: string
+          attempt_count?: number
+          last_error?: string | null
+          submitted_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      blockchain_anchor_outbox: {
+        Row: {
+          id: string
+          dedupe_key: string
+          anchor_id: string
+          project_id: string | null
+          entity_type: string
+          entity_id: string | null
+          event_type: string
+          minimal_payload: Json
+          status: string
+          attempt_count: number
+          next_attempt_at: string
+          locked_at: string | null
+          locked_by: string | null
+          last_error: string | null
+          created_at: string
+          processed_at: string | null
+        }
+        Insert: {
+          id?: string
+          dedupe_key: string
+          anchor_id: string
+          project_id?: string | null
+          entity_type: string
+          entity_id?: string | null
+          event_type: string
+          minimal_payload: Json
+          status?: string
+          attempt_count?: number
+          next_attempt_at?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          last_error?: string | null
+          created_at?: string
+          processed_at?: string | null
+        }
+        Update: {
+          id?: string
+          dedupe_key?: string
+          anchor_id?: string
+          project_id?: string | null
+          entity_type?: string
+          entity_id?: string | null
+          event_type?: string
+          minimal_payload?: Json
+          status?: string
+          attempt_count?: number
+          next_attempt_at?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          last_error?: string | null
+          created_at?: string
+          processed_at?: string | null
+        }
+        Relationships: []
+      }
+      gateway_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          session_token_hash: string
+          csrf_token_hash: string
+          supabase_access_token: string | null
+          supabase_refresh_token: string | null
+          access_token_expires_at: string | null
+          mfa_verified: boolean
+          mfa_verified_at: string | null
+          elevated_until: string | null
+          ip_address: string | null
+          user_agent: string | null
+          expires_at: string
+          revoked_at: string | null
+          created_at: string
+          last_active_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          session_token_hash: string
+          csrf_token_hash: string
+          supabase_access_token?: string | null
+          supabase_refresh_token?: string | null
+          access_token_expires_at?: string | null
+          mfa_verified?: boolean
+          mfa_verified_at?: string | null
+          elevated_until?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          expires_at: string
+          revoked_at?: string | null
+          created_at?: string
+          last_active_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          session_token_hash?: string
+          csrf_token_hash?: string
+          supabase_access_token?: string | null
+          supabase_refresh_token?: string | null
+          access_token_expires_at?: string | null
+          mfa_verified?: boolean
+          mfa_verified_at?: string | null
+          elevated_until?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          expires_at?: string
+          revoked_at?: string | null
+          created_at?: string
+          last_active_at?: string
+        }
+        Relationships: []
+      }
+      mfa_challenges: {
+        Row: {
+          id: string
+          user_id: string
+          session_id: string | null
+          challenge_hash: string
+          challenge_type: string
+          status: string
+          attempts: number
+          expires_at: string
+          created_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          session_id?: string | null
+          challenge_hash: string
+          challenge_type?: string
+          status?: string
+          attempts?: number
+          expires_at: string
+          created_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          session_id?: string | null
+          challenge_hash?: string
+          challenge_type?: string
+          status?: string
+          attempts?: number
+          expires_at?: string
+          created_at?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      user_mfa_factors: {
+        Row: {
+          id: string
+          user_id: string
+          factor_type: string
+          secret: string
+          status: string
+          enrolled_at: string
+          last_used_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          factor_type?: string
+          secret: string
+          status?: string
+          enrolled_at?: string
+          last_used_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          factor_type?: string
+          secret?: string
+          status?: string
+          enrolled_at?: string
+          last_used_at?: string | null
+        }
+        Relationships: []
+      }
     Views: {
       contractor_assigned_projects_view: {
         Row: {

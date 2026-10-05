@@ -158,7 +158,7 @@ export default function BidAIAssist({ tenderId }: { tenderId: string }) {
               <ul className="space-y-2.5">
                 {[
                   { label: 'Plant base within 45 km of site', tone: 'ok', note: 'paver, batch plant and rollers idle in Sep–Oct' },
-                  { label: 'Similar work references exceed requirement', tone: 'ok', note: `${CONTRACTOR.completedWorks} completed works on record` },
+                  { label: 'Similar work references exceed requirement', tone: 'ok', note: 'Multiple qualifying completed works on record' },
                   { label: 'Specialist scope needs subcontractor', tone: tender.category === 'Water Supply' ? 'warn' : 'ok', note: tender.category === 'Water Supply' ? 'electromechanical OEM partner to be finalized' : 'no specialist scope detected' },
                   { label: 'Bid premium band', tone: 'ok', note: 'estimate-based pricing supports a competitive bid' },
                 ].map((r) => (

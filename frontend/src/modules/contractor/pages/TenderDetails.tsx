@@ -232,7 +232,7 @@ export default function TenderDetails({ tenderId }: { tenderId: string }) {
                 </table>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Automated check against {CONTRACTOR.name} profile. Final eligibility is confirmed by the department at technical evaluation.
+                Automated check against registered contractor profile. Final eligibility is confirmed by the department at technical evaluation.
               </p>
             </div>
           )}
