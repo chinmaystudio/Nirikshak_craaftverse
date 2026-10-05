@@ -94,6 +94,7 @@ WITH CHECK (public.is_government_user());
 
 CREATE UNIQUE INDEX IF NOT EXISTS tender_bids_reference_uidx
     ON public.tender_bids (bid_reference) WHERE bid_reference IS NOT NULL;
+ALTER TABLE public.tender_bids ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 CREATE UNIQUE INDEX IF NOT EXISTS tender_bids_active_tender_org_uidx
     ON public.tender_bids (tender_id, contractor_organization_id) WHERE deleted_at IS NULL;
 
