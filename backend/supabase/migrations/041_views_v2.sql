@@ -82,7 +82,7 @@ SELECT
   p.nirikshak_project_id,
   COALESCE(p.approved_cost_inr_crore, p.total_cost_inr_crore, 0) AS sanctioned_amount_inr_crore,
   COALESCE(
-    (SELECT fu.expenditure_inr_crore FROM public.financial_updates fu WHERE fu.project_id = p.id ORDER BY fu.observation_date DESC LIMIT 1),
+    (SELECT fu.amount_spent_inr_crore FROM public.financial_updates fu WHERE fu.project_id = p.id ORDER BY fu.observation_date DESC LIMIT 1),
     0
   ) AS spent_inr_crore,
   COALESCE(

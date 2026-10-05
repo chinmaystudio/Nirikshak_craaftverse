@@ -9,6 +9,8 @@ ALTER TABLE public.tenders
   ADD COLUMN IF NOT EXISTS pre_bid_date TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS technical_opening_date TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS financial_opening_date TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS eligibility_criteria TEXT,
+  ADD COLUMN IF NOT EXISTS technical_requirements TEXT,
   ADD COLUMN IF NOT EXISTS financial_requirements TEXT,
   ADD COLUMN IF NOT EXISTS published_by UUID REFERENCES public.profiles(id),
   ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ;
