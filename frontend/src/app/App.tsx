@@ -98,6 +98,7 @@ normalizeLegacyLocation();
 
 function detectPortal(): 'government' | 'contractor' | 'user' {
   const p = window.location.pathname.toLowerCase().replace(/\\/g, '/');
+  if (p === '/reset-password') return 'government';
   if (p === '/government' || p.startsWith('/government/')) return 'government';
   if (p === '/contractor' || p.startsWith('/contractor/')) return 'contractor';
   return 'user';

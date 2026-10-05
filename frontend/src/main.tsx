@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { env } from './lib/config/env';
+import { captureRecoveryProof } from './lib/auth/recoveryProof';
 import './modules/government/styles/tokens.css';
 import './modules/government/styles/globals.css';
 import './modules/government/styles/themes.css';
@@ -9,6 +10,7 @@ import './modules/user/styles/globals.css';
 import './modules/contractor/index.css';
 
 const rootEl = document.getElementById('root');
+captureRecoveryProof();
 if (rootEl) {
   const root = ReactDOM.createRoot(rootEl);
 

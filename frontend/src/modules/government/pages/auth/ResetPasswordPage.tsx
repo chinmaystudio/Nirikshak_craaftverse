@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useI18n } from '@/context/I18nContext'
 import { TextField } from '@/components/ui/Fields'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { apiClient } from '@/lib/api/apiClient'
+import { clearRecoveryProof, getRecoveryProof } from '@/lib/auth/recoveryProof'
 
 export function ResetPasswordPage() {
   const { t } = useI18n()
@@ -11,9 +13,16 @@ export function ResetPasswordPage() {
   const [pw, setPw] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [complete, setComplete] = useState(false)
+  const proof = getRecoveryProof()
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!proof) {
+      setError('This recovery link is invalid or expired. Request a new link.')
+      return
+    }
     if (pw.length < 8) {
       setError('Password must be at least 8 characters.')
       return
@@ -22,7 +31,41 @@ export function ResetPasswordPage() {
       setError('Passwords do not match.')
       return
     }
-    navigate('/login')
+    setBusy(true)
+    setError(null)
+    try {
+      await apiClient.post('/api/auth/reset-password', { token: proof, newPassword: pw })
+      clearRecoveryProof()
+      setPw('')
+      setConfirm('')
+      setComplete(true)
+    } catch (err: any) {
+      setError(err?.message || 'Could not update your password. Request a new recovery link.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (complete) {
+    return (
+      <Card className="p-6">
+        <h1 className="text-heading-2 text-fg">Password updated</h1>
+        <p className="mt-2 text-body-small text-fg-muted">Your password is ready. Sign in to continue.</p>
+        <Button type="button" size="lg" block onClick={() => navigate('/government/login')}>
+          Go to government sign in
+        </Button>
+      </Card>
+    )
+  }
+
+  if (!proof) {
+    return (
+      <Card className="p-6">
+        <h1 className="text-heading-2 text-fg">Recovery link required</h1>
+        <p className="mt-2 text-body-small text-fg-muted">Open the latest password recovery email. The link expires after 60 minutes.</p>
+        <Link to="/government/login" className="mt-4 inline-block text-primary-strong">Government sign in</Link>
+      </Card>
+    )
   }
 
   return (
@@ -49,7 +92,7 @@ export function ResetPasswordPage() {
           onChange={(e) => setConfirm(e.target.value)}
           autoComplete="new-password"
         />
-        <Button type="submit" size="lg" block icon="lock_reset">
+        <Button type="submit" size="lg" block icon="lock_reset" disabled={busy}>
           {t('auth.updatePassword')}
         </Button>
       </form>
