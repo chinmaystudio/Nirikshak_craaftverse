@@ -302,7 +302,7 @@ CREATE POLICY "progress_evidence_select"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM public.project_updates pu
+      SELECT 1 FROM public.progress_updates pu
       WHERE pu.id = progress_evidence.progress_update_id
         AND public.can_access_project(pu.project_id)
     )
@@ -313,7 +313,7 @@ CREATE POLICY "progress_evidence_insert"
   TO authenticated
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM public.project_updates pu
+      SELECT 1 FROM public.progress_updates pu
       WHERE pu.id = progress_evidence.progress_update_id
         AND (
           public.can_manage_project(pu.project_id)
@@ -330,7 +330,7 @@ CREATE POLICY "progress_evidence_manage"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM public.project_updates pu
+      SELECT 1 FROM public.progress_updates pu
       WHERE pu.id = progress_evidence.progress_update_id
         AND public.can_manage_project(pu.project_id)
     )
