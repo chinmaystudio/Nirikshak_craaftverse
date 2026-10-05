@@ -36,7 +36,7 @@ jobs:
         run: |
           ! grep -rn "SUPABASE_SERVICE_ROLE_KEY" dist/ || exit 1
           ! grep -rn "OPENROUTER_API_KEY" dist/ || exit 1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
           path: frontend/dist
@@ -69,7 +69,7 @@ jobs:
       - name: Run Backend & Security Attack Test Suite
         run: npm test
       - run: npm run build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: backend-dist
           path: backend/dist
