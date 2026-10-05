@@ -337,7 +337,7 @@ CREATE POLICY "progress_evidence_manage"
   )
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM public.project_updates pu
+      SELECT 1 FROM public.progress_updates pu
       WHERE pu.id = progress_evidence.progress_update_id
         AND public.can_manage_project(pu.project_id)
     )
