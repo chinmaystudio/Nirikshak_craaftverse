@@ -6,7 +6,8 @@
 -- 1. Normalize environmental_clearances
 ALTER TABLE public.environmental_clearances
   ADD COLUMN IF NOT EXISTS document_id UUID,
-  ADD COLUMN IF NOT EXISTS notes TEXT;
+  ADD COLUMN IF NOT EXISTS notes TEXT,
+  ADD COLUMN IF NOT EXISTS valid_until DATE;
 
 -- 2. Normalize environmental_baselines
 ALTER TABLE public.environmental_baselines
