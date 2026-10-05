@@ -231,7 +231,7 @@ CREATE POLICY "Complaint evidence readable by complaint parties"
     EXISTS (
       SELECT 1 FROM public.complaints c
       WHERE c.id = complaint_evidence.complaint_id
-        AND (c.citizen_user_id = auth.uid() OR public.can_access_project(c.project_id))
+        AND (c.user_id = auth.uid() OR public.can_access_project(c.project_id))
     )
   );
 
