@@ -14,16 +14,13 @@ const stamp = crypto.randomBytes(5).toString('hex');
 
 async function asUser(userId: string, sql: string, values: unknown[] = []): Promise<number> {
   await client.query('SET ROLE authenticated');
-  try {
-    await client.query(`SELECT set_config('request.jwt.claim.sub', $1, true), set_config('request.jwt.claims', $2, true)`, [
-      userId,
-      JSON.stringify({ sub: userId, role: 'authenticated' }),
-    ]);
-    const result = await client.query(sql, values);
-    return Number(result.rows[0].count);
-  } finally {
-    await client.query('RESET ROLE');
-  }
+  await client.query(`SELECT set_config('request.jwt.claim.sub', $1, true), set_config('request.jwt.claims', $2, true)`, [
+    userId,
+    JSON.stringify({ sub: userId, role: 'authenticated' }),
+  ]);
+  const result = await client.query(sql, values);
+  await client.query('RESET ROLE');
+  return Number(result.rows[0].count);
 }
 
 function equal(label: string, actual: number, expected: number): void {
@@ -87,8 +84,10 @@ try {
   equal('Auditor cannot see unassigned project', await asUser(auditor, 'SELECT count(*) FROM public.projects WHERE id = $1', [projectB]), 0);
   equal('Citizen cannot see private payment claim', await asUser(citizen, 'SELECT count(*) FROM public.payment_claims WHERE id = $1', [claimId]), 0);
   equal('Citizen cannot see private litigation', await asUser(citizen, 'SELECT count(*) FROM public.litigations WHERE id = $1', [caseId]), 0);
+} catch (error) {
+  console.error('Tenant isolation integration failed:', error);
+  throw error;
 } finally {
-  await client.query('RESET ROLE');
   await client.query('ROLLBACK');
   await client.end();
 }
