@@ -39,7 +39,6 @@ ALTER FUNCTION public.set_project_gov_org() SET search_path = public, pg_temp;
 ALTER FUNCTION public.handle_new_user() SET search_path = public, pg_temp;
 ALTER FUNCTION public.approve_government_access_request(uuid, app_role_enum) SET search_path = public, pg_temp;
 ALTER FUNCTION public.approve_contractor_access_request(uuid, app_role_enum) SET search_path = public, pg_temp;
-ALTER FUNCTION public.reject_access_request(uuid, text, text) SET search_path = public, pg_temp;
 ALTER FUNCTION public.register_government_account(text, text, text, text, text, text, text, text, text) SET search_path = public, pg_temp;
 ALTER FUNCTION public.register_contractor_account(text, text, text, text, text, text, text, text, text, text, text) SET search_path = public, pg_temp;
 
