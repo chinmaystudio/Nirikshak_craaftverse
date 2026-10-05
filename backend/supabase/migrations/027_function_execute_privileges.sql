@@ -29,7 +29,4 @@ GRANT EXECUTE ON FUNCTION public.is_contractor_user() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_government_user() TO authenticated;
 
 REVOKE ALL ON FUNCTION public.handle_new_user() FROM anon, authenticated, PUBLIC;
-REVOKE ALL ON FUNCTION public.rls_auto_enable() FROM anon, authenticated, PUBLIC;
 REVOKE ALL ON FUNCTION public.set_project_gov_org() FROM anon, authenticated, PUBLIC;
-REVOKE ALL ON FUNCTION public.seed_projects_batch(jsonb) FROM anon, authenticated, PUBLIC;
-GRANT EXECUTE ON FUNCTION public.seed_projects_batch(jsonb) TO service_role;
