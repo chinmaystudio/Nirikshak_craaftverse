@@ -54,3 +54,6 @@ blockchain/wallet/
 *.key
 *.pem
 *.id
+
+# Supabase CLI local state
+**/supabase/.temp/

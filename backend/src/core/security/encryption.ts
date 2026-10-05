@@ -12,7 +12,7 @@ const IV_LENGTH = 12; // Standard for AES-GCM
 const DEFAULT_KEY_VERSION = 1;
 
 /**
- * Validates that an encryption key exists and is a valid 32-byte key (hex or base64 or 32-byte utf-8 string).
+ * Production keys must be explicitly encoded 32-byte random keys.
  */
 export function validateEncryptionKey(envVarName: string): boolean {
   const rawKey = process.env[envVarName];
@@ -21,7 +21,7 @@ export function validateEncryptionKey(envVarName: string): boolean {
   }
 
   try {
-    const keyBuf = parseKey(rawKey);
+    const keyBuf = parseKey(rawKey, true);
     return keyBuf.length === 32;
   } catch {
     return false;
@@ -31,14 +31,20 @@ export function validateEncryptionKey(envVarName: string): boolean {
 /**
  * Parses a key string into a 32-byte Buffer.
  */
-function parseKey(rawKey: string): Buffer {
+function parseKey(rawKey: string, strict = false): Buffer {
   if (rawKey.length === 64 && /^[0-9a-fA-F]+$/.test(rawKey)) {
     return Buffer.from(rawKey, 'hex');
   }
   const base64Candidate = Buffer.from(rawKey, 'base64');
-  if (base64Candidate.length === 32 && rawKey.length === 44) {
+  if (
+    base64Candidate.length === 32 &&
+    rawKey.length === 44 &&
+    /^[A-Za-z0-9+/]{43}=$/.test(rawKey) &&
+    base64Candidate.toString('base64') === rawKey
+  ) {
     return base64Candidate;
   }
+  if (strict) throw new Error('ENCRYPTION_KEY_INVALID: expected 64-character hex or 32-byte base64 key');
   const utf8Candidate = Buffer.from(rawKey, 'utf8');
   if (utf8Candidate.length === 32) {
     return utf8Candidate;
@@ -55,13 +61,13 @@ function getKeyForVersion(envVarName: string, version: number): Buffer {
   const versionedVarName = `${envVarName}_V${version}`;
   const versionedKey = process.env[versionedVarName];
   if (versionedKey) {
-    return parseKey(versionedKey);
+    return parseKey(versionedKey, process.env.NODE_ENV === 'production');
   }
 
   // Fallback to primary env var
   const primaryKey = process.env[envVarName];
   if (primaryKey) {
-    return parseKey(primaryKey);
+    return parseKey(primaryKey, process.env.NODE_ENV === 'production');
   }
 
   // Fail-closed in production

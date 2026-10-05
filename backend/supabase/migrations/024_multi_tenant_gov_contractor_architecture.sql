@@ -253,7 +253,7 @@ LANGUAGE sql
 STABLE SECURITY DEFINER
 SET search_path = ''
 AS $$
-    SELECT role FROM public.organization_members
+    SELECT NULLIF(role, 'member')::public.app_role_enum FROM public.organization_members
     WHERE user_id = (SELECT auth.uid())
       AND lower(status) = 'active'
     LIMIT 1;

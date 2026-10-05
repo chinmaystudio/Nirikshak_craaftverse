@@ -135,7 +135,7 @@ BEGIN
           SELECT 1 FROM public.project_organizations po
           WHERE po.project_id = p_id
             AND po.organization_id = v_org_id
-            AND po.role IN ('OWNING_AGENCY', 'IMPLEMENTING_AGENCY', 'NODAL_MINISTRY')
+            AND po.relationship_type IN ('OWNING_AGENCY', 'IMPLEMENTING_AGENCY', 'NODAL_MINISTRY')
         )
       )
   );

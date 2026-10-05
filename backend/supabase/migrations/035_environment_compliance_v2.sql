@@ -6,7 +6,8 @@
 -- 1. Normalize environmental_clearances
 ALTER TABLE public.environmental_clearances
   ADD COLUMN IF NOT EXISTS document_id UUID,
-  ADD COLUMN IF NOT EXISTS notes TEXT;
+  ADD COLUMN IF NOT EXISTS notes TEXT,
+  ADD COLUMN IF NOT EXISTS valid_until DATE;
 
 -- 2. Normalize environmental_baselines
 ALTER TABLE public.environmental_baselines
@@ -25,6 +26,6 @@ ALTER TABLE public.environmental_incidents
   ADD COLUMN IF NOT EXISTS resolution TEXT,
   ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
 
-CREATE INDEX IF NOT EXISTS idx_env_obs_project ON public.environmental_observations(project_id, observation_date DESC);
-CREATE INDEX IF NOT EXISTS idx_env_clearances_expiry ON public.environmental_clearances(project_id, expiry_date);
+CREATE INDEX IF NOT EXISTS idx_env_obs_project ON public.environmental_observations(project_id, observed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_env_clearances_expiry ON public.environmental_clearances(project_id, valid_until);
 CREATE INDEX IF NOT EXISTS idx_env_incidents_project ON public.environmental_incidents(project_id, status);

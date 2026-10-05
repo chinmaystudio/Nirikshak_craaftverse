@@ -1,5 +1,6 @@
 import { supabase } from '../supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { env } from '../config/env';
 
 export type RealtimeTable =
   | 'projects'
@@ -29,6 +30,7 @@ export class RealtimeService {
   private tableListeners = new Map<RealtimeTable, Set<Listener>>();
   private invalidators = new Set<Invalidator>();
   private initializedTables = new Set<RealtimeTable>();
+  private livePollers = new Map<RealtimeTable, ReturnType<typeof setInterval>>();
 
   /**
    * Register a global cache/query invalidator callback.
@@ -63,6 +65,20 @@ export class RealtimeService {
       this.tableListeners.set(table, new Set());
     }
     this.tableListeners.get(table)!.add(listener as Listener);
+
+    if (env.DATA_MODE !== 'DEMO') {
+      if (!this.livePollers.has(table)) {
+        this.livePollers.set(table, setInterval(() => this.triggerInvalidation(), 30_000));
+      }
+      return () => {
+        const listeners = this.tableListeners.get(table);
+        listeners?.delete(listener as Listener);
+        if (!listeners?.size) {
+          clearInterval(this.livePollers.get(table));
+          this.livePollers.delete(table);
+        }
+      };
+    }
 
     // Initialize Supabase channel if not already active
     if (!this.initializedTables.has(table)) {
@@ -123,6 +139,7 @@ export class RealtimeService {
     event: string,
     callback: (payload: any) => void
   ): () => void {
+    if (env.DATA_MODE !== 'DEMO') return () => {};
     const channelName = `broadcast:${topic}`;
     let channel = this.channels.get(channelName);
 
@@ -150,6 +167,10 @@ export class RealtimeService {
    * Broadcasts domain event across a topic
    */
   public async broadcast(topic: string, event: string, payload: any): Promise<void> {
+    if (env.DATA_MODE !== 'DEMO') {
+      this.triggerInvalidation();
+      return;
+    }
     const channelName = `broadcast:${topic}`;
     let channel = this.channels.get(channelName);
     if (!channel) {
@@ -169,6 +190,8 @@ export class RealtimeService {
    * Cleans up all active subscriptions on logout or teardown
    */
   public cleanupAll(): void {
+    this.livePollers.forEach((timer) => clearInterval(timer));
+    this.livePollers.clear();
     this.channels.forEach((channel) => {
       supabase.removeChannel(channel);
     });

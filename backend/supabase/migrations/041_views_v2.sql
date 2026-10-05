@@ -4,7 +4,8 @@
 -- ==============================================================================
 
 -- 1. Refresh public_projects_view (Strictly Sanitized Public Data)
-CREATE OR REPLACE VIEW public.public_projects_view AS
+DROP VIEW IF EXISTS public.public_projects_view;
+CREATE OR REPLACE VIEW public.public_projects_view WITH (security_invoker = true) AS
 SELECT 
   p.id,
   p.nirikshak_project_id,
@@ -44,7 +45,7 @@ LEFT JOIN public.organizations org ON c.contractor_organization_id = org.id
 WHERE p.public_visibility = true AND p.deleted_at IS NULL;
 
 -- 2. Create project_progress_summary_view
-CREATE OR REPLACE VIEW public.project_progress_summary_view AS
+CREATE OR REPLACE VIEW public.project_progress_summary_view WITH (security_invoker = true) AS
 SELECT
   p.id AS project_id,
   p.nirikshak_project_id,
@@ -75,13 +76,13 @@ FROM public.projects p
 WHERE p.deleted_at IS NULL;
 
 -- 3. Create project_finance_summary_view
-CREATE OR REPLACE VIEW public.project_finance_summary_view AS
+CREATE OR REPLACE VIEW public.project_finance_summary_view WITH (security_invoker = true) AS
 SELECT
   p.id AS project_id,
   p.nirikshak_project_id,
   COALESCE(p.approved_cost_inr_crore, p.total_cost_inr_crore, 0) AS sanctioned_amount_inr_crore,
   COALESCE(
-    (SELECT fu.expenditure_inr_crore FROM public.financial_updates fu WHERE fu.project_id = p.id ORDER BY fu.observation_date DESC LIMIT 1),
+    (SELECT fu.amount_spent_inr_crore FROM public.financial_updates fu WHERE fu.project_id = p.id ORDER BY fu.observation_date DESC LIMIT 1),
     0
   ) AS spent_inr_crore,
   COALESCE(
@@ -100,7 +101,7 @@ FROM public.projects p
 WHERE p.deleted_at IS NULL;
 
 -- 4. Create tender_catalog_view
-CREATE OR REPLACE VIEW public.tender_catalog_view AS
+CREATE OR REPLACE VIEW public.tender_catalog_view WITH (security_invoker = true) AS
 SELECT
   t.id AS tender_id,
   t.tender_number,
@@ -128,7 +129,7 @@ LEFT JOIN public.organizations org ON t.government_organization_id = org.id
 WHERE t.deleted_at IS NULL AND t.status IN ('PUBLISHED', 'CLOSED', 'UNDER_EVALUATION', 'AWARDED');
 
 -- 5. Refresh government_project_dashboard_view
-CREATE OR REPLACE VIEW public.government_project_dashboard_view AS
+CREATE OR REPLACE VIEW public.government_project_dashboard_view WITH (security_invoker = true) AS
 SELECT
   p.id AS project_id,
   p.nirikshak_project_id,
@@ -177,7 +178,8 @@ LEFT JOIN public.organizations org ON c.contractor_organization_id = org.id
 WHERE p.deleted_at IS NULL;
 
 -- 6. Refresh contractor_assigned_projects_view
-CREATE OR REPLACE VIEW public.contractor_assigned_projects_view AS
+DROP VIEW IF EXISTS public.contractor_assigned_projects_view;
+CREATE OR REPLACE VIEW public.contractor_assigned_projects_view WITH (security_invoker = true) AS
 SELECT
   p.id,
   p.nirikshak_project_id,
@@ -212,3 +214,6 @@ SELECT
 FROM public.projects p
 JOIN public.contracts c ON c.project_id = p.id
 WHERE p.deleted_at IS NULL;
+
+GRANT SELECT ON public.public_projects_view TO anon, authenticated;
+GRANT SELECT ON public.contractor_assigned_projects_view TO authenticated;

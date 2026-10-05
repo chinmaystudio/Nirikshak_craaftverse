@@ -40,7 +40,7 @@ BEGIN
     SELECT 1 FROM pg_constraint WHERE conname = 'tenders_estimated_cost_positive'
   ) THEN
     ALTER TABLE public.tenders
-      ADD CONSTRAINT tenders_estimated_cost_positive CHECK (estimated_cost > 0);
+      ADD CONSTRAINT tenders_estimated_cost_positive CHECK (estimated_value_inr_crore > 0);
   END IF;
 END $$;
 

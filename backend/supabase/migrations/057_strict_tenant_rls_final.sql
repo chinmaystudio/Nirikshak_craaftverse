@@ -302,7 +302,7 @@ CREATE POLICY "progress_evidence_select"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM public.project_updates pu
+      SELECT 1 FROM public.progress_updates pu
       WHERE pu.id = progress_evidence.progress_update_id
         AND public.can_access_project(pu.project_id)
     )
@@ -313,7 +313,7 @@ CREATE POLICY "progress_evidence_insert"
   TO authenticated
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM public.project_updates pu
+      SELECT 1 FROM public.progress_updates pu
       WHERE pu.id = progress_evidence.progress_update_id
         AND (
           public.can_manage_project(pu.project_id)
@@ -330,14 +330,14 @@ CREATE POLICY "progress_evidence_manage"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM public.project_updates pu
+      SELECT 1 FROM public.progress_updates pu
       WHERE pu.id = progress_evidence.progress_update_id
         AND public.can_manage_project(pu.project_id)
     )
   )
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM public.project_updates pu
+      SELECT 1 FROM public.progress_updates pu
       WHERE pu.id = progress_evidence.progress_update_id
         AND public.can_manage_project(pu.project_id)
     )
@@ -381,33 +381,3 @@ CREATE POLICY "project_aliases_manage"
   USING (public.can_manage_project(project_id))
   WITH CHECK (public.can_manage_project(project_id));
 
--- ------------------------------------------------------------------------------
--- 8. Staging & Import Tables
--- ------------------------------------------------------------------------------
-DROP POLICY IF EXISTS "import_staging_projects_select" ON public.import_staging_projects;
-DROP POLICY IF EXISTS "import_staging_projects_manage" ON public.import_staging_projects;
-
-CREATE POLICY "import_staging_projects_select"
-  ON public.import_staging_projects FOR SELECT
-  TO authenticated
-  USING (public.can_access_project(project_id));
-
-CREATE POLICY "import_staging_projects_manage"
-  ON public.import_staging_projects FOR ALL
-  TO authenticated
-  USING (public.can_manage_project(project_id))
-  WITH CHECK (public.can_manage_project(project_id));
-
-DROP POLICY IF EXISTS "import_staging_updates_select" ON public.import_staging_updates;
-DROP POLICY IF EXISTS "import_staging_updates_manage" ON public.import_staging_updates;
-
-CREATE POLICY "import_staging_updates_select"
-  ON public.import_staging_updates FOR SELECT
-  TO authenticated
-  USING (public.can_access_project(project_id));
-
-CREATE POLICY "import_staging_updates_manage"
-  ON public.import_staging_updates FOR ALL
-  TO authenticated
-  USING (public.can_manage_project(project_id))
-  WITH CHECK (public.can_manage_project(project_id));

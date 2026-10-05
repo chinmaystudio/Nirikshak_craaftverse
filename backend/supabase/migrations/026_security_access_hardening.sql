@@ -4,7 +4,6 @@
 -- Privileged workflow functions are never anonymous endpoints.
 REVOKE EXECUTE ON FUNCTION public.approve_government_access_request(uuid, public.app_role_enum) FROM anon, PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.approve_contractor_access_request(uuid, public.app_role_enum) FROM anon, PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.reject_access_request(uuid, text, text) FROM anon, PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.award_contract(uuid, uuid) FROM anon, PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.approve_progress_update(uuid, text, numeric, text) FROM anon, PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.register_government_account(text, text, text, text, text, text, text, text, text) FROM anon, authenticated, PUBLIC;

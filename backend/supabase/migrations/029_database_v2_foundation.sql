@@ -66,7 +66,12 @@ END $$;
 ALTER TABLE public.project_organizations
   ADD COLUMN IF NOT EXISTS effective_from TIMESTAMPTZ DEFAULT now(),
   ADD COLUMN IF NOT EXISTS effective_to TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'SUSPENDED', 'TERMINATED', 'COMPLETED'));
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'SUSPENDED', 'TERMINATED', 'COMPLETED')),
+  ADD COLUMN IF NOT EXISTS relationship_type TEXT;
+
+UPDATE public.project_organizations
+SET relationship_type = upper(relationship)
+WHERE relationship_type IS NULL;
 
 -- Ensure unique constraint on active project-organization-relationship pair
 CREATE UNIQUE INDEX IF NOT EXISTS uq_project_org_rel 

@@ -55,7 +55,7 @@ BEGIN
             (public.can_access_project(project_id) AND EXISTS (
                 SELECT 1 FROM public.organization_members om
                 JOIN public.organizations o ON o.id = om.organization_id
-                WHERE om.user_id = auth.uid() AND om.status = ''ACTIVE'' AND o.organization_type = ''AUDITOR''
+                WHERE om.user_id = auth.uid() AND lower(om.status) = ''active'' AND om.role = ''auditor''
             ))
         )';
     END IF;

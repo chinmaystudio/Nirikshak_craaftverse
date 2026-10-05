@@ -1,7 +1,7 @@
 -- 017_rls.sql
 CREATE OR REPLACE FUNCTION public.get_user_role()
 RETURNS public.app_role_enum AS $$
-    SELECT role FROM public.organization_members
+    SELECT NULLIF(role, 'member')::public.app_role_enum FROM public.organization_members
     WHERE user_id = auth.uid()
     LIMIT 1;
 $$ LANGUAGE sql STABLE SECURITY DEFINER;
@@ -127,6 +127,11 @@ CREATE POLICY "Government can update projects" ON public.projects FOR UPDATE
 USING (public.is_government_user());
 
 -- Public Projects View
+-- The initial schema created these views with different column order/shape;
+-- CREATE OR REPLACE cannot rename or remove existing columns.
+DROP VIEW IF EXISTS public.public_projects_view;
+DROP VIEW IF EXISTS public.government_project_summary_view;
+DROP VIEW IF EXISTS public.contractor_assigned_projects_view;
 CREATE OR REPLACE VIEW public.public_projects_view AS
 SELECT
     p.id,

@@ -51,6 +51,7 @@ async function runE2eTests() {
 
   // 2. Full project analysis via Express aiClient
   let analysisId = '';
+  let recommendedAction = '';
   await test('Express AI Client: POST /analyze runs ML + Drift + LinUCB + OpenRouter pipeline', async () => {
     const mockSnapshot = {
       project: {
@@ -112,6 +113,7 @@ async function runE2eTests() {
     const result = await aiClient.analyzeProject(mockSnapshot);
     assert(result.analysis_id, 'Result must contain UUID analysis_id');
     analysisId = result.analysis_id;
+    recommendedAction = result.recommended_actions[0]?.action || '';
 
     assert(result.historical_analysis, 'Must contain historical ML analysis');
     assert(result.historical_analysis.review_priority_score >= 0, 'Must have valid review priority score');
@@ -126,52 +128,43 @@ async function runE2eTests() {
     console.log('    LLM Status:', result.llm.status);
   });
 
-  // 3. Government feedback updates RL policy
-  await test('Express AI Client: POST /feedback submits human feedback to LinUCB bandit', async () => {
+  // 3. Feedback is stored, but only a verified outcome may update the RL policy.
+  await test('Express AI Client: POST /feedback stores feedback without policy learning', async () => {
     assert(analysisId, 'Analysis ID must be available from previous test');
+    assert(recommendedAction, 'A recommended action must be available');
     const feedbackResult = await aiClient.submitFeedback({
       analysis_id: analysisId,
+      action: recommendedAction,
       government_feedback: 'accepted',
       note: 'Site inspection successfully scheduled by Executive Engineer.',
     });
 
-    assert.strictEqual(feedbackResult.updated, true, 'Feedback update must succeed');
-    assert(feedbackResult.action, 'Action must be identified');
-    console.log('    Policy Updated:', feedbackResult.updated, '| Action:', feedbackResult.action, '| Reward:', feedbackResult.reward);
+    assert.strictEqual(feedbackResult.stored, true, 'Feedback storage must succeed');
+    assert.strictEqual(feedbackResult.policy_updated, false, 'Feedback alone must not train the policy');
+    assert.strictEqual(feedbackResult.action, recommendedAction);
+    console.log('    Feedback Stored:', feedbackResult.stored, '| Policy Updated:', feedbackResult.policy_updated);
   });
 
   // 4. Online drift learning on verified snapshot
   await test('Express AI Client: POST /learn/snapshot updates online MiniBatch model on verified data', async () => {
     const verifiedSnapshot = {
-      project: {
-        provenance: 'DATABASE_FACT',
-        project_id: 'proj-e2e-001',
-        nirikshak_project_id: 'NIR-PUN-2026-E2E',
-        project_name: 'Pune Metro Line 4 Elevated Corridor',
-        sector: 'Transport',
-        normalized_status: 'IN_EXECUTION',
-      },
-      contractor_reported: {
-        provenance: 'CONTRACTOR_REPORTED',
-        contractor_reported_progress_pct: 38.0,
-      },
-      government_verified: {
-        provenance: 'GOVERNMENT_VERIFIED',
-        government_verified_progress_pct: 37.5,
-        schedule_variance_days: 35,
-      },
-      finance: {
-        provenance: 'DATABASE_FACT',
-        cost_variance_pct: 5.2,
-      },
-      metadata: {
-        provenance: 'DATABASE_FACT',
-      },
+      government_verified_progress_pct: 37.5,
+      contractor_reported_progress_pct: 38.0,
+      planned_progress_pct: 43.0,
+      schedule_variance_days: 35,
+      cost_variance_pct: 5.2,
+      open_complaints: 2,
+      high_severity_complaints: 0,
+      inspection_defects: 1,
+      resource_shortage_ratio: 0.08,
+      pending_approval_days: 4,
+      payment_delay_days: 0,
+      evidence_count: 8,
     };
 
     const learnResult = await aiClient.learnVerifiedSnapshot(verifiedSnapshot);
     assert.strictEqual(learnResult.learned, true, 'Learning must succeed on verified snapshot');
-    console.log('    Online Learned:', learnResult.learned, '| Samples:', learnResult.samples_seen);
+    console.log('    Online Learned:', learnResult.learned);
   });
 
   console.log(`\nResults: ${passed} passed, ${failed} failed`);

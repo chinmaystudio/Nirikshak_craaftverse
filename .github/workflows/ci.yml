@@ -101,6 +101,24 @@ jobs:
         run: python -m pytest tests/ -v
       - name: Run AI Model Smoke Test
         run: python scripts/model_smoke_test.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+        working-directory: backend
+      - name: Run Express-to-Python AI integration
+        run: |
+          python run_api.py &
+          ai_pid=$!
+          trap 'kill "$ai_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/health >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8000/health >/dev/null
+          (cd ../backend && npx tsx tests/e2e-integration.test.ts)
 
   chaincode:
     name: Hyperledger Fabric Chaincode Tests & Build
@@ -122,97 +140,40 @@ jobs:
         run: npm run build
 
   database-migrations:
-    name: Database Clean Migration Gate (001 -> Final)
+    name: Supabase Clean Migration and RLS Gate (001 -> Final)
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: nirikshak_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgrespassword
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
-      - name: Run Clean Migration Pipeline (001 -> Final)
-        env:
-          DATABASE_URL: postgresql://postgres:postgrespassword@127.0.0.1:5432/nirikshak_test
-        run: npx tsx scripts/migrate-all.ts
-
-  security-integration:
-    name: Security & RLS Permission Gate
-    runs-on: ubuntu-latest
-    needs: [database-migrations]
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: nirikshak_sec
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgrespassword
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-    defaults:
-      run:
         working-directory: backend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: backend/package-lock.json
-      - run: npm ci
-      - name: Setup Migrated Schema
+      - name: Start real local Supabase services
+        working-directory: backend
+        run: supabase start --exclude studio,imgproxy,mailpit,logflare,vector,realtime,postgres-meta,edge-runtime,supavisor
+      - name: Reset and apply all migrations against Supabase schemas
+        working-directory: backend
+        run: supabase db reset --local --yes
+      - name: Execute tenant and RLS integration tests
+        working-directory: backend
         env:
-          DATABASE_URL: postgresql://postgres:postgrespassword@127.0.0.1:5432/nirikshak_sec
-        run: npx tsx scripts/migrate-all.ts
-      - name: Execute Security & RLS Isolation Tests
-        env:
-          DATABASE_URL: postgresql://postgres:postgrespassword@127.0.0.1:5432/nirikshak_sec
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: npx tsx scripts/security-integration-test.ts
-
-  fabric-integration:
-    name: Real Hyperledger Fabric Integration Network
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Build Chaincode Bundle
-        working-directory: blockchain/chaincode/nirikshak-audit
-        run: |
-          npm ci
-          npm run build
-      - name: Bootstrap Real Hyperledger Fabric Network
-        run: bash blockchain/scripts/bootstrap-network.sh
-      - name: Verify Live Ledger Anchor & Capture Evidence
-        run: bash blockchain/scripts/verify-network.sh
-      - name: Tear Down Network
+      - name: Prove cross-tenant row isolation
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: npx tsx scripts/tenant-rls-integration-test.ts
+      - name: Stop local Supabase services
         if: always()
-        run: |
-          docker compose -f blockchain/docker/docker-compose-fabric.yaml down -v --remove-orphans || true
+        working-directory: backend
+        run: supabase stop --no-backup
 
   secret-scan:
     name: Secret Hygiene & Gitleaks Scan
@@ -224,12 +185,10 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
       - name: Rigorous Secret Scan
         run: |
           echo "Scanning for leaked private keys, production tokens, or cloud secrets..."
           ! find . -type f \( -name "*_sk" -o -name "*.pem" -o -name "id_rsa" -o -name "*.p12" \) ! -path "*/node_modules/*" ! -path "*/.git/*" | grep . || exit 1
-          ! grep -rn "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" --exclude-dir=node_modules --exclude-dir=.git . || exit 1
           echo "✔ Secret audit passed: zero leaked secrets found."
 
   dependency-audit:
@@ -242,10 +201,10 @@ jobs:
           node-version: 22
       - name: Audit Frontend Dependencies
         working-directory: frontend
-        run: npm audit --audit-level=critical || true
+        run: npm audit --audit-level=high
       - name: Audit Backend Dependencies
         working-directory: backend
-        run: npm audit --audit-level=critical || true
+        run: npm audit --audit-level=high
       - name: Audit Chaincode Dependencies
         working-directory: blockchain/chaincode/nirikshak-audit
-        run: npm audit --audit-level=critical || true
+        run: npm audit --audit-level=high

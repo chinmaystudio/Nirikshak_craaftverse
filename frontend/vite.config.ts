@@ -2,6 +2,9 @@ import { defineConfig, normalizePath } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const configDir = path.dirname(fileURLToPath(import.meta.url));
 
 function moduleAliasPlugin() {
   return {
@@ -14,13 +17,13 @@ function moduleAliasPlugin() {
       const norm = normalizePath(importer);
       const subpath = source.slice(2);
 
-      let targetDir = path.resolve(__dirname, 'src');
+      let targetDir = path.resolve(configDir, 'src');
       if (norm.includes('/src/modules/government/')) {
-        targetDir = path.resolve(__dirname, 'src/modules/government');
+        targetDir = path.resolve(configDir, 'src/modules/government');
       } else if (norm.includes('/src/modules/user/')) {
-        targetDir = path.resolve(__dirname, 'src/modules/user');
+        targetDir = path.resolve(configDir, 'src/modules/user');
       } else if (norm.includes('/src/modules/contractor/')) {
-        targetDir = path.resolve(__dirname, 'src/modules/contractor');
+        targetDir = path.resolve(configDir, 'src/modules/contractor');
       }
 
       const base = path.join(targetDir, subpath);
@@ -41,7 +44,7 @@ function moduleAliasPlugin() {
       }
 
       // If not in sub-module, try src/<subpath>
-      const srcBase = path.join(path.resolve(__dirname, 'src'), subpath);
+      const srcBase = path.join(path.resolve(configDir, 'src'), subpath);
       const srcCandidates = [
         srcBase,
         `${srcBase}.ts`,
@@ -68,14 +71,12 @@ export default defineConfig({
     // Browser applications must ship JavaScript, but production source files,
     // source maps, and readable module names should never be published.
     sourcemap: false,
-    minify: 'esbuild',
+    minify: 'oxc',
     manifest: false,
-  },
-  esbuild: {
-    legalComments: 'none',
   },
   server: {
     port: 5173,
     host: true,
+    proxy: { '/api': 'http://127.0.0.1:4000' },
   },
 });

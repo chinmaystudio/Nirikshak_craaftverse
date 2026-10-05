@@ -35,7 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_contracts_project_contractor
     ON contracts(project_id, contractor_organization_id, status);
 
 CREATE INDEX IF NOT EXISTS idx_milestones_proj_seq 
-    ON project_milestones(project_id, sequence_number);
+    ON project_milestones(project_id, display_order);
 
 CREATE INDEX IF NOT EXISTS idx_progress_updates_proj_time 
     ON progress_updates(project_id, created_at DESC);
@@ -60,7 +60,7 @@ CREATE INDEX IF NOT EXISTS idx_complaints_proj_status
     ON complaints(project_id, status);
 
 CREATE INDEX IF NOT EXISTS idx_complaints_citizen 
-    ON complaints(citizen_user_id, status);
+    ON complaints(user_id, status);
 
 CREATE INDEX IF NOT EXISTS idx_litigations_proj_status 
     ON litigations(project_id, status);

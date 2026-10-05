@@ -79,34 +79,28 @@ async function run() {
       await adminClient.query('RESET ROLE;');
     }
 
-    // 5. Test: authenticated cannot call enqueue_blockchain_anchor
-    try {
-      await adminClient.query('SET ROLE authenticated;');
-      await adminClient.query(`
-        SELECT public.enqueue_blockchain_anchor(
-          '00000000-0000-0000-0000-000000000001',
-          'PROJECT',
-          '00000000-0000-0000-0000-000000000001',
-          'PROJECT_CREATED',
-          'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-          'GovernmentOrgMSP',
-          'government_admin'
-        );
-      `);
-      assert('authenticated cannot call enqueue_blockchain_anchor', false, 'Execution succeeded unexpectedly');
-    } catch (err: any) {
-      assert('authenticated cannot call enqueue_blockchain_anchor', err.message.includes('permission denied'));
-    } finally {
-      await adminClient.query('RESET ROLE;');
-    }
+    // Check every overload without invoking the function or relying on a stale signature.
+    const enqueuePrivileges = await adminClient.query(`
+      SELECT count(*)::int AS function_count,
+             count(*) FILTER (
+               WHERE has_function_privilege('authenticated', p.oid, 'EXECUTE')
+                  OR has_function_privilege('anon', p.oid, 'EXECUTE')
+             )::int AS client_executable_count
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public' AND p.proname = 'enqueue_blockchain_anchor'
+    `);
+    assert('browser roles cannot execute enqueue_blockchain_anchor',
+      enqueuePrivileges.rows[0].function_count > 0 && enqueuePrivileges.rows[0].client_executable_count === 0);
 
     // 6. Test: service_role CAN execute security diagnostics
     try {
       await adminClient.query('SET ROLE service_role;');
       const diagRes = await adminClient.query('SELECT * FROM public.verify_system_security_posture();');
       const rows = diagRes.rows;
-      const allPassed = rows.length > 0 && rows.every((r: any) => r.status === 'PASS');
-      assert('service_role verify_system_security_posture', allPassed, `Passed: ${rows.filter((r: any) => r.status === 'PASS').length}/${rows.length}`);
+      const allPassed = rows.length > 0 && rows.every((r: any) => r.passed === true);
+      const failures = rows.filter((r: any) => r.passed !== true).map((r: any) => `${r.check_name}: ${r.details}`);
+      assert('service_role verify_system_security_posture', allPassed, failures.length ? failures.join('; ') : undefined);
     } catch (err: any) {
       assert('service_role verify_system_security_posture', false, err.message);
     } finally {
