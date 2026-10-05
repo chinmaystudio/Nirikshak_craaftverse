@@ -138,7 +138,7 @@ jobs:
         working-directory: backend
       - name: Start real local Supabase services
         working-directory: backend
-        run: supabase start
+        run: supabase start --exclude studio,imgproxy,mailpit,logflare,vector,realtime,postgres-meta,edge-runtime,supavisor
       - name: Reset and apply all migrations against Supabase schemas
         working-directory: backend
         run: supabase db reset --local --yes
