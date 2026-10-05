@@ -71,9 +71,10 @@ DO $$ BEGIN
 END $$;
 
 -- 2. Backfill sequence_number from display_order if different
+ALTER TABLE public.project_milestones ADD COLUMN IF NOT EXISTS sequence_number INTEGER;
 UPDATE public.project_milestones 
 SET sequence_number = display_order 
-WHERE display_order IS NOT NULL AND sequence_number <> display_order;
+WHERE display_order IS NOT NULL AND sequence_number IS DISTINCT FROM display_order;
 
 -- 3. Unique Consistency Constraints & Indices
 CREATE UNIQUE INDEX IF NOT EXISTS uq_contracts_active_tender 
