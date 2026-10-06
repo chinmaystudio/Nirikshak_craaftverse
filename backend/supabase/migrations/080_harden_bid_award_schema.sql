@@ -94,7 +94,7 @@ BEGIN
   WHERE id = p_tender_id;
 
   UPDATE public.projects
-  SET normalized_status = 'IN_PROGRESS', updated_at = now()
+  SET normalized_status = 'UNDER_CONSTRUCTION', updated_at = now()
   WHERE id = v_tender.project_id
     AND normalized_status IN ('PROPOSED', 'TENDERED', 'APPROVED');
 
