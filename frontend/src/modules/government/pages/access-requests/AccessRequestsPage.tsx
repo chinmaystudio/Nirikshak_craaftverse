@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '@/core/supabase/client';
+import { apiClient } from '@/lib/api/apiClient';
 import { Panel } from '@/components/ui/Card';
 import { TextField, Select } from '@/components/ui/Fields';
 import { Button } from '@/components/ui/Button';
@@ -63,61 +63,20 @@ export function AccessRequestsPage() {
       setLoading(true);
       setError(null);
 
-      // Fetch government requests
-      const { data: rawGov, error: rawGovErr } = await supabase
-        .from('government_access_requests')
-        .select('id, user_id, employee_id, department, designation, official_email, state, district, status, requested_role, created_at, reviewed_at')
-        .order('created_at', { ascending: false });
-
-      if (rawGovErr) throw rawGovErr;
-
-      const govUserIds = Array.from(new Set((rawGov || []).map((r: any) => r.user_id).filter(Boolean)));
-      const govProfileMap: Record<string, { full_name?: string; phone?: string }> = {};
-
-      if (govUserIds.length > 0) {
-        const { data: profs } = await supabase
-          .from('profiles')
-          .select('id, full_name, phone')
-          .in('id', govUserIds);
-
-        (profs || []).forEach((p: any) => {
-          govProfileMap[p.id] = { full_name: p.full_name, phone: p.phone };
-        });
-      }
-
-      const formattedGov: GovAccessRequest[] = (rawGov || []).map((r: any) => ({
-        ...r,
-        user_profile: govProfileMap[r.user_id] || { full_name: r.official_email?.split('@')[0] },
-      }));
-      setGovRequests(formattedGov);
-
-      // Fetch contractor requests
-      const { data: rawCon, error: rawConErr } = await supabase
-        .from('contractor_access_requests')
-        .select('id, user_id, company_name, registration_cin, gstin, contractor_class, state, district, phone, status, requested_role, created_at, reviewed_at')
-        .order('created_at', { ascending: false });
-
-      if (rawConErr) throw rawConErr;
-
-      const conUserIds = Array.from(new Set((rawCon || []).map((r: any) => r.user_id).filter(Boolean)));
-      const conProfileMap: Record<string, { full_name?: string }> = {};
-
-      if (conUserIds.length > 0) {
-        const { data: profs } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', conUserIds);
-
-        (profs || []).forEach((p: any) => {
-          conProfileMap[p.id] = { full_name: p.full_name };
-        });
-      }
-
-      const formattedCon: ContractorAccessRequest[] = (rawCon || []).map((r: any) => ({
-        ...r,
-        user_profile: conProfileMap[r.user_id] || { full_name: r.company_name },
-      }));
-      setContractorRequests(formattedCon);
+      const result = await apiClient.get<{
+        governmentRequests: GovAccessRequest[];
+        contractorRequests: ContractorAccessRequest[];
+        profiles: { id: string; full_name?: string; phone?: string }[];
+      }>('/api/access-requests');
+      const profileMap = Object.fromEntries(result.profiles.map((profile) => [profile.id, profile]));
+      setGovRequests(result.governmentRequests.map((request) => ({
+        ...request,
+        user_profile: profileMap[request.user_id] || { full_name: request.official_email?.split('@')[0] },
+      })));
+      setContractorRequests(result.contractorRequests.map((request) => ({
+        ...request,
+        user_profile: profileMap[request.user_id] || { full_name: request.company_name },
+      })));
     } catch (err: any) {
       console.error('Failed to load access requests:', err);
       setError(err.message || 'Failed to load access requests');
@@ -137,12 +96,7 @@ export function AccessRequestsPage() {
       setError(null);
       setSuccessMsg(null);
 
-      const { error: rpcErr } = await (supabase.rpc as any)('approve_government_access_request', {
-        request_id: requestId,
-        approved_role: roleToGrant,
-      });
-
-      if (rpcErr) throw rpcErr;
+      await apiClient.post(`/api/access-requests/government/${requestId}/approve`, { role: roleToGrant });
 
       setSuccessMsg(`Government request approved successfully with role: ${roleToGrant}`);
       await loadRequests();
@@ -161,12 +115,7 @@ export function AccessRequestsPage() {
       setError(null);
       setSuccessMsg(null);
 
-      const { error: rpcErr } = await (supabase.rpc as any)('approve_contractor_access_request', {
-        request_id: requestId,
-        approved_role: roleToGrant,
-      });
-
-      if (rpcErr) throw rpcErr;
+      await apiClient.post(`/api/access-requests/contractor/${requestId}/approve`, { role: roleToGrant });
 
       setSuccessMsg(`Contractor request approved successfully. Organization verified and user active.`);
       await loadRequests();
@@ -184,13 +133,7 @@ export function AccessRequestsPage() {
       setError(null);
       setSuccessMsg(null);
 
-      const { error: rpcErr } = await (supabase.rpc as any)('reject_access_request', {
-        p_request_id: requestId,
-        p_type: type,
-        p_reason: 'Application rejected by Government Authority Administrator',
-      });
-
-      if (rpcErr) throw rpcErr;
+      await apiClient.post(`/api/access-requests/${type}/${requestId}/reject`);
 
       setSuccessMsg(`${type === 'government' ? 'Government' : 'Contractor'} access request rejected.`);
       await loadRequests();

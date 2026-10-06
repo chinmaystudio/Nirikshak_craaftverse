@@ -102,7 +102,7 @@ export function AppRoutes() {
           <Route path="/otp-verification" element={<OtpVerificationPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/government/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/government/reset-password" element={<ResetPasswordPage />} />
           <Route path="/2fa" element={<TwoFactorPage />} />
           <Route path="/select-department" element={<SelectDepartmentPage />} />
           <Route path="/select-role" element={<SelectRolePage />} />

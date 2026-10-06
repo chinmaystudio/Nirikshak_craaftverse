@@ -7,10 +7,20 @@ class ApiClient {
     return env.API_BASE_URL || '';
   }
 
-  private getCsrfToken(): string | null {
+  private async getCsrfToken(): Promise<string | null> {
     if (typeof document === 'undefined') return null;
     const match = document.cookie.match(/nirikshak_csrf=([^;]+)/);
-    return match ? decodeURIComponent(match[1]) : null;
+    if (match) return decodeURIComponent(match[1]);
+
+    // Cookies set by Render are not readable from the Cloudflare Pages domain.
+    const cleanBase = this.baseUrl.replace(/\/$/, '');
+    const csrfPath = cleanBase.endsWith('/api') ? '/auth/csrf' : '/api/auth/csrf';
+    const response = await fetch(`${cleanBase}${csrfPath}`, { credentials: 'include' });
+    const payload = await response.json();
+    if (!response.ok || !payload?.success || !payload.data?.csrfToken) {
+      throw new ApiError('Could not verify this session. Sign in again.', 'CSRF_UNAVAILABLE', response.status);
+    }
+    return payload.data.csrfToken;
   }
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -34,8 +44,10 @@ class ApiClient {
     };
 
     const method = (options.method || 'GET').toUpperCase();
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-      const csrfToken = this.getCsrfToken();
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && ![
+      '/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password',
+    ].includes(resolvedPath)) {
+      const csrfToken = await this.getCsrfToken();
       if (csrfToken && !headers['X-CSRF-Token']) {
         headers['X-CSRF-Token'] = csrfToken;
       }

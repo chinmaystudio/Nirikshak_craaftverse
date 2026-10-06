@@ -4,6 +4,8 @@ import { RegisterSchema, LoginSchema, ForgotPasswordSchema, ResetPasswordSchema 
 import { ApiResponseHelper } from '../../core/http/response.js';
 import { AuthenticatedRequest } from '../../core/auth/auth.middleware.js';
 import { generateCsrfToken } from '../../core/security/csrf.js';
+import { env } from '../../core/config/env.js';
+import { ValidationError } from '../../core/http/errors.js';
 
 export class AuthController {
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -70,7 +72,19 @@ export class AuthController {
     ApiResponseHelper.success(res, { loggedOut: true }, 200);
   }
 
-  async getCsrf(_req: Request, res: Response): Promise<void> {
+  async getCsrf(req: Request, res: Response): Promise<void> {
+    // The Pages frontend cannot read cookies set on the Render domain. Return
+    // the existing token so its header still matches the session-bound cookie.
+    if (req.cookies?.['nirikshak_session']) {
+      const existingToken = req.cookies?.['nirikshak_csrf'];
+      if (!existingToken) {
+        ApiResponseHelper.forbidden(res, 'CSRF cookie is missing. Sign in again.');
+        return;
+      }
+      ApiResponseHelper.success(res, { csrfToken: existingToken });
+      return;
+    }
+
     const csrfToken = generateCsrfToken();
     const isProduction = process.env.NODE_ENV === 'production';
 
@@ -95,7 +109,12 @@ export class AuthController {
   async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const input = ForgotPasswordSchema.parse(req.body);
-      await authService.forgotPassword(input.email);
+      const sourceOrigin = req.headers.origin || (req.headers.referer ? new URL(req.headers.referer).origin : '');
+      const allowedOrigins = env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim());
+      if (!sourceOrigin || !allowedOrigins.includes(sourceOrigin)) {
+        throw new ValidationError('A valid application origin is required for password recovery.');
+      }
+      await authService.forgotPassword(input.email, `${sourceOrigin}/government/reset-password`);
       ApiResponseHelper.success(res, {
         message: 'If an account exists with this email, password reset instructions have been sent.',
       });

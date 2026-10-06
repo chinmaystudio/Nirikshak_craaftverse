@@ -1,7 +1,7 @@
 let recoveryProof: string | null = null;
 
 export function captureRecoveryProof(): void {
-  if (window.location.pathname !== '/reset-password') return;
+  if (window.location.pathname !== '/government/reset-password') return;
 
   const fragment = new URLSearchParams(window.location.hash.slice(1));
   if (fragment.get('type') !== 'recovery') return;

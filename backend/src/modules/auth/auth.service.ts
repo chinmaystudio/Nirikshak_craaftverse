@@ -334,8 +334,8 @@ export class AuthService {
     };
   }
 
-  async forgotPassword(email: string): Promise<void> {
-    await supabasePublic.auth.resetPasswordForEmail(email.toLowerCase());
+  async forgotPassword(email: string, redirectTo: string): Promise<void> {
+    await supabasePublic.auth.resetPasswordForEmail(email.toLowerCase(), { redirectTo });
   }
 
   async resetPassword(tokenOrProof: string, newPassword: string): Promise<void> {

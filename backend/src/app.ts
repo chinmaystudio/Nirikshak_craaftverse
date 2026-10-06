@@ -25,6 +25,7 @@ import { environmentRouter } from './modules/environment/environment.routes.js';
 import { legalRouter } from './modules/legal/legal.routes.js';
 import { notificationsRouter } from './modules/notifications/notifications.routes.js';
 import { blockchainRouter } from './modules/blockchain/blockchain.routes.js';
+import { accessRequestsRouter } from './modules/access-requests/access-requests.routes.js';
 
 export const app = express();
 
@@ -109,6 +110,7 @@ app.use('/api/documents', documentsRouter);
 app.use('/api/environment', environmentRouter);
 app.use('/api/legal', legalRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/access-requests', accessRequestsRouter);
 app.use('/api/integrity', blockchainRouter);
 
 // 12. Safe 404 Handler (no internal routing leaks)

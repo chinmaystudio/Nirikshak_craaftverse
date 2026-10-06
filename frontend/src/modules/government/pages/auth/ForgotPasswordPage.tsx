@@ -4,11 +4,28 @@ import { useI18n } from '@/context/I18nContext'
 import { TextField } from '@/components/ui/Fields'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { apiClient } from '@/lib/api/apiClient'
 
 export function ForgotPasswordPage() {
   const { t } = useI18n()
   const [sent, setSent] = useState(false)
-  const [employeeId, setEmployeeId] = useState('')
+  const [email, setEmail] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    try {
+      await apiClient.post('/api/auth/forgot-password', { email })
+      setSent(true)
+    } catch (err: any) {
+      setError(err?.message || 'Could not send recovery email. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <Card className="p-6">
@@ -20,25 +37,21 @@ export function ForgotPasswordPage() {
           <span className="material-symbols-outlined mr-1 align-middle text-[18px]" aria-hidden="true">
             mark_email_read
           </span>
-          Reset instructions sent (demo — nothing was actually emailed).
+          If an account exists for this address, a password recovery email has been sent.
         </div>
       ) : (
-        <form
-          className="mt-5 flex flex-col gap-4"
-          onSubmit={(e) => {
-            e.preventDefault()
-            setSent(true)
-          }}
-        >
+        <form className="mt-5 flex flex-col gap-4" onSubmit={handleSubmit}>
           <TextField
-            label={t('auth.employeeId')}
+            label="Official email"
+            type="email"
             required
-            startIcon="badge"
-            placeholder={t('auth.employeeIdPlaceholder')}
-            value={employeeId}
-            onChange={(e) => setEmployeeId(e.target.value)}
+            startIcon="mail"
+            placeholder="you@department.gov.in"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
-          <Button type="submit" size="lg" block icon="outgoing_mail">
+          {error && <p className="text-body-small text-danger-strong">{error}</p>}
+          <Button type="submit" size="lg" block icon="outgoing_mail" disabled={busy}>
             Send reset link
           </Button>
         </form>
