@@ -10,6 +10,11 @@ export class ProcurementController {
     catch (err) { next(err); }
   }
 
+  async closeTender(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try { ApiResponseHelper.success(res, await procurementService.closeTender(req.params.tenderId, req.userContext!)); }
+    catch (err) { next(err); }
+  }
+
   async publishTender(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const validated = CreateTenderSchema.parse(req.body);

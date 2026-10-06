@@ -72,6 +72,18 @@ export function WorkspaceTendersPage() {
     }
   }
 
+  async function handleCloseTender(tender: Tender) {
+    if (!window.confirm(`Close ${tender.id} immediately? New bids will no longer be accepted.`)) return
+    try {
+      await tendersApi.close(tender.id)
+      setTenderList((prev) => prev.map((item) => item.id === tender.id ? { ...item, status: 'cancelled' } : item))
+      setDetail(null)
+      showToast(`Tender ${tender.id} closed immediately.`, 'success')
+    } catch (err: any) {
+      showToast(err.message || 'Tender could not be closed.', 'danger')
+    }
+  }
+
   const rows = useMemo(
     () =>
       tenderList.filter(
@@ -172,9 +184,10 @@ export function WorkspaceTendersPage() {
             { key: 'stage', header: 'Stage', render: (x) => <span className="text-caption text-fg-muted">{PROCUREMENT_STAGES[stageIndex(x.status)].label}</span> },
           ]}
           rowActions={(x) => (
-            <Button variant="outline" size="sm" className="!min-h-7 !px-2.5" onClick={() => setDetail(x)}>
-              {t('common.view')}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="!min-h-7 !px-2.5" onClick={() => setDetail(x)}>{t('common.view')}</Button>
+              {['published', 'bid_open'].includes(x.status) && <Button variant="danger" size="sm" className="!min-h-7 !px-2.5" onClick={() => handleCloseTender(x)}>Close Bids</Button>}
+            </div>
           )}
           emptyState={
             <div className="p-8 text-center">

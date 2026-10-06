@@ -8,6 +8,10 @@ procurementRouter.get('/', requireAuth, requireGovernment, (req, res, next) =>
   procurementController.listTenders(req, res, next)
 );
 
+procurementRouter.post('/:tenderId/close', requireAuth, requireGovernment, (req, res, next) =>
+  procurementController.closeTender(req, res, next)
+);
+
 // POST /api/tenders - Publish a tender for a project owned by caller's Government organization
 procurementRouter.post('/', requireAuth, requireGovernment, (req, res, next) =>
   procurementController.publishTender(req, res, next)

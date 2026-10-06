@@ -47,7 +47,7 @@ export const procurementService = {
             title: t.title || 'Unknown',
             department: t.projects?.project_authority || 'Government Authority',
             district: t.projects?.district || 'Not specified',
-            status: (t.status || 'PUBLISHED').toLowerCase() as any,
+            status: t.status === 'CLOSED' ? 'cancelled' : (t.status || 'PUBLISHED').toLowerCase() as any,
             estimatedCostCr: t.estimated_value_inr_crore == null ? 0 : Number(t.estimated_value_inr_crore),
             publishedOn: t.publication_date || '',
             submissionDeadline: t.bid_due_date || '',
@@ -121,5 +121,9 @@ export const procurementService = {
       mode: (tender.mode as any) || 'e-Tender',
       projectId: data.nirikshak_project_id || tender.projectId,
     };
+  },
+
+  async close(tenderId: string): Promise<void> {
+    await apiClient.post(`/api/tenders/${tenderId}/close`);
   },
 };

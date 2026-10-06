@@ -18,6 +18,27 @@ export class ProcurementService {
     return data || [];
   }
 
+  async closeTender(tenderId: string, userContext: UserContext): Promise<any> {
+    let query = supabaseAdmin
+      .from('tenders')
+      .update({ status: 'CLOSED', updated_at: new Date().toISOString() })
+      .eq('issuing_organization_id', userContext.organizationId)
+      .eq('status', 'PUBLISHED')
+    query = UUID_PATTERN.test(tenderId) ? query.eq('id', tenderId) : query.eq('tender_number', tenderId);
+    const { data, error } = await query.select().maybeSingle();
+    if (error) throw new ValidationError(`Tender closure failed: ${error.message}`);
+    if (!data) throw new AuthorizationError('Tender is not published, or it belongs to another Government organization.');
+    await supabaseAdmin.from('audit_logs').insert({
+      actor_id: userContext.userId,
+      actor_organization_id: userContext.organizationId,
+      action: 'TENDER_CLOSED_IMMEDIATELY',
+      entity_type: 'tenders',
+      entity_id: data.id,
+      new_value: { tender_number: data.tender_number, reason: 'Government administrator closed tender immediately' },
+    });
+    return data;
+  }
+
   async saveTenderBid(input: { tender_id: string; bid_amount: number; technical_proposal: string; status: 'DRAFT' | 'SUBMITTED' }, token: string): Promise<any> {
     const scopedClient = await createAuthenticatedClient(token);
     const { data, error } = await scopedClient.rpc('save_tender_bid', {
