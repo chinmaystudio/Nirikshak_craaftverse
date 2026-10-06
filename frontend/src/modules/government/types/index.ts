@@ -153,6 +153,7 @@ export interface ApprovalItem {
 }
 
 export interface TenderLot {
+  bidId?: string
   bidder: string
   quotedAmountCr: number
   technicalScore: number
@@ -162,6 +163,7 @@ export interface TenderLot {
 }
 
 export interface Tender {
+  databaseId?: string
   id: string // eNIT / Tender No.
   title: string
   department: string

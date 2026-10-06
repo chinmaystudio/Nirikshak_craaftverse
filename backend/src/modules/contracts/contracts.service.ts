@@ -23,7 +23,6 @@ export class ContractsService {
     const { data, error } = await scopedClient.rpc('award_contract', {
       p_tender_id: input.tender_id,
       p_bid_id: input.bid_id,
-      p_award_notes: input.award_notes || undefined,
     });
 
     if (error) {

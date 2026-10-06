@@ -44,6 +44,7 @@ export const procurementService = {
             Boolean(t.bid_due_date && new Date(`${t.bid_due_date}T23:59:59`).getTime() < Date.now());
           return {
             id: t.tender_number || t.id,
+            databaseId: t.id,
             title: t.title || 'Unknown',
             department: t.projects?.project_authority || 'Government Authority',
             district: t.projects?.district || 'Not specified',
@@ -57,6 +58,7 @@ export const procurementService = {
               ? bids
                   .filter((bid) => bid.status !== 'DRAFT' && bid.status !== 'WITHDRAWN')
                   .map((bid) => ({
+                    bidId: bid.id,
                     bidder: bid.organizations?.name || 'Registered contractor',
                     quotedAmountCr: Number(bid.bid_amount) || 0,
                     technicalScore: Number(bid.technical_score) || 0,

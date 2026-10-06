@@ -18,6 +18,9 @@ export interface ProjectContract {
 }
 
 export const contractsService = {
+  async award(tenderId: string, bidId: string, notes?: string): Promise<any> {
+    return apiClient.post('/api/contracts/award', { tender_id: tenderId, bid_id: bidId, award_notes: notes });
+  },
   async getProjectContracts(projectId: string): Promise<ProjectContract[]> {
     return apiClient.get<ProjectContract[]>(`/api/contracts/project/${projectId}`);
   },

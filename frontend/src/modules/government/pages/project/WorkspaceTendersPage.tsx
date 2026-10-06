@@ -14,6 +14,7 @@ import { PageHeader, KpiRow, FilterBar, KpiCard } from '@/components/blocks/Page
 import { formatCr, formatDate } from '@/utils/format'
 import { TENDER_STATUS } from '@/utils/status'
 import type { Tender } from '@/types'
+import { contractsService } from '../../services/contracts.service'
 
 const PROCUREMENT_STAGES = [
   { key: 'draft', label: 'Draft', icon: 'edit_note' },
@@ -81,6 +82,19 @@ export function WorkspaceTendersPage() {
       showToast(`Tender ${tender.id} closed immediately.`, 'success')
     } catch (err: any) {
       showToast(err.message || 'Tender could not be closed.', 'danger')
+    }
+  }
+
+  async function handleAwardTender(tender: Tender, bidId: string) {
+    if (!tender.databaseId) return
+    if (!window.confirm(`Award this tender to the selected contractor immediately?`)) return
+    try {
+      await contractsService.award(tender.databaseId, bidId)
+      setTenderList((prev) => prev.map((item) => item.id === tender.id ? { ...item, status: 'awarded' } : item))
+      setDetail(null)
+      showToast(`Tender ${tender.id} awarded successfully.`, 'success')
+    } catch (err: any) {
+      showToast(err.message || 'Tender could not be awarded.', 'danger')
     }
   }
 
@@ -204,7 +218,7 @@ export function WorkspaceTendersPage() {
 
       {/* Tender detail drawer */}
       <Drawer open={detail !== null} onClose={() => setDetail(null)} title={detail?.id ?? ''} titleIcon="gavel" width="max-w-xl">
-        {detail && <TenderDetail tender={detail} />}
+        {detail && <TenderDetail tender={detail} onAward={(bidId) => handleAwardTender(detail, bidId)} />}
       </Drawer>
 
       {/* Create tender */}
@@ -253,7 +267,7 @@ function cnStage(reached: boolean) {
 }
 
 /** Tender drawer: overview, bids, evaluation, comparison, award. */
-function TenderDetail({ tender }: { tender: Tender }) {
+function TenderDetail({ tender, onAward }: { tender: Tender; onAward: (bidId: string) => void }) {
   const { t } = useI18n()
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -301,6 +315,11 @@ function TenderDetail({ tender }: { tender: Tender }) {
                       <Badge tone={l.bidStatus === 'accepted' ? 'success' : l.bidStatus === 'rejected' ? 'danger' : 'info'} dot>
                         {l.bidStatus.replace('_', ' ')}
                       </Badge>
+                      {l.bidId && l.bidStatus === 'under_review' && tender.status !== 'awarded' && (
+                        <Button variant="primary" size="sm" className="ml-2 !min-h-7 !px-2.5" onClick={() => onAward(l.bidId!)}>
+                          Award
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}
