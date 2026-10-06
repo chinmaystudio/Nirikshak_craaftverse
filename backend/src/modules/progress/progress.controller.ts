@@ -5,6 +5,15 @@ import { ApiResponseHelper } from '../../core/http/response.js';
 import { AuthenticatedRequest } from '../../core/auth/auth.middleware.js';
 
 export class ProgressController {
+  async listProject(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await progressService.listProjectProgress(req.params.projectId, req.token!);
+      ApiResponseHelper.success(res, result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async submit(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const validated = SubmitProgressSchema.parse(req.body);

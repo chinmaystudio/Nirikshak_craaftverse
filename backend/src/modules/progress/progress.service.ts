@@ -5,6 +5,21 @@ import { aiClient } from '../ai/ai.client.js';
 import { buildProjectSnapshot } from '../ai/ai.context.js';
 
 export class ProgressService {
+  async listProjectProgress(projectId: string, token: string): Promise<any[]> {
+    const scopedClient = await createAuthenticatedClient(token);
+    const { data, error } = await scopedClient
+      .from('progress_updates')
+      .select('id, project_id, observation_date, submitted_at, reported_progress, verification_status, review_notes, description, work_completed, created_at')
+      .eq('project_id', projectId)
+      .is('deleted_at', null)
+      .order('submitted_at', { ascending: false });
+
+    if (error) {
+      throw new ValidationError(`Failed to load project progress: ${error.message}`);
+    }
+    return data || [];
+  }
+
   async submitProgress(input: SubmitProgressInput, token: string): Promise<any> {
     const scopedClient = await createAuthenticatedClient(token);
     // Unverified contractor submission - Authoritative RPC execution

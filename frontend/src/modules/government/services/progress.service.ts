@@ -1,16 +1,9 @@
-import { supabase } from '@/core/supabase/client'
+import { apiClient } from '@/lib/api/apiClient'
 import type { ProgressUpdate } from '@/demo/government/workspace'
 
 export const progressService = {
   async forProject(projectId: string): Promise<ProgressUpdate[]> {
-    const { data, error } = await supabase
-      .from('progress_updates')
-      .select('id, project_id, observation_date, submitted_at, reported_progress, verification_status, review_notes, description, work_completed')
-      .eq('project_id', projectId)
-      .is('deleted_at', null)
-      .order('submitted_at', { ascending: false })
-
-    if (error) throw error
+    const data = await apiClient.get<any[]>(`/api/progress/project/${encodeURIComponent(projectId)}`)
 
     return (data ?? []).map((row: any) => ({
       id: row.id,
