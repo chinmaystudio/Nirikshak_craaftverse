@@ -21,13 +21,18 @@ const configuredOrigins = env.ALLOWED_ORIGINS
   ? [...productionOrigins, ...env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)]
   : env.NODE_ENV === 'production' ? productionOrigins : defaultDevelopmentOrigins;
 
+/** Shared exact-origin check for CORS and CSRF middleware. */
+export function isAllowedOrigin(origin: string): boolean {
+  return configuredOrigins.includes(origin);
+}
+
 if (env.NODE_ENV === 'production' && configuredOrigins.length === 0) {
   throw new Error('ALLOWED_ORIGINS must be configured in production');
 }
 
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
-    if (!origin || configuredOrigins.includes(origin)) {
+    if (!origin || isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       const error = Object.assign(new Error('Origin not permitted by CORS policy'), {

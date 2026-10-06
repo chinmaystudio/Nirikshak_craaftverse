@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { env } from '../config/env.js';
+import { isAllowedOrigin } from './cors.js';
 
 export function generateCsrfToken(): string {
   return crypto.randomBytes(32).toString('hex');
@@ -35,13 +36,11 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   // 1. Mandatory Origin / Referer verification for ALL mutating browser requests
   const origin = req.headers['origin'] as string;
   const referer = req.headers['referer'] as string;
-  const allowedOrigins = env.ALLOWED_ORIGINS;
-
   // Check if request is authenticated via internal service secret (machine-to-machine)
   const isInternalService = req.headers['x-internal-service-secret'] === process.env.INTERNAL_HEALTH_SECRET;
 
   if (origin) {
-    if (!allowedOrigins.includes(origin)) {
+    if (!isAllowedOrigin(origin)) {
       res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -53,7 +52,7 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   } else if (referer) {
     try {
       const refererOrigin = new URL(referer).origin;
-      if (!allowedOrigins.includes(refererOrigin)) {
+      if (!isAllowedOrigin(refererOrigin)) {
         res.status(403).json({
           success: false,
           error: 'FORBIDDEN',
@@ -108,4 +107,3 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
 
   next();
 }
-
