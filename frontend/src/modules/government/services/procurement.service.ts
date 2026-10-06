@@ -1,5 +1,6 @@
 import { supabase } from '@/core/supabase/client';
 import { env } from '@/lib/config/env';
+import { apiClient } from '@/lib/api/apiClient';
 import type { Tender, Paginated, ListQuery } from '@/modules/government/types';
 
 function matchesQuery<T extends object>(items: T[], q?: ListQuery): T[] {
@@ -108,31 +109,13 @@ export const procurementService = {
       throw new Error('Tender publication service is temporarily unavailable.');
     }
 
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (sessionError || !accessToken) throw new Error('Your session has expired. Please sign in again.');
-
-    const response = await fetch(`${env.API_BASE_URL}/api/tenders`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        project_id: tender.projectId,
-        title: tender.title,
-        estimated_value_inr_crore: tender.estimatedCostCr,
-        mode: tender.mode || 'e-Tender',
-        description: tender.scopeSummary || undefined,
-      }),
+    const data = await apiClient.post<any>('/api/tenders', {
+      project_id: tender.projectId,
+      title: tender.title,
+      estimated_value_inr_crore: tender.estimatedCostCr,
+      mode: tender.mode || 'e-Tender',
+      description: tender.scopeSummary || undefined,
     });
-
-    const result = await response.json().catch(() => null);
-    if (!response.ok || !result?.data) {
-      throw new Error(result?.error?.message || 'The tender could not be published.');
-    }
-
-    const data = result.data;
     return {
       id: data.tender_number || data.id,
       title: data.title,
