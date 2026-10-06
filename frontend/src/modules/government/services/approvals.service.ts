@@ -1,4 +1,5 @@
 import { supabase } from '@/core/supabase/client';
+import { apiClient } from '@/lib/api/apiClient';
 import type { ApprovalItem, Paginated, ListQuery } from '@/modules/government/types';
 
 export const approvalsService = {
@@ -61,22 +62,10 @@ export const approvalsService = {
   },
 
   async approve(id: string, notes = 'Approved after verification.'): Promise<void> {
-    const { error } = await supabase.rpc('approve_progress_update', {
-      p_update_id: id,
-      p_decision: 'APPROVED',
-      p_verified_progress: null,
-      p_review_notes: notes,
-    });
-    if (error) throw error;
+    await apiClient.post('/api/progress/review', { progress_update_id: id, decision: 'APPROVED', verified_progress: null, review_notes: notes });
   },
 
   async reject(id: string, notes = 'Rejected.'): Promise<void> {
-    const { error } = await supabase.rpc('approve_progress_update', {
-      p_update_id: id,
-      p_decision: 'REJECTED',
-      p_verified_progress: null,
-      p_review_notes: notes,
-    });
-    if (error) throw error;
+    await apiClient.post('/api/progress/review', { progress_update_id: id, decision: 'REJECTED', verified_progress: null, review_notes: notes });
   },
 };

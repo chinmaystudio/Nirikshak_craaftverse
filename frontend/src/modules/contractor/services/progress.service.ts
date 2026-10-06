@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
+import { apiClient } from '@/lib/api/apiClient';
 import type { ProgressReport } from '../types/contractor.types';
 
 export class ContractorProgressService {
@@ -34,20 +35,15 @@ export class ContractorProgressService {
     const { projectId, reportedProgress, description, milestoneId } = payload;
     const targetProjectId = await ContractorProgressService.resolveProjectId(projectId);
 
-    const { data, error } = await supabase.rpc('submit_progress_update', {
-      p_project_id: targetProjectId,
-      p_reported_progress: reportedProgress,
-      p_description: description,
-      p_milestone_id: milestoneId || null,
+    const data = await apiClient.post<{ id: string; success: boolean }>('/api/progress/submit', {
+      project_id: targetProjectId,
+      reported_progress: reportedProgress,
+      description,
+      milestone_id: milestoneId || null,
     });
 
-    if (error) {
-      console.error('[ContractorProgressService] Progress submission failed:', error);
-      throw new Error(`Progress submission rejected: ${error.message}`);
-    }
-
     return {
-      id: (data as any)?.id || 'submitted',
+      id: data?.id || 'submitted',
       success: true,
     };
   }
