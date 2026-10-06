@@ -37,7 +37,6 @@ export class AuthService {
       .select('role, organization_id, status, organizations(id, name, type)')
       .eq('user_id', authData.user.id)
       .ilike('status', 'active')
-      .order('created_at', { ascending: false })
       .limit(1);
 
     const membership = memberRows && memberRows.length > 0 ? memberRows[0] : null;
