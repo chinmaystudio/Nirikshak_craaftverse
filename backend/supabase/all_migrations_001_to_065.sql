@@ -3236,19 +3236,16 @@ BEGIN
         user_id,
         role,
         status,
-        created_at,
-        updated_at
+        created_at
     ) VALUES (
         v_gov_org_id,
         v_req.user_id,
         approved_role,
         'active',
-        now(),
         now()
     ) ON CONFLICT (organization_id, user_id) DO UPDATE SET
         role = EXCLUDED.role,
-        status = 'active',
-        updated_at = now();
+        status = 'active';
 
     -- Mark request APPROVED
     UPDATE public.government_access_requests
@@ -3374,19 +3371,16 @@ BEGIN
         user_id,
         role,
         status,
-        created_at,
-        updated_at
+        created_at
     ) VALUES (
         v_contractor_org_id,
         v_req.user_id,
         approved_role,
         'active',
-        now(),
         now()
     ) ON CONFLICT (organization_id, user_id) DO UPDATE SET
         role = EXCLUDED.role,
-        status = 'active',
-        updated_at = now();
+        status = 'active';
 
     -- Mark request APPROVED
     UPDATE public.contractor_access_requests
@@ -9148,4 +9142,3 @@ $$;
 
 REVOKE EXECUTE ON FUNCTION public.verify_production_security_readiness() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.verify_production_security_readiness() TO authenticated, service_role;
-
