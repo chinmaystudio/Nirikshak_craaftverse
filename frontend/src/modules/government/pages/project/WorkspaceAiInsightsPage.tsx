@@ -228,7 +228,7 @@ export function WorkspaceAiInsightsPage() {
           <div>
             <p className="nk-label">1. Executive Summary</p>
             <p className="mt-1 text-fg">
-              {aiResult?.summary || `Health ${health}/100. ${project.delayDays > 0 ? `${project.delayDays}-day schedule slippage with ` : ''}financial utilization at ${project.financialProgressPct}% against ${project.physicalProgressPct}% physical progress${flaggedBills.length ? ` and ${flaggedBills.length} bill(s) flagged by the risk engine` : ''}.`}
+              {aiResult?.llm?.summary || 'Run a live Gemini analysis to generate a summary from this project\'s current records.'}
             </p>
           </div>
           <div>
@@ -241,9 +241,8 @@ export function WorkspaceAiInsightsPage() {
           <div>
             <p className="nk-label">3. Key Risks</p>
             <ul className="mt-1 list-disc pl-5 text-fg-muted">
-              {(aiResult?.schedule?.reasons ?? [`Risk score ${scheduleRisk}/100 (${project.delayDays} days behind plan)`]).map((reason: string) => <li key={`schedule-${reason}`}>Schedule — {reason}</li>)}
-              {(aiResult?.finance?.reasons ?? [`Risk score ${financialRisk}/100 (utilization vs physical progress gap)`]).map((reason: string) => <li key={`finance-${reason}`}>Financial — {reason}</li>)}
-              {(aiResult?.environment?.reasons ?? [`Quality risk ${qualityRisk}/100 (test-result spread within limits)`]).map((reason: string) => <li key={`environment-${reason}`}>Environment/quality — {reason}</li>)}
+              {(aiResult?.llm?.key_findings ?? []).map((finding: { title: string; reason: string }) => <li key={`${finding.title}-${finding.reason}`}>{finding.title} — {finding.reason}</li>)}
+              {!aiResult?.llm?.key_findings?.length && <li>Run a live Gemini analysis to calculate project-specific risks.</li>}
             </ul>
           </div>
           <div>
@@ -263,16 +262,16 @@ export function WorkspaceAiInsightsPage() {
               {aiResult?.input_quality ? ` • Input Completeness: ${Math.round(aiResult.input_quality.completeness_score * 100)}%` : ''}
             </p>
             <p className="mt-1 text-fg-muted">
-              {aiResult?.explanation || 'Deterministic ML models evaluate multi-dimensional anomalies and drift without synthetic date forecasts.'}
+              {aiResult?.llm?.summary || 'No live Gemini result is available yet.'}
             </p>
           </div>
           <div>
             <p className="nk-label">6. Recommended Actions (for officer review)</p>
             <ul className="mt-1 list-disc pl-5 text-fg-muted">
-              {(aiResult?.recommended_actions ?? insights.map((i) => i.recommendedAction)).map((action: string) => (
-                <li key={action}>{action}</li>
+              {(aiResult?.llm?.recommended_actions ?? []).map((action: { action: string; reason: string }) => (
+                <li key={`${action.action}-${action.reason}`}>{action.action}: {action.reason}</li>
               ))}
-              <li>Clear pending bill verifications before the next RA cycle.</li>
+              {!aiResult?.llm?.recommended_actions?.length && <li>Run a live Gemini analysis to receive recommendations.</li>}
             </ul>
           </div>
           <p className="rounded-control bg-surface-2 p-2 text-caption text-warning-strong">

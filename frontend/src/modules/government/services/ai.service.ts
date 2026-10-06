@@ -88,6 +88,9 @@ export const aiService = {
     const { data, error } = await supabase
       .from('ai_insights')
       .select('*')
+      // Seed/import rows are not live Gemini analyses.  Only show insights
+      // created by the backend AI gateway after a real analysis run.
+      .not('analysis_run_id', 'is', null)
       .order('created_at', { ascending: false });
 
     if (error) {
