@@ -12,7 +12,7 @@ export const progressService = {
       location: 'Project site',
       activity: row.work_completed || row.description || 'Progress update',
       progressPct: Number(row.reported_progress) || 0,
-      officer: 'Pending government review',
+      officer: row.verification_status === 'APPROVED' ? 'Government verified' : 'Pending government review',
       contractor: 'Awarded contractor',
       geoTag: { lat: 0, lng: 0 },
       photos: 0,

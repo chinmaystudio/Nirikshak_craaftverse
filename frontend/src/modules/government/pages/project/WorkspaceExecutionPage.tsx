@@ -14,6 +14,7 @@ import { DualProgress } from '@/components/ui/Progress'
 import { formatCr, formatDate } from '@/utils/format'
 import { AI_CLASSIFICATION, AI_CONFIDENCE, INSPECTION_OUTCOME, LITIGATION_STATUS, WORK_ORDER_STATUS } from '@/utils/status'
 import { HEARINGS, type ProgressUpdate } from '@/data/workspace'
+import { approvalsApi } from '@/api'
 import type { LitigationCase } from '@/types'
 
 
@@ -59,7 +60,18 @@ export function WorkspaceExecutionPage() {
 
   const plannedNow = Math.min(100, project.physicalProgressPct + (project.delayDays > 0 ? 8 : 2))
   const scheduleVariance = project.physicalProgressPct - plannedNow
-  const verifyUpdate = (id: string, verdict: 'verified' | 'rejected') => {
+  const verifyUpdate = async (id: string, verdict: 'verified' | 'rejected') => {
+    try {
+      if (verdict === 'verified') {
+        await approvalsApi.approve(id, 'Progress verified by government officer in project workspace.')
+      } else {
+        await approvalsApi.reject(id, 'Progress rejected after government review.')
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Progress review could not be saved.', 'danger')
+      return
+    }
+
     setUpdates((list) =>
       list.map((u) =>
         u.id === id
@@ -230,14 +242,14 @@ export function WorkspaceExecutionPage() {
                     {u.verificationNote && <p className="mt-1.5 text-caption text-fg-subtle">{u.verificationNote}</p>}
                     {u.status === 'pending' && (
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <Button variant="primary" size="sm" icon="verified" onClick={() => verifyUpdate(u.id, 'verified')}>
+                        <Button variant="primary" size="sm" icon="verified" onClick={() => void verifyUpdate(u.id, 'verified')}>
                           {t('common.verify')}
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           icon="u_turn_left"
-                          onClick={() => setConfirm({ title: `Reject update ${u.id}?`, message: 'The contractor will be notified to re-submit with corrections. This action is recorded in the audit trail.', run: () => verifyUpdate(u.id, 'rejected') })}
+                          onClick={() => setConfirm({ title: `Reject update ${u.id}?`, message: 'The contractor will be notified to re-submit with corrections. This action is recorded in the audit trail.', run: () => { void verifyUpdate(u.id, 'rejected') } })}
                         >
                           Reject
                         </Button>
