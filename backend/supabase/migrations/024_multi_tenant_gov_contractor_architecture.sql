@@ -512,7 +512,7 @@ BEGIN
             verified
         ) VALUES (
             v_req.company_name,
-            'contractor'::public.org_type_enum,
+            'contractor'::public.org_type,
             'ACTIVE',
             v_req.state,
             v_req.district,
