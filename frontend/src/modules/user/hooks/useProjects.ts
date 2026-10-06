@@ -1,7 +1,8 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import type { Project, ProjectCategory, ProjectStatus } from "@/types/project";
 import { useAsync } from "./useAsync";
-import { getProjects, nearbyProjects } from "@/services/projects/projectsService";
+import { getProjects, nearbyProjects, invalidateProjectsCache } from "@/services/projects/projectsService";
+import { realtimeService } from "@/core/realtime/realtime.service";
 
 export interface ProjectQuery {
   q: string;
@@ -16,6 +17,18 @@ export interface ProjectQuery {
 export function useProjects() {
   const state = useAsync(() => getProjects(), []);
   const projects = state.data ?? [];
+
+  useEffect(() => {
+    const refresh = () => { invalidateProjectsCache(); state.reload(); };
+    const unsubs = [
+      realtimeService.subscribeToTable('projects', refresh),
+      realtimeService.subscribeToTable('progress_updates', refresh),
+      realtimeService.subscribeToTable('payment_claims', refresh),
+      realtimeService.subscribeToTable('payments', refresh),
+      realtimeService.subscribeToTable('contracts', refresh),
+    ];
+    return () => unsubs.forEach((unsubscribe) => unsubscribe());
+  }, [state.reload]);
 
   const filterProjects = useCallback(
     (list: Project[], query: ProjectQuery): Project[] => {

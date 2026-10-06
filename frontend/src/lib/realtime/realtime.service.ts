@@ -12,6 +12,8 @@ export type RealtimeTable =
   | 'complaint_updates'
   | 'notifications'
   | 'inspections'
+  | 'payment_claims'
+  | 'payments'
   | 'environmental_incidents';
 
 export interface TableChangeEvent<T = any> {

@@ -2,6 +2,7 @@ import type { Project, ProjectCategory, ProjectStatus, WardStatistics, CityStati
 import { ApiError } from "@/services/api/client";
 import { projectImages } from "../../data/projects";
 import { supabase } from "@/core/supabase/client";
+import { realtimeService } from "@/core/realtime/realtime.service";
 
 
 export type ProjectFilters = {
@@ -31,9 +32,9 @@ function mapDbRowToProject(row: any): Project {
   else if (subsector.includes('bridge') || subsector.includes('flyover')) category = 'bridges';
   else if (sector.includes('energy') || subsector.includes('power')) category = 'smart-infrastructure';
 
-  const cost = Number(row.total_cost_inr_crore) || 75;
-  const progress = Number(row.physical_progress_percent) || (status === 'completed' ? 100 : 45);
-  const spent = Math.round((Number(row.amount_spent_inr_crore) || (cost * (progress / 100))) * 10) / 10;
+  const cost = Number(row.total_cost_inr_crore) || 0;
+  const progress = Math.min(100, Math.max(0, Number(row.physical_progress_percent) || 0));
+  const spent = Math.round((Number(row.amount_spent_inr_crore) || 0) * 10) / 10;
 
   // Pick suitable photo
   let photoUrl = projectImages.pier;
@@ -41,15 +42,15 @@ function mapDbRowToProject(row: any): Project {
   else if (category === 'bridges') photoUrl = projectImages.gantry;
   else if (category === 'roads') photoUrl = projectImages.ring;
 
-  const lat = Number(row.latitude) || (18.5204 + (Math.sin(cost) * 0.05));
-  const lng = Number(row.longitude) || (73.8567 + (Math.cos(cost) * 0.05));
+  const lat = Number(row.latitude) || null;
+  const lng = Number(row.longitude) || null;
 
-  const contractorName = row.contractor_concessionaire || 'Tata Projects / L&T Consortium';
-  const projCode = row.nirikshak_project_id || `PUN-${category.toUpperCase().slice(0, 2)}-${Math.floor(100 + Math.random() * 900)}`;
+  const contractorName = row.contractor_name || row.contractor_concessionaire || 'Not awarded';
+  const projCode = row.nirikshak_project_id || row.id;
   const projId = row.nirikshak_project_id || row.id || projCode;
-  const originalEnd = row.original_completion_date || '2026-06-30';
+  const originalEnd = row.original_completion_date || '';
   const revisedEnd = row.revised_completion_date || originalEnd;
-  const startDate = row.award_date || row.planned_start_date || '2023-01-15';
+  const startDate = row.award_date || row.planned_start_date || '';
 
   return {
     id: projId,
@@ -69,8 +70,8 @@ function mapDbRowToProject(row: any): Project {
     phase: row.current_stage || row.stage || row.execution_phase || 'Not available',
     distanceKm: null,
     mapPoint: {
-      x: Math.min(92, Math.max(8, Math.round(35 + ((lng - 73.7) * 200)))),
-      y: Math.min(92, Math.max(8, Math.round(45 + ((lat - 18.4) * 200)))),
+      x: lng == null ? 50 : Math.min(92, Math.max(8, Math.round(35 + ((lng - 73.7) * 200)))),
+      y: lat == null ? 50 : Math.min(92, Math.max(8, Math.round(45 + ((lat - 18.4) * 200)))),
     },
     img: photoUrl,
     latestUpdate: {
@@ -79,10 +80,10 @@ function mapDbRowToProject(row: any): Project {
     },
     lastInspection: undefined,
     nextMilestone: undefined,
-    description: row.description || row.public_summary || 'Public works project monitored under NIRIKSHAK platform.',
-    why: 'Commissioned to improve regional public infrastructure.',
+    description: row.description || row.public_summary || 'No public description has been published.',
+    why: row.description || 'Public project record published by the implementing authority.',
     scope: [],
-    benefit: 'Public utility and infrastructure improvement.',
+    benefit: row.public_summary || 'Public benefit details have not been published.',
     finance: {
       sanctionedAmount: cost,
       revisedCost: Number(row.revised_cost_inr_crore) || cost,
@@ -125,11 +126,15 @@ function mapDbRowToProject(row: any): Project {
     photos: [
       { src: photoUrl, caption: `${row.project_name || 'Project'} site inspection and active execution.` }
     ],
-    hotline: '1800-120-8040 (Citizen Helpline)'
+    hotline: 'Use the NIRIKSHAK grievance channel for assistance.'
   };
 }
 
 let cachedProjects: Project[] | null = null;
+
+export function invalidateProjectsCache(): void {
+  cachedProjects = null;
+}
 
 export async function getProjects(): Promise<Project[]> {
   if (cachedProjects && cachedProjects.length > 0) {
@@ -269,4 +274,3 @@ export function findProject(idOrCode: string): Project | undefined {
 }
 
 export const projectsData: Project[] = [];
-

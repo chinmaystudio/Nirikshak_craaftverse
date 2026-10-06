@@ -17,6 +17,7 @@ import { getMyComplaints } from "@/services/complaints/complaintsService";
 import { getCommunityFeed } from "@/services/community/communityService";
 import { formatCr } from "@/utils/formatCurrency";
 import { shortDate } from "@/utils/formatDate";
+import { realtimeService } from "@/core/realtime/realtime.service";
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -36,6 +37,18 @@ export function ProjectDetailsPage(): JSX.Element {
   const complaintsState = useAsync(() => getMyComplaints(), []);
   const issuesState = useAsync(() => getCommunityFeed("recent"), []);
   const [headerHeight, setHeaderHeight] = useState(112);
+
+  useEffect(() => {
+    const refresh = () => state.reload();
+    const unsubs = [
+      realtimeService.subscribeToTable('projects', refresh),
+      realtimeService.subscribeToTable('progress_updates', refresh),
+      realtimeService.subscribeToTable('payment_claims', refresh),
+      realtimeService.subscribeToTable('payments', refresh),
+      realtimeService.subscribeToTable('contracts', refresh),
+    ];
+    return () => unsubs.forEach((unsubscribe) => unsubscribe());
+  }, [state.reload]);
 
   useEffect(() => {
     const header = document.querySelector("header");
