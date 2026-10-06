@@ -21,7 +21,7 @@ export class AuthClient {
   private static friendlyError(message?: string): string {
     const value = (message || '').toLowerCase();
     if (value.includes('invalid login credentials') || value.includes('invalid email or password')) return 'Incorrect email or password.';
-    if (value.includes('email not confirmed')) return 'Your account is awaiting email confirmation.';
+    if (value.includes('email not confirmed')) return 'Your account is awaiting email confirmation. Confirm your email, then sign in.';
     if (value.includes('rate limit') || value.includes('too many')) return 'Too many attempts. Please wait a few minutes and try again.';
     if (value.includes('user already registered') || value.includes('already exists')) return 'An account with this email already exists. Please sign in instead.';
     return message || 'Authentication failed. Please try again.';
@@ -382,13 +382,24 @@ export class AuthClient {
     ward?: string;
     preferredLanguage?: string;
   }): Promise<{ user: User | null; session: Session | null }> {
-    await apiClient.post('/api/auth/register', {
+    const result = await apiClient.post<{ userId: string; email: string; message: string }>('/api/auth/register', {
       accountType: 'citizen',
       ...payload,
     });
     if (env.DATA_MODE !== 'DEMO') {
-      const appSession = await this.signIn(payload.email, payload.password);
-      return { user: appSession.user, session: null };
+      // Registration is independent of sign-in: Supabase may require email
+      // confirmation, so attempting a login here would report a false failure
+      // after the account has already been created.
+      return {
+        user: {
+          id: result.userId,
+          email: result.email,
+          user_metadata: { full_name: payload.fullName },
+          email_confirmed_at: null,
+          created_at: new Date().toISOString(),
+        } as unknown as User,
+        session: null,
+      };
     }
     const { data, error } = await supabase.auth.signInWithPassword({
       email: payload.email,

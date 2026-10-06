@@ -158,7 +158,6 @@ export async function register(payload: RegisterPayload): Promise<Citizen> {
     joinedAt: new Date().toISOString().slice(0, 10),
   };
 
-  appStore.setState({ user: citizen, lang: citizen.preferredLanguage });
   return citizen;
 }
 

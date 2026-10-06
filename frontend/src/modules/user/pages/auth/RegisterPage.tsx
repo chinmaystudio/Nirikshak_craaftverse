@@ -67,8 +67,8 @@ export function RegisterPage(): JSX.Element {
         ward,
       });
 
-      toast(`Registration complete. Welcome to NIRIKSHAK, ${user.name.split(" ")[0]}.`, "success");
-      navigate(ROUTES.HOME);
+      toast(`Account created for ${user.email}. Sign in to continue; confirm your email first if prompted.`, "success");
+      navigate(ROUTES.LOGIN);
     } catch (err: any) {
       console.error("Citizen registration error:", err);
       setError(err.message || "Registration failed. Please check your information.");

@@ -28,6 +28,9 @@ export class AuthService {
     });
 
     if (authError || !authData.session || !authData.user) {
+      if (authError?.message?.toLowerCase().includes('email not confirmed')) {
+        throw new AuthenticationError('Your account is awaiting email confirmation. Confirm your email, then sign in.');
+      }
       throw new AuthenticationError('Invalid email or password.');
     }
 
@@ -408,9 +411,20 @@ export class AuthService {
       throw new ValidationError(error.message);
     }
 
+    // Supabase intentionally returns an empty identities array for an email
+    // that is already registered, to avoid disclosing account existence.
+    // Surface that as a duplicate instead of claiming a new account was made.
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      throw new ConflictError('An account with this email address already exists. Please sign in instead.');
+    }
+
+    if (!data.user?.id || !data.user.email) {
+      throw new ValidationError('Registration could not be completed. Please try again.');
+    }
+
     return {
-      userId: data.user!.id,
-      email: data.user!.email!,
+      userId: data.user.id,
+      email: data.user.email,
       message: 'Registration successful.',
     };
   }
