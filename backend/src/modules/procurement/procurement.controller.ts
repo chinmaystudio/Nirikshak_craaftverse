@@ -5,6 +5,11 @@ import { ApiResponseHelper } from '../../core/http/response.js';
 import { AuthenticatedRequest } from '../../core/auth/auth.middleware.js';
 
 export class ProcurementController {
+  async listTenders(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try { ApiResponseHelper.success(res, await procurementService.listTenders(req.userContext!)); }
+    catch (err) { next(err); }
+  }
+
   async publishTender(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const validated = CreateTenderSchema.parse(req.body);

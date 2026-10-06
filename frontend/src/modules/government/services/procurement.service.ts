@@ -27,18 +27,8 @@ function paginate<T>(items: T[], q?: ListQuery): Paginated<T> {
 export const procurementService = {
   async all(): Promise<Tender[]> {
     try {
-      const [{ data, error }, { data: bidData, error: bidError }] = await Promise.all([
-        supabase
-          .from('tenders')
-          .select('*, projects(nirikshak_project_id, district, sector, project_authority)')
-          .order('publication_date', { ascending: false }),
-        supabase
-          .from('tender_bids')
-          .select('id, tender_id, bid_amount, status, technical_score, financial_score, contractor_organization_id, organizations(name)')
-          .is('deleted_at', null),
-      ]);
-      if (error) throw error;
-      if (bidError) throw bidError;
+      const data = await apiClient.get<any[]>('/api/tenders');
+      const bidData = (data || []).flatMap((t: any) => t.tender_bids || []);
       if (data) {
         const bidsByTender = new Map<string, any[]>();
         (bidData || []).forEach((bid: any) => {

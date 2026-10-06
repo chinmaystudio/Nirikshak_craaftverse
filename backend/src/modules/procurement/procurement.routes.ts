@@ -4,6 +4,10 @@ import { requireAuth, requireGovernment, requireContractor } from '../../core/au
 
 export const procurementRouter = Router();
 
+procurementRouter.get('/', requireAuth, requireGovernment, (req, res, next) =>
+  procurementController.listTenders(req, res, next)
+);
+
 // POST /api/tenders - Publish a tender for a project owned by caller's Government organization
 procurementRouter.post('/', requireAuth, requireGovernment, (req, res, next) =>
   procurementController.publishTender(req, res, next)

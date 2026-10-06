@@ -7,6 +7,17 @@ import { AuthorizationError, NotFoundError, ValidationError } from '../../core/h
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export class ProcurementService {
+  async listTenders(userContext: UserContext): Promise<any[]> {
+    const { data, error } = await supabaseAdmin
+      .from('tenders')
+      .select('*, projects(nirikshak_project_id, district, sector, project_authority), tender_bids(id, tender_id, bid_amount, status, technical_score, financial_score, contractor_organization_id, organizations(name))')
+      .eq('issuing_organization_id', userContext.organizationId)
+      .is('deleted_at', null)
+      .order('publication_date', { ascending: false });
+    if (error) throw new ValidationError(`Failed to retrieve tenders: ${error.message}`);
+    return data || [];
+  }
+
   async saveTenderBid(input: { tender_id: string; bid_amount: number; technical_proposal: string; status: 'DRAFT' | 'SUBMITTED' }, token: string): Promise<any> {
     const scopedClient = await createAuthenticatedClient(token);
     const { data, error } = await scopedClient.rpc('save_tender_bid', {
