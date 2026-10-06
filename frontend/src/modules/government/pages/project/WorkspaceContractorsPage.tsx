@@ -136,7 +136,7 @@ export function WorkspaceContractorsPage() {
               setVerified((v) => ({ ...v, [detail.id]: true }))
               showToast(`${detail.name} — registration and GST re-verified against MCA records (demo).`, 'success')
             }}
-            onAssign={() => showToast(`Assignment request for ${detail.name} routed to the competent authority (demo).`, 'info')}
+            onAssign={() => showToast(`${detail.name} is already assigned through the awarded contract.`, 'info')}
           />
         )}
       </Drawer>
@@ -259,9 +259,11 @@ function ContractorProfile({
         <Button variant="outline" size="sm" icon="verified" onClick={onVerify}>
           Verify Contractor
         </Button>
-        <Button variant="outline" size="sm" icon="assignment" onClick={onAssign}>
-          Assign Project
-        </Button>
+        {!isAssigned && (
+          <Button variant="outline" size="sm" icon="assignment" onClick={onAssign}>
+            Assign Project
+          </Button>
+        )}
       </div>
     </div>
   )
