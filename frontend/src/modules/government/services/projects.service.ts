@@ -1,5 +1,6 @@
 import { supabase } from '@/core/supabase/client';
 import { env } from '@/lib/config/env';
+import { apiClient } from '@/lib/api/apiClient';
 import { normalizeProjectStatus } from '@/core/status/projectStatus';
 import type { Project, Paginated, ListQuery } from '@/modules/government/types';
 
@@ -88,41 +89,23 @@ export const projectsService = {
       throw new Error('Project creation service is temporarily unavailable.');
     }
 
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (sessionError || !accessToken) {
-      throw new Error('Your session has expired. Please sign in again.');
-    }
-
     const projectId = `NIR-GOV-${Date.now().toString(16).toUpperCase()}`;
-    const response = await fetch(`${env.API_BASE_URL}/api/projects`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        nirikshak_project_id: projectId,
-        project_name: input.name,
-        description: input.summary || undefined,
-        sector: input.category,
-        project_authority: input.department,
-        state: 'Maharashtra',
-        city: input.district,
-        location_text: `${input.district}, Maharashtra`,
-        total_cost_inr_crore: input.amountCr,
-        planned_start_date: input.adminApprovalDate,
-        original_completion_date: input.expectedCompletion,
-        is_public: true,
-      }),
+    const result = await apiClient.post<any>('/api/projects', {
+      nirikshak_project_id: projectId,
+      project_name: input.name,
+      description: input.summary || undefined,
+      sector: input.category,
+      project_authority: input.department,
+      state: 'Maharashtra',
+      city: input.district,
+      location_text: `${input.district}, Maharashtra`,
+      total_cost_inr_crore: input.amountCr,
+      planned_start_date: input.adminApprovalDate,
+      original_completion_date: input.expectedCompletion,
+      is_public: true,
     });
 
-    const result = await response.json().catch(() => null);
-    if (!response.ok || !result?.data) {
-      throw new Error(result?.error?.message || 'Project could not be created. Please try again.');
-    }
-
-    return mapDbProject(result.data);
+    return mapDbProject(result);
   },
 
   async all(): Promise<Project[]> {
