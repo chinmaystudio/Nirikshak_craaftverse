@@ -48,6 +48,7 @@ export function mapDbProject(db: any): Project {
 
   return {
     id: projId,
+    databaseId: db.id,
     name: db.project_name || 'Public Infrastructure Project',
     department: dept,
     district: dist,

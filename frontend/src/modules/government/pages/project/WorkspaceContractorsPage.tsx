@@ -21,37 +21,32 @@ import type { Contractor } from '@/types'
 export function WorkspaceContractorsPage() {
   const { t } = useI18n()
   const { showToast } = useToast()
-  const { project, workOrder, bills } = useProjectWorkspace()
+  const { project, workOrder, bills, contracts } = useProjectWorkspace()
   const [search, setSearch] = useState('')
   const [detail, setDetail] = useState<Contractor | null>(null)
   const [addOpen, setAddOpen] = useState(false)
   const [newC, setNewC] = useState({ name: '', reg: '', cls: 'Class A' })
   const [verified, setVerified] = useState<Record<string, boolean>>({})
 
-  const contractorPool = useMemo(() => {
-    if (project?.contractor) {
-      return [{
-        id: 'CTR-ASSIGNED',
-        name: project.contractor,
-        registrationNo: 'REG-PWD-VERIFIED',
-        class: 'Class A' as const,
-        empanelledSince: '2024-01-01',
-        districts: [],
-        activeProjects: 1,
-        completedProjects: 0,
-        totalValueCr: project.financials?.sanctionedAmountCr ?? 0,
-        aiScore: 85,
-        scoreBand: 'good' as const,
-        onTimeCompletionPct: 100,
-        qualityRating: 4.5,
-        pendingDefects: 0,
-        litigationCount: 0,
-        strengths: [],
-        risks: [],
-      } as Contractor]
-    }
-    return []
-  }, [project])
+  const contractorPool = useMemo(() => contracts.map((contract: any) => ({
+    id: contract.contractor_organization_id,
+    name: contract.organizations?.name || contract.contractor_name || 'Contractor Organization',
+    registrationNo: contract.organizations?.registration_number || `ORG-${contract.contractor_organization_id.slice(0, 8)}`,
+    class: 'Class A' as const,
+    empanelledSince: contract.organizations?.created_at?.slice(0, 10) || contract.created_at?.slice(0, 10) || '',
+    districts: project?.district ? [project.district] : [],
+    activeProjects: contract.status === 'ACTIVE' ? 1 : 0,
+    completedProjects: contract.status === 'COMPLETED' ? 1 : 0,
+    totalValueCr: Number(contract.contract_value) || 0,
+    aiScore: 0,
+    scoreBand: 'average' as const,
+    onTimeCompletionPct: 0,
+    qualityRating: 0,
+    pendingDefects: 0,
+    litigationCount: 0,
+    strengths: [],
+    risks: [],
+  } as Contractor)), [contracts, project?.district])
 
   const rows = useMemo(() => {
     const list = assignedFirst(contractorPool, project?.contractor)
@@ -127,7 +122,7 @@ export function WorkspaceContractorsPage() {
         />
       </Panel>
 
-      <Card className="p-3 text-caption text-fg-subtle">{t('common.mockDataNote')}</Card>
+      {contracts.length === 0 && <Card className="p-3 text-caption text-fg-subtle">No awarded contractor contract is recorded for this project yet.</Card>}
 
       {/* Profile drawer */}
       <Drawer open={detail !== null} onClose={() => setDetail(null)} title={detail?.name ?? ''} titleIcon="engineering" width="max-w-xl">

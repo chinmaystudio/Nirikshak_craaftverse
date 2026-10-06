@@ -102,6 +102,7 @@ export interface ProjectFinancials {
 
 export interface Project {
   id: string // e.g. NIR-PWD-2026-0142
+  databaseId?: string
   name: string
   department: string
   district: string

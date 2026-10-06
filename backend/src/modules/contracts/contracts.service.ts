@@ -77,7 +77,7 @@ export class ContractsService {
     const scopedClient = await createAuthenticatedClient(token);
     let query = scopedClient
       .from('contracts')
-      .select('*')
+      .select('*, organizations:contractor_organization_id(id, name, registration_number, created_at)')
       .eq('project_id', projectId);
 
     const isGovernment = [

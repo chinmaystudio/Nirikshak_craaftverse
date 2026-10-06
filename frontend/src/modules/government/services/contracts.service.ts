@@ -15,6 +15,7 @@ export interface ProjectContract {
   created_at: string;
   updated_at: string;
   contractor_name?: string;
+  organizations?: { id?: string; name?: string; registration_number?: string; created_at?: string };
 }
 
 export const contractsService = {
