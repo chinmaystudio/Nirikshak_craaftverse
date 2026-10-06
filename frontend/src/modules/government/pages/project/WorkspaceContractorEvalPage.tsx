@@ -66,8 +66,8 @@ export function WorkspaceContractorEvalPage() {
   }, [project?.contractor, project?.financials?.sanctionedAmountCr]);
   const assigned = contractorPool[0];
   const evaluation = useApiData(
-    () => (assigned ? insightsApi.evaluateContractor(assigned.id) : Promise.resolve(undefined)),
-    [assigned?.id],
+    () => (assigned && project ? insightsApi.evaluateContractor(project.databaseId || project.id) : Promise.resolve(undefined)),
+    [assigned?.id, project?.databaseId, project?.id],
   )
   const ranked = useMemo(() => [...contractorPool].sort((a, b) => b.aiScore - a.aiScore), [contractorPool])
 
@@ -91,8 +91,21 @@ export function WorkspaceContractorEvalPage() {
     )
   }
 
-  const factors = evaluation.data?.factors ?? []
-  const rec = recommendationFor(assigned.scoreBand)
+  const liveScore = evaluation.data?.historical_analysis?.review_priority_score != null
+    ? Math.max(0, Math.min(100, Math.round((1 - Number(evaluation.data.historical_analysis.review_priority_score)) * 100)))
+    : null
+  const liveBand = liveScore == null ? assigned.scoreBand : liveScore >= 80 ? 'excellent' : liveScore >= 60 ? 'good' : liveScore >= 40 ? 'average' : 'poor'
+  const liveFactors = evaluation.data ? [
+    { name: 'Review priority', score: Math.round(Number(evaluation.data.historical_analysis.review_priority_score) * 100), weight: 35, evidence: evaluation.data.historical_analysis.signals.join('; ') || 'No anomaly signal returned.' },
+    { name: 'Cost anomaly', score: Math.round(Number(evaluation.data.historical_analysis.cost_anomaly_score) * 100), weight: 25, evidence: 'Calculated from persisted expenditure and payment-claim records.' },
+    { name: 'Operational drift', score: Math.round(Number(evaluation.data.operational_drift?.drift_percentile || 0)), weight: 20, evidence: 'Calculated from verified project execution history.' },
+  ] : []
+  const displayScore = liveScore ?? assigned.aiScore
+  const displayBand = liveBand as Contractor['scoreBand']
+  const liveRecommendation = evaluation.data?.llm?.summary || 'Run live Gemini analysis to generate the contractor recommendation.'
+
+  const factors = liveFactors
+  const rec = recommendationFor(displayBand)
 
   return (
     <div className="flex flex-col gap-4">
@@ -115,7 +128,7 @@ export function WorkspaceContractorEvalPage() {
       <Panel title="Overall Contractor Score" icon="smart_toy">
         <div className="flex flex-wrap items-center gap-6">
           <span className="text-display tabular-nums text-fg">
-            {assigned.aiScore}
+            {displayScore}
             <span className="text-body-small text-fg-subtle">/100 composite</span>
           </span>
           <StatusBadge descriptor={SCORE_BAND[assigned.scoreBand]} />
@@ -123,7 +136,7 @@ export function WorkspaceContractorEvalPage() {
             {rec.label}
           </Badge>
           <span className="ml-auto text-caption text-fg-subtle">
-            AI confidence: <strong className="text-fg">{evaluation.data ? '74% (medium)' : '—'}</strong> · evaluated {evaluation.data ? 'this session' : '—'}
+            AI confidence: <strong className="text-fg">{evaluation.data?.input_quality ? `${Math.round(Number(evaluation.data.input_quality.completeness_score) * 100)}% input completeness` : '—'}</strong> · evaluated {evaluation.data ? 'from live records' : '—'}
           </span>
         </div>
       </Panel>
@@ -193,9 +206,7 @@ export function WorkspaceContractorEvalPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel title="AI Recommendation" icon="auto_awesome">
           <p className="rounded-control border border-primary-border bg-primary-soft p-3 text-body-small text-fg">
-            <strong>{rec.label}:</strong> {assigned.name} scores {assigned.aiScore}/100 with a {assigned.onTimeCompletionPct}% on-time
-            completion record, {assigned.qualityRating.toFixed(1)}/5 quality rating across {assigned.completedProjects} completed
-            government works, and {assigned.litigationCount === 0 ? 'no active litigation' : `${assigned.litigationCount} active litigation case(s)`}.
+            <strong>{rec.label}:</strong> {liveRecommendation}
           </p>
           <p className="mt-3 text-caption text-fg-subtle">Factors supporting this recommendation: on-time completion (20%), quality (18%), defect liability (12%) and litigation exposure (12%) carry the largest weights.</p>
         </Panel>
@@ -204,10 +215,10 @@ export function WorkspaceContractorEvalPage() {
             <div>
               <p className="nk-label">Positive factors</p>
               <ul className="mt-2 flex flex-col gap-1">
-                {assigned.strengths.map((s) => (
+                {(evaluation.data?.llm?.recommended_actions ?? []).map((s) => (
                   <li key={s} className="flex items-start gap-1.5 text-body-small text-fg">
                     <span className="material-symbols-outlined text-[16px] text-success-strong" aria-hidden="true">check_circle</span>
-                    {s}
+                    {s.action}: {s.reason}
                   </li>
                 ))}
               </ul>
@@ -215,18 +226,17 @@ export function WorkspaceContractorEvalPage() {
             <div>
               <p className="nk-label">Risk factors</p>
               <ul className="mt-2 flex flex-col gap-1">
-                {assigned.risks.map((s) => (
+                {(evaluation.data?.llm?.key_findings ?? []).map((s) => (
                   <li key={s} className="flex items-start gap-1.5 text-body-small text-fg">
                     <span className="material-symbols-outlined text-[16px] text-warning-strong" aria-hidden="true">warning</span>
-                    {s}
+                    {s.title}: {s.reason}
                   </li>
                 ))}
               </ul>
             </div>
           </div>
           <p className="mt-3 border-t border-border pt-2 text-caption text-fg-subtle">
-            Missing information: audited turnover for FY 2025-26 (filed with the next renewal) and safety statistics for
-            subcontracted crews.
+            Missing information: {(evaluation.data?.llm?.missing_information ?? ['No additional missing information returned by Gemini.']).join('; ')}
           </p>
         </Panel>
       </div>

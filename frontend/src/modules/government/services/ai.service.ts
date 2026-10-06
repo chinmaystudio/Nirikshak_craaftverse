@@ -127,8 +127,11 @@ export const aiService = {
     }));
   },
 
-  async evaluateContractor(_id: string): Promise<undefined> {
-    return undefined;
+  async evaluateContractor(projectId: string): Promise<AiAnalysisResult> {
+    // Contractor evaluation is a project-scoped live analysis. There is no
+    // separate fixture/scoring engine: Gemini receives the authorized project
+    // snapshot assembled by the backend and its persisted result is reused.
+    return this.analyzeProject(projectId);
   },
 };
 
