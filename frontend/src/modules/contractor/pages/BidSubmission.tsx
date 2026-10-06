@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Check, ArrowLeft, ArrowRight, Save, Sparkles, CircleAlert, Building2, ShieldCheck,
   Wrench, IndianRupee, FileUp, ClipboardList, Send, CheckCircle2,
@@ -97,11 +97,9 @@ export default function BidSubmission({ tenderId }: { tenderId: string }) {
     return () => { active = false; };
   }, [tenderId]);
 
-  const missingDocs = useMemo(() => {
-    const names = data.docs.map((d) => d.name.toLowerCase());
-    const keys = REQUIRED_DOCS.map((r) => r.toLowerCase().split(' ')[0]);
-    return REQUIRED_DOCS.filter((_, i) => !names.some((n) => n.includes(keys[i])));
-  }, [data.docs]);
+  const names = data.docs.map((d) => d.name.toLowerCase());
+  const keys = REQUIRED_DOCS.map((r) => r.toLowerCase().split(' ')[0]);
+  const missingDocs = REQUIRED_DOCS.filter((_, i) => !names.some((n) => n.includes(keys[i])));
 
   if (!tender) {
     return (
