@@ -64,6 +64,16 @@ export class AiController {
       next(err);
     }
   }
+
+  async projectReports(req: any, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const projectData = req.body || {};
+      const result = await aiService.getProjectReports(projectData);
+      ApiResponseHelper.success(res, result);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const aiController = new AiController();

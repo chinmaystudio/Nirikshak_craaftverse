@@ -45,3 +45,10 @@ aiRouter.post(
   (req, res, next) => aiController.suggestContractor(req, res, next)
 );
 
+// POST /api/ai/project-reports - Generate Cost-Overrun, Environmental, and Delay Reports using Google Gemini 3.1 Pro
+aiRouter.post(
+  '/project-reports',
+  rateLimit({ windowMs: 60 * 1000, max: 30 }),
+  (req, res, next) => aiController.projectReports(req, res, next)
+);
+

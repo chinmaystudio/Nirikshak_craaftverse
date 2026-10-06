@@ -505,6 +505,11 @@ export class AiService {
       bids: normalizedBids,
     });
   }
+
+  async getProjectReports(projectData: any) {
+    const geminiProvider = new GeminiProvider();
+    return geminiProvider.generateDetailedReports(projectData);
+  }
 }
 
 export const aiService = new AiService();

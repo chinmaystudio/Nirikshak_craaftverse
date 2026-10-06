@@ -386,19 +386,15 @@ export function buildWorkspaceNav(projectId: string): NavNode[] {
       labelKey: 'nav.aiInsights',
       icon: 'auto_awesome',
       to: p('/ai-insights'),
-      children: leaves('wsai', p('/ai-insights'), [
-        'Project risk prediction',
-        'Delay prediction',
-        'Cost-overrun prediction',
-        'Contractor risk score',
-        'Fraud/anomaly detection',
-        'Budget optimization insights',
-        'Performance comparison',
-        'Project health score',
-        'Department performance insights',
-        'Predictive maintenance insights',
-        'AI recommendations for government officers',
-      ]),
+      children: [
+        { id: 'wsai-cost', label: 'Cost-overrun report', to: p('/ai-insights#cost-overrun') },
+        { id: 'wsai-env', label: 'Environmental report', to: p('/ai-insights#environmental') },
+        { id: 'wsai-delay', label: 'Delay prediction & report', to: p('/ai-insights#delay') },
+        { id: 'wsai-risk', label: 'Project risk prediction', to: p('/ai-insights#risk') },
+        { id: 'wsai-health', label: 'Project health score', to: p('/ai-insights#overview') },
+        { id: 'wsai-anomalies', label: 'Fraud & anomaly detection', to: p('/ai-insights#overview') },
+        { id: 'wsai-recs', label: 'Gemini AI recommendations', to: p('/ai-insights#overview') },
+      ],
     },
   ]
 }
