@@ -8,9 +8,14 @@ const defaultDevelopmentOrigins = [
   'http://localhost:4000',
 ];
 
+// The production frontend is a fixed Cloudflare Pages origin. Keep it in the
+// server allowlist so a missing/stale Render ALLOWED_ORIGINS value cannot turn
+// browser authentication into an opaque "Failed to fetch" error.
+const productionOrigins = ['https://nirikshak-craftverse.pages.dev'];
+
 const configuredOrigins = env.ALLOWED_ORIGINS
-  ? env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
-  : env.NODE_ENV === 'production' ? [] : defaultDevelopmentOrigins;
+  ? [...productionOrigins, ...env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)]
+  : env.NODE_ENV === 'production' ? productionOrigins : defaultDevelopmentOrigins;
 
 if (env.NODE_ENV === 'production' && configuredOrigins.length === 0) {
   throw new Error('ALLOWED_ORIGINS must be configured in production');
