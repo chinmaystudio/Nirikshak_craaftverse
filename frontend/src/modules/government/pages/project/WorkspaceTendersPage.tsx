@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useI18n } from '@/context/I18nContext'
 import { useProjectWorkspace } from '@/context/ProjectWorkspaceContext'
 import { useToast } from '@/context/ToastContext'
@@ -15,6 +16,7 @@ import { formatCr, formatDate } from '@/utils/format'
 import { TENDER_STATUS } from '@/utils/status'
 import type { Tender } from '@/types'
 import { contractsService } from '../../services/contracts.service'
+import { GeminiContractorModal } from '../../components/GeminiContractorModal'
 
 const PROCUREMENT_STAGES = [
   { key: 'draft', label: 'Draft', icon: 'edit_note' },
@@ -36,9 +38,10 @@ function stageIndex(status: Tender['status']): number {
 
 /** Project workspace — Tender Management: full procurement workspace. */
 export function WorkspaceTendersPage() {
+  const navigate = useNavigate()
   const { t } = useI18n()
   const { showToast } = useToast()
-  const { projectId, tenders } = useProjectWorkspace()
+  const { projectId, tenders, allProjects, project } = useProjectWorkspace()
   const [tenderList, setTenderList] = useState<Tender[]>(tenders)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -46,6 +49,8 @@ export function WorkspaceTendersPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [newTender, setNewTender] = useState({ title: '', estimate: '', mode: 'e-Tender', scopeSummary: '' })
+  const [geminiModalOpen, setGeminiModalOpen] = useState(false)
+  const [evaluatingTender, setEvaluatingTender] = useState<Tender | null>(null)
 
   useEffect(() => {
     setTenderList(tenders)
@@ -120,6 +125,35 @@ export function WorkspaceTendersPage() {
         description="Procurement workspace for this project — publication, bids, evaluation, approval and award, with the full tender history."
         actions={
           <>
+            <Button
+              variant="primary"
+              size="sm"
+              icon="auto_awesome"
+              className="bg-gradient-to-r from-primary to-indigo-600 shadow-sm"
+              onClick={() => {
+                const target =
+                  tenderList.find((t) => (t.lots?.length ?? 0) > 0 || t.bidsReceived > 0) ||
+                  tenderList[0] ||
+                  null
+                setEvaluatingTender(
+                  target || {
+                    id: `TND-${projectId.slice(0, 8)}`,
+                    title: `${project?.name || 'Project'} Civil Works Tender`,
+                    estimatedCostCr: project?.financials?.sanctionedAmountCr || 10,
+                    bidsReceived: 3,
+                    status: 'under_evaluation',
+                    publishedOn: new Date().toISOString(),
+                    submissionDeadline: new Date().toISOString(),
+                    openingDate: new Date().toISOString(),
+                    category: 'Infrastructure',
+                    mode: 'e-Tender',
+                  },
+                )
+                setGeminiModalOpen(true)
+              }}
+            >
+              AI Contractor Management
+            </Button>
             <Button variant="outline" size="sm" icon="download" onClick={() => showToast('Procurement register exported.', 'info')}>
               {t('common.export')}
             </Button>
@@ -167,6 +201,21 @@ export function WorkspaceTendersPage() {
         searchPlaceholder="Search tender no or title…"
         selects={[
           {
+            label: 'Project',
+            value: projectId,
+            onChange: (selectedId) => {
+              if (selectedId && selectedId !== projectId) {
+                navigate(`/government/projects/${selectedId}/tenders`)
+              }
+            },
+            options: [
+              ...(allProjects || []).map((p) => ({
+                value: p.id,
+                label: `${p.name || p.id} (${p.id})`,
+              })),
+            ],
+          },
+          {
             label: t('common.status'),
             value: statusFilter,
             onChange: setStatusFilter,
@@ -200,6 +249,19 @@ export function WorkspaceTendersPage() {
           rowActions={(x) => (
             <div className="flex gap-2">
               <Button variant="outline" size="sm" className="!min-h-7 !px-2.5" onClick={() => setDetail(x)}>{t('common.view')}</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="!min-h-7 !px-2 text-primary border-primary/30 hover:bg-primary/5"
+                icon="auto_awesome"
+                title="AI Suggest Contractor (Gemini 3.1 Pro)"
+                onClick={() => {
+                  setEvaluatingTender(x)
+                  setGeminiModalOpen(true)
+                }}
+              >
+                AI Suggest
+              </Button>
               {['published', 'bid_open'].includes(x.status) && <Button variant="danger" size="sm" className="!min-h-7 !px-2.5" onClick={() => handleCloseTender(x)}>Close Bids</Button>}
             </div>
           )}
@@ -218,8 +280,29 @@ export function WorkspaceTendersPage() {
 
       {/* Tender detail drawer */}
       <Drawer open={detail !== null} onClose={() => setDetail(null)} title={detail?.id ?? ''} titleIcon="gavel" width="max-w-xl">
-        {detail && <TenderDetail tender={detail} onAward={(bidId) => handleAwardTender(detail, bidId)} />}
+        {detail && (
+          <TenderDetail
+            tender={detail}
+            onAward={(bidId) => handleAwardTender(detail, bidId)}
+            onOpenGemini={(t) => {
+              setEvaluatingTender(t)
+              setGeminiModalOpen(true)
+            }}
+          />
+        )}
       </Drawer>
+
+      <GeminiContractorModal
+        open={geminiModalOpen}
+        onClose={() => setGeminiModalOpen(false)}
+        tender={evaluatingTender}
+        onAwardTender={(bidId) => {
+          if (evaluatingTender) {
+            handleAwardTender(evaluatingTender, bidId)
+          }
+          setGeminiModalOpen(false)
+        }}
+      />
 
       {/* Create tender */}
       <Modal
@@ -267,19 +350,40 @@ function cnStage(reached: boolean) {
 }
 
 /** Tender drawer: overview, bids, evaluation, comparison, award. */
-function TenderDetail({ tender, onAward }: { tender: Tender; onAward: (bidId: string) => void }) {
+function TenderDetail({
+  tender,
+  onAward,
+  onOpenGemini,
+}: {
+  tender: Tender
+  onAward: (bidId: string) => void
+  onOpenGemini?: (tender: Tender) => void
+}) {
   const { t } = useI18n()
   return (
     <div className="flex flex-col gap-4 p-4">
-      <div>
-        <p className="nk-mono-id text-fg-muted">{tender.id}</p>
-        <p className="text-heading-3 text-fg">{tender.title}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <StatusBadge descriptor={TENDER_STATUS[tender.status]} />
-          <Badge tone="neutral" icon="payments">Est. {formatCr(tender.estimatedCostCr)}</Badge>
-          <Badge tone="neutral" icon="mail">{tender.bidsReceived} bids</Badge>
-          <Badge tone="neutral" icon="globe">{tender.mode}</Badge>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="nk-mono-id text-fg-muted">{tender.id}</p>
+          <p className="text-heading-3 text-fg">{tender.title}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <StatusBadge descriptor={TENDER_STATUS[tender.status]} />
+            <Badge tone="neutral" icon="payments">Est. {formatCr(tender.estimatedCostCr)}</Badge>
+            <Badge tone="neutral" icon="mail">{tender.bidsReceived} bids</Badge>
+            <Badge tone="neutral" icon="globe">{tender.mode}</Badge>
+          </div>
         </div>
+        {onOpenGemini && (
+          <Button
+            variant="primary"
+            size="sm"
+            icon="auto_awesome"
+            className="bg-gradient-to-r from-primary to-indigo-600 shadow-sm"
+            onClick={() => onOpenGemini(tender)}
+          >
+            AI Contractor Suggestion
+          </Button>
+        )}
       </div>
 
       <Panel title="Overview" icon="info">

@@ -27,6 +27,7 @@ const PUBLIC_EXEMPT_ROUTES = new Set([
   'GET /api/auth/oauth/google/start',
   'GET /api/auth/oauth/google/callback',
   'POST /api/ai/assistant',
+  'POST /api/ai/suggest-contractor',
 ]);
 
 export async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {

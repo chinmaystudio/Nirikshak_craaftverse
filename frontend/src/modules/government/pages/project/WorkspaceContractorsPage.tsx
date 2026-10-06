@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useI18n } from '@/context/I18nContext'
 import { useProjectWorkspace } from '@/context/ProjectWorkspaceContext'
 import { useToast } from '@/context/ToastContext'
@@ -19,9 +20,10 @@ import type { Contractor } from '@/types'
 /** Project workspace — Contractor Management: register, verification,
  * profiles, performance, penalties and payment history. */
 export function WorkspaceContractorsPage() {
+  const navigate = useNavigate()
   const { t } = useI18n()
   const { showToast } = useToast()
-  const { project, workOrder, bills, contracts } = useProjectWorkspace()
+  const { project, projectId, allProjects, workOrder, bills, contracts } = useProjectWorkspace()
   const [search, setSearch] = useState('')
   const [detail, setDetail] = useState<Contractor | null>(null)
   const [addOpen, setAddOpen] = useState(false)
@@ -66,6 +68,15 @@ export function WorkspaceContractorsPage() {
         description="Register, verification, performance, penalties and payment history for contractors associated with this project."
         actions={
           <>
+            <Button
+              variant="outline"
+              size="sm"
+              icon="auto_awesome"
+              className="text-primary border-primary/30 hover:bg-primary/5"
+              onClick={() => navigate(`/government/projects/${projectId}/contractor-evaluation`)}
+            >
+              AI Contractor Management
+            </Button>
             <Button variant="outline" size="sm" icon="download" onClick={() => showToast('Contractor register exported.', 'info')}>
               {t('common.export')}
             </Button>
@@ -83,7 +94,27 @@ export function WorkspaceContractorsPage() {
         <KpiCard label="Pending Issues" value={issues} icon="report" iconTone={issues ? 'warning' : 'neutral'} delta="Defects + litigation" />
       </KpiRow>
 
-      <FilterBar search={search} onSearch={setSearch} searchPlaceholder="Search contractor, registration no…" onClear={() => setSearch('')} />
+      <FilterBar
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Search contractor, registration no…"
+        selects={[
+          {
+            label: 'Project',
+            value: projectId,
+            onChange: (selectedId) => {
+              if (selectedId && selectedId !== projectId) {
+                navigate(`/government/projects/${selectedId}/contractors`)
+              }
+            },
+            options: (allProjects || []).map((p) => ({
+              value: p.id,
+              label: `${p.name || p.id} (${p.id})`,
+            })),
+          },
+        ]}
+        onClear={() => setSearch('')}
+      />
 
       <Panel title={`Contractor Register (${rows.length})`} icon="engineering" bodyClassName="p-0">
         <DataTable

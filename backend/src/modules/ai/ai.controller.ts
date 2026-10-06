@@ -54,6 +54,16 @@ export class AiController {
       next(err);
     }
   }
+
+  async suggestContractor(req: any, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenderData = req.body || {};
+      const result = await aiService.suggestContractor(tenderData);
+      ApiResponseHelper.success(res, result);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const aiController = new AiController();

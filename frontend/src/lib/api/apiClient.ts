@@ -44,12 +44,21 @@ class ApiClient {
     };
 
     const method = (options.method || 'GET').toUpperCase();
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && ![
+    const isAiOrAuthPath = [
       '/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password',
-    ].includes(resolvedPath)) {
-      const csrfToken = await this.getCsrfToken();
-      if (csrfToken && !headers['X-CSRF-Token']) {
-        headers['X-CSRF-Token'] = csrfToken;
+      '/api/ai/assistant', '/api/ai/suggest-contractor',
+    ].includes(resolvedPath) || resolvedPath.startsWith('/api/ai/');
+
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !isAiOrAuthPath) {
+      try {
+        const csrfToken = await this.getCsrfToken();
+        if (csrfToken && !headers['X-CSRF-Token']) {
+          headers['X-CSRF-Token'] = csrfToken;
+        }
+      } catch (csrfErr) {
+        // If CSRF is unavailable (e.g. cross-origin preview or serverless cold start),
+        // let the request proceed so the server can authenticate via Bearer token or cookie.
+        console.warn('[ApiClient] CSRF verification deferred:', csrfErr);
       }
     }
 

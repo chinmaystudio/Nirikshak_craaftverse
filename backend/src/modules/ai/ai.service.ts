@@ -474,6 +474,37 @@ export class AiService {
     const geminiProvider = new GeminiProvider();
     return geminiProvider.chatAssistant(message, context);
   }
+
+  async suggestContractor(tenderData: {
+    tenderId?: string;
+    tenderTitle?: string;
+    estimatedCostCr?: number;
+    bids?: Array<{
+      bidId?: string;
+      bidder: string;
+      quotedAmountCr: number;
+      technicalScore?: number;
+      financialScore?: number;
+      bidStatus?: string;
+    }>;
+    bidders?: Array<{
+      bidId?: string;
+      bidder: string;
+      quotedAmountCr: number;
+      technicalScore?: number;
+      financialScore?: number;
+      bidStatus?: string;
+    }>;
+  }) {
+    const geminiProvider = new GeminiProvider();
+    const normalizedBids = tenderData.bids || tenderData.bidders || [];
+    return geminiProvider.suggestBestContractor({
+      tenderId: tenderData.tenderId,
+      tenderTitle: tenderData.tenderTitle,
+      estimatedCostCr: tenderData.estimatedCostCr,
+      bids: normalizedBids,
+    });
+  }
 }
 
 export const aiService = new AiService();

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useI18n } from '@/context/I18nContext'
 import { useProjectWorkspace } from '@/context/ProjectWorkspaceContext'
 import { useToast } from '@/context/ToastContext'
@@ -9,11 +10,12 @@ import { Badge } from '@/components/ui/Badge'
 import { Progress } from '@/components/ui/Progress'
 import { Button } from '@/components/ui/Button'
 import { LoadingBlock } from '@/components/feedback/Feedback'
-import { PageHeader } from '@/components/blocks/Page'
+import { PageHeader, FilterBar } from '@/components/blocks/Page'
 import { useApiData } from '@/hooks/useApiData'
 import { insightsApi } from '@/api'
 import { SCORE_BAND } from '@/utils/status'
-import type { Contractor } from '@/types'
+import type { Contractor, Tender } from '@/types'
+import { GeminiContractorModal } from '../../components/GeminiContractorModal'
 
 /** Risk stance derived from the AI score band — assists, never decides. */
 function recommendationFor(band: Contractor['scoreBand']): { label: string; tone: 'success' | 'warning' | 'danger' } {
@@ -22,13 +24,35 @@ function recommendationFor(band: Contractor['scoreBand']): { label: string; tone
   return { label: 'Not Recommended', tone: 'danger' }
 }
 
-/** Project workspace — AI Contractor Evaluation: score system, comparison and
- * recommendation rationale. AI assists; the officer's award decision is final. */
+/** Project workspace — AI Contractor Management: score system, comparison and
+ * recommendation rationale powered by Google Gemini 3.1 Pro. */
 export function WorkspaceContractorEvalPage() {
+  const navigate = useNavigate()
   const { t } = useI18n()
   const { showToast } = useToast()
-  const { project } = useProjectWorkspace()
+  const { project, projectId, allProjects, tenders } = useProjectWorkspace()
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [geminiModalOpen, setGeminiModalOpen] = useState(false)
+  const [evaluatingTender, setEvaluatingTender] = useState<Tender | null>(null)
+
+  const activeTender = useMemo(() => {
+    return (
+      tenders.find((t) => (t.lots?.length ?? 0) > 0 || t.bidsReceived > 0) ||
+      tenders[0] ||
+      ({
+        id: `TND-${projectId.slice(0, 8)}`,
+        title: `${project?.name || 'Project'} Civil Works Tender`,
+        estimatedCostCr: project?.financials?.sanctionedAmountCr || 10,
+        bidsReceived: 3,
+        status: 'under_evaluation',
+        publishedOn: new Date().toISOString(),
+        submissionDeadline: new Date().toISOString(),
+        openingDate: new Date().toISOString(),
+        category: 'Infrastructure',
+        mode: 'e-Tender',
+      } as Tender)
+    )
+  }, [tenders, projectId, project])
 
   const contractorPool = useMemo(() => {
     if (project?.contractor) {
@@ -78,18 +102,73 @@ export function WorkspaceContractorEvalPage() {
     return (
       <div className="flex flex-col gap-4">
         <PageHeader
-          title="AI Contractor Evaluation"
-          description="AI decision-support for contractor capability and risk. Evaluation becomes available after tender award."
+          title="AI Contractor Management"
+          description="Google Gemini 3.1 Pro decision support for contractor capability, bidder risk, and procurement award."
+          actions={
+            <Button
+              variant="primary"
+              size="sm"
+              icon="auto_awesome"
+              className="bg-gradient-to-r from-primary to-indigo-600 shadow-sm"
+              onClick={() => {
+                setEvaluatingTender(activeTender)
+                setGeminiModalOpen(true)
+              }}
+            >
+              AI Contractor Management
+            </Button>
+          }
         />
-        <Panel title="No contractor appointed yet" icon="person_search">
-          <p className="text-body-small text-fg-muted">
-            This project is at the pre-tender stage. Once a tender is awarded and the work order is issued, the AI
-            evaluation runs against the awarded contractor's record.
-          </p>
+
+        <FilterBar
+          selects={[
+            {
+              label: 'Project',
+              value: projectId,
+              onChange: (selectedId) => {
+                if (selectedId && selectedId !== projectId) {
+                  navigate(`/government/projects/${selectedId}/contractor-evaluation`)
+                }
+              },
+              options: (allProjects || []).map((p) => ({
+                value: p.id,
+                label: `${p.name || p.id} (${p.id})`,
+              })),
+            },
+          ]}
+        />
+
+        <Panel title="Contractor Award Pending — Gemini Bidder Evaluation Available" icon="auto_awesome">
+          <div className="flex flex-col gap-3">
+            <p className="text-body-small text-fg-muted">
+              This project has active tenders with submitted bids. Click below to have Google Gemini 3.1 Pro analyze
+              all bidding contractors under CVC / CPWD Quality & Cost Based Selection (QCBS 70:30) and suggest the best candidate.
+            </p>
+            <div className="mt-2">
+              <Button
+                variant="primary"
+                icon="auto_awesome"
+                className="bg-gradient-to-r from-primary to-indigo-600"
+                onClick={() => {
+                  setEvaluatingTender(activeTender)
+                  setGeminiModalOpen(true)
+                }}
+              >
+                Suggest Best Contractor with Gemini 3.1 Pro
+              </Button>
+            </div>
+          </div>
         </Panel>
+
+        <GeminiContractorModal
+          open={geminiModalOpen}
+          onClose={() => setGeminiModalOpen(false)}
+          tender={evaluatingTender}
+        />
       </div>
     )
   }
+
 
   const liveScore = evaluation.data?.historical_analysis?.review_priority_score != null
     ? Math.max(0, Math.min(100, Math.round((1 - Number(evaluation.data.historical_analysis.review_priority_score)) * 100)))
@@ -111,18 +190,50 @@ export function WorkspaceContractorEvalPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        title="AI Contractor Evaluation"
+        title="AI Contractor Management"
         description={`AI-assisted capability and risk analysis for ${assigned.name} — evaluated with Google Gemini 3.1 Pro. Decision support only; the award decision always remains with the authorized officer.`}
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            icon="download"
-            onClick={() => showToast('Contractor evaluation report generated (demo file).', 'info')}
-          >
-            {t('common.export')}
-          </Button>
+          <>
+            <Button
+              variant="primary"
+              size="sm"
+              icon="auto_awesome"
+              className="bg-gradient-to-r from-primary to-indigo-600 shadow-sm"
+              onClick={() => {
+                setEvaluatingTender(activeTender)
+                setGeminiModalOpen(true)
+              }}
+            >
+              AI Contractor Management
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              icon="download"
+              onClick={() => showToast('Contractor evaluation report generated (demo file).', 'info')}
+            >
+              {t('common.export')}
+            </Button>
+          </>
         }
+      />
+
+      <FilterBar
+        selects={[
+          {
+            label: 'Project',
+            value: projectId,
+            onChange: (selectedId) => {
+              if (selectedId && selectedId !== projectId) {
+                navigate(`/government/projects/${selectedId}/contractor-evaluation`)
+              }
+            },
+            options: (allProjects || []).map((p) => ({
+              value: p.id,
+              label: `${p.name || p.id} (${p.id})`,
+            })),
+          },
+        ]}
       />
 
       {/* Score hero */}
@@ -252,6 +363,12 @@ export function WorkspaceContractorEvalPage() {
         <span className="material-symbols-outlined mr-1 align-middle text-[16px]" aria-hidden="true">smart_toy</span>
         {t('common.aiDisclaimerEvaluation')}
       </Card>
+
+      <GeminiContractorModal
+        open={geminiModalOpen}
+        onClose={() => setGeminiModalOpen(false)}
+        tender={evaluatingTender}
+      />
     </div>
   )
 }

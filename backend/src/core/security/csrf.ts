@@ -23,6 +23,8 @@ const CSRF_TOKEN_EXEMPT_PATHS = new Set([
   '/api/auth/csrf',
   '/api/auth/oauth/google/start',
   '/api/auth/oauth/google/callback',
+  '/api/ai/assistant',
+  '/api/ai/suggest-contractor',
 ]);
 
 export function csrfProtection(req: Request, res: Response, next: NextFunction): void {

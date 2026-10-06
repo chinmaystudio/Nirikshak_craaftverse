@@ -33,7 +33,7 @@ export const nav: Record<string, string> = {
   'nav.tenderManagement': 'Tender Management',
   'nav.workContractManagement': 'Work & Contract Management',
   'nav.paymentBillMgmt': 'Payment & Bill Management',
-  'nav.aiContractorEval': 'AI Contractor Evaluation',
+  'nav.aiContractorEval': 'AI Contractor Management',
   'nav.contractorManagement': 'Contractor Management',
   'nav.projectExecution': 'Project Execution',
   'nav.peopleSettlement': 'People Settlement',

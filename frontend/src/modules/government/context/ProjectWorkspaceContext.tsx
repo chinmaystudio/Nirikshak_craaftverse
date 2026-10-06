@@ -40,6 +40,7 @@ export interface ProjectWorkspaceValue {
   projectId: string
   /** undefined while loading, null when no project matches the id. */
   project: Project | null | undefined
+  allProjects: Project[]
   workOrder: WorkOrder | undefined
   inspections: InspectionRecord[]
   litigation: LitigationCase[]
@@ -65,6 +66,7 @@ export function ProjectWorkspaceProvider({
   children: ReactNode
 }) {
   const { data: project, loading } = useApiData(() => projectsApi.get(projectId), [projectId])
+  const { data: allProjectsData } = useApiData(() => projectsApi.all(), [])
 
   const { data: workOrders } = useApiData(() => workApi.workOrders(), [])
   const { data: inspectionsAll } = useApiData(() => workApi.inspections(), [])
@@ -91,6 +93,7 @@ export function ProjectWorkspaceProvider({
     return {
       projectId: id,
       project: loading ? undefined : (project ?? null),
+      allProjects: allProjectsData ?? [],
       workOrder: workOrders?.find((w) => w.projectId === id),
       inspections: (inspectionsAll ?? []).filter((x) => x.projectId === id),
       litigation: (litigationAll ?? []).filter((x) => x.projectId === id),
@@ -105,7 +108,7 @@ export function ProjectWorkspaceProvider({
       contracts: contracts ?? [],
       progressUpdates: progressUpdates ?? [],
     }
-  }, [projectId, project, loading, workOrders, inspectionsAll, litigationAll, grievancesAll, documentsAll, approvalsAll, insightsAll, findingsAll, alertsAll, tendersAll, billsAll, contracts, progressUpdates])
+  }, [projectId, project, loading, allProjectsData, workOrders, inspectionsAll, litigationAll, grievancesAll, documentsAll, approvalsAll, insightsAll, findingsAll, alertsAll, tendersAll, billsAll, contracts, progressUpdates])
 
   return <ProjectWorkspaceContext.Provider value={value}>{children}</ProjectWorkspaceContext.Provider>
 }

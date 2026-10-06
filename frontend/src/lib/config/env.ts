@@ -15,7 +15,8 @@ if (!supabaseUrl || !supabasePublishableKey) {
 export const env = {
   SUPABASE_URL: supabaseUrl || '',
   SUPABASE_PUBLISHABLE_KEY: supabasePublishableKey || '',
-  API_BASE_URL: (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, ''),
+  API_BASE_URL: ((import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL || '') as string).replace(/\/$/, ''),
+  GEMINI_API_KEY: (import.meta.env.VITE_GEMINI_API_KEY || '') as string,
   DATA_MODE: (import.meta.env.VITE_DATA_MODE || 'LIVE').toUpperCase(),
   SHOW_DEMO_CREDENTIALS: import.meta.env.VITE_SHOW_DEMO_CREDENTIALS === 'true',
 } as const;

@@ -38,3 +38,10 @@ aiRouter.post(
   (req, res, next) => aiController.assistant(req, res, next)
 );
 
+// POST /api/ai/suggest-contractor - Suggest best bidding contractor using Google Gemini 3.1 Pro
+aiRouter.post(
+  '/suggest-contractor',
+  rateLimit({ windowMs: 60 * 1000, max: 30 }),
+  (req, res, next) => aiController.suggestContractor(req, res, next)
+);
+

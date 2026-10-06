@@ -33,7 +33,7 @@ export const nav: Record<string, string> = {
   'nav.tenderManagement': 'निविदा प्रबंधन',
   'nav.workContractManagement': 'कार्य एवं अनुबंध प्रबंधन',
   'nav.paymentBillMgmt': 'भुगतान एवं बिल प्रबंधन',
-  'nav.aiContractorEval': 'एआई ठेकेदार मूल्यांकन',
+  'nav.aiContractorEval': 'एआई ठेकेदार प्रबंधन',
   'nav.contractorManagement': 'ठेकेदार प्रबंधन',
   'nav.projectExecution': 'परियोजना निष्पादन',
   'nav.peopleSettlement': 'श्रमिक समझौता',
