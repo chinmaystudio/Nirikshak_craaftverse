@@ -149,7 +149,7 @@ class VersionMetadata(BaseModel):
     historical_model: str = "nirikshak-historical-v1.0.0"
     online_model: str = "nirikshak-online-v1.0.0"
     rl_policy: str = "linucb-v1.0.0"
-    llm_model: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    llm_model: str = "gemini-3.1-pro-preview"
 
 def calculate_input_quality(
     flat_data: dict[str, Any],
@@ -271,4 +271,3 @@ class HealthResponse(BaseModel):
     rl_policy: str
     openrouter: str
     model_version: str
-

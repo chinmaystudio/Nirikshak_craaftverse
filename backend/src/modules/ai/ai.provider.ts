@@ -18,7 +18,7 @@ export interface LLMProvider {
  * Modern callers should consume the canonical Express AI endpoints directly.
  */
 export class PythonServiceLLMAdapter implements LLMProvider {
-  readonly name = 'NIRIKSHAK AI (ML + OpenRouter)';
+  readonly name = 'NIRIKSHAK AI (ML + Google Gemini)';
 
   async analyzeProject(_prompt: string, context: Record<string, unknown>): Promise<ProjectRiskAnalysis> {
     const res = await aiClient.analyzeProject(context, 3, true);

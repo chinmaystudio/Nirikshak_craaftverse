@@ -1,4 +1,8 @@
-"""Async client for OpenRouter chat completions."""
+"""Gemini-only structured explanation client.
+
+The module path is retained for backwards compatibility with existing imports.
+No OpenRouter or alternate LLM provider is used.
+"""
 from __future__ import annotations
 import os
 import json
@@ -25,13 +29,13 @@ class OpenRouterClient:
         enabled: bool | None = None,
         timeout_seconds: float = 8.0,
     ):
-        self.api_key = api_key if api_key is not None else os.getenv("OPENROUTER_API_KEY", "").strip()
-        self.model = model if model is not None else os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3-super-120b-a12b:free").strip()
-        self.base_url = (base_url if base_url is not None else os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")).rstrip("/")
-        self.app_name = app_name or os.getenv("OPENROUTER_APP_NAME", "NIRIKSHAK").strip()
-        self.referer = referer or os.getenv("OPENROUTER_HTTP_REFERER", "").strip()
-        
-        env_enabled = os.getenv("AI_ENABLE_OPENROUTER", "true").lower() in ("1", "true", "yes")
+        self.api_key = api_key if api_key is not None else os.getenv("GEMINI_API_KEY", "").strip()
+        self.model = model if model is not None else os.getenv("GEMINI_MODEL", "gemini-3.1-pro-preview").strip()
+        self.base_url = (base_url if base_url is not None else os.getenv("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta")).rstrip("/")
+        self.app_name = app_name or "NIRIKSHAK"
+        self.referer = referer or ""
+
+        env_enabled = os.getenv("AI_ENABLE_GEMINI", "true").lower() in ("1", "true", "yes")
         self.enabled = env_enabled if enabled is None else enabled
         self.timeout = timeout_seconds
 
@@ -55,22 +59,15 @@ class OpenRouterClient:
         return json.loads(text)
 
     async def _call_api(self, messages: list[dict[str, str]]) -> str:
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-            "X-Title": self.app_name,
-        }
-        if self.referer:
-            headers["HTTP-Referer"] = self.referer
-
+        headers = {"Content-Type": "application/json", "x-goog-api-key": self.api_key}
+        system = next((m["content"] for m in messages if m["role"] == "system"), "")
+        contents = [{"role": "user" if m["role"] == "user" else "model", "parts": [{"text": m["content"]}]} for m in messages if m["role"] != "system"]
         payload = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": 0.2,
-            "response_format": {"type": "json_object"},
+            "systemInstruction": {"parts": [{"text": system}]},
+            "contents": contents,
+            "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
         }
-
-        url = f"{self.base_url}/chat/completions"
+        url = f"{self.base_url}/models/{self.model}:generateContent"
 
         for attempt in range(2):  # initial + 1 retry for transient server codes
             resp = None
@@ -79,33 +76,33 @@ class OpenRouterClient:
                     resp = await client.post(url, headers=headers, json=payload)
                 
                 if resp.status_code in (429, 500, 502, 503, 504) and attempt == 0:
-                    logger.warning("OpenRouter transient status %s, retrying once...", resp.status_code)
+                    logger.warning("Gemini transient status %s, retrying once...", resp.status_code)
                     await asyncio.sleep(0.5)
                     continue
 
                 resp.raise_for_status()
                 data = resp.json()
-                choices = data.get("choices", [])
-                if not choices:
-                    raise ValueError("OpenRouter returned empty choices list")
-                content = choices[0].get("message", {}).get("content", "")
+                candidates = data.get("candidates", [])
+                if not candidates:
+                    raise ValueError("Gemini returned empty candidates list")
+                content = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
                 return content
             except httpx.TimeoutException:
-                logger.warning("OpenRouter timed out after %ss; fast-failing to preserve ML response", self.timeout)
+                logger.warning("Gemini timed out after %ss; fast-failing to preserve ML response", self.timeout)
                 raise
             except httpx.HTTPStatusError as exc:
                 status_code = exc.response.status_code
                 if attempt == 0 and status_code in (429, 500, 502, 503, 504):
-                    logger.warning("OpenRouter HTTP %s, retrying once...", status_code)
+                    logger.warning("Gemini HTTP %s, retrying once...", status_code)
                     await asyncio.sleep(0.5)
                     continue
                 # Do not retry 400, 401, 403, 404
                 raise
             except (httpx.ConnectError, httpx.RequestError) as exc:
-                logger.warning("OpenRouter network request error (%s)", exc)
+                logger.warning("Gemini network request error (%s)", exc)
                 raise
 
-        raise RuntimeError("OpenRouter failed after retries")
+        raise RuntimeError("Gemini failed after retries")
 
     async def explain(
         self,
@@ -118,14 +115,14 @@ class OpenRouterClient:
             return LLMExplanationResult(
                 status="DISABLED",
                 model=self.model,
-                summary="OpenRouter explanation layer is disabled by configuration.",
+                summary="Gemini explanation layer is disabled by configuration.",
             )
 
         if not self.api_key:
             return LLMExplanationResult(
                 status="UNAVAILABLE",
                 model=self.model,
-                summary="OpenRouter API key is not configured.",
+                summary="Gemini API key is not configured.",
             )
 
         sanitized_snapshot = sanitize_context_data(snapshot)
@@ -144,11 +141,11 @@ class OpenRouterClient:
         try:
             content = await self._call_api(messages)
         except Exception as exc:
-            logger.error("OpenRouter API call failed: %s", exc)
+            logger.error("Gemini API call failed: %s", exc)
             return LLMExplanationResult(
                 status="UNAVAILABLE",
                 model=self.model,
-                summary=f"OpenRouter advisory service temporarily unavailable: {type(exc).__name__}",
+                summary=f"Gemini advisory service temporarily unavailable: {type(exc).__name__}",
             )
 
         # Parse and validate structured output
@@ -170,12 +167,12 @@ class OpenRouterClient:
                 return LLMExplanationResult(
                     status="ERROR",
                     model=self.model,
-                    summary="OpenRouter response could not be validated into required structured schema.",
+                    summary="Gemini response could not be validated into required structured schema.",
                 )
 
         return LLMExplanationResult(
             status="READY",
-            provider="OpenRouter",
+            provider="Google Gemini",
             model=self.model,
             summary=validated.summary,
             key_findings=validated.key_findings,

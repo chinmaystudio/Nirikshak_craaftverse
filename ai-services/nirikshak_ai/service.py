@@ -35,7 +35,7 @@ class NirikshakAI:
         # 4. SQLite State Persistence Store
         self.state_store = StateStore(self.root / "state" / "nirikshak_ai_state.sqlite3")
         
-        # 5. OpenRouter Client
+        # 5. Gemini-only explanation client
         self.openrouter = OpenRouterClient()
 
     async def analyze(
@@ -70,7 +70,7 @@ class NirikshakAI:
                 llm_model=self.openrouter.model,
             )
 
-        # Step 4: OpenRouter explanation layer (async, non-blocking lock)
+        # Step 4: Gemini explanation layer (async, non-blocking lock)
         llm_result: dict[str, Any]
         if include_explanation:
             explanation = await self.openrouter.explain(
@@ -265,13 +265,13 @@ class NirikshakAI:
         }
 
     def health_check(self) -> dict[str, str]:
-        openrouter_status = "READY" if self.openrouter.is_configured else "DISABLED" if not self.openrouter.enabled else "UNAVAILABLE"
+        gemini_status = "READY" if self.openrouter.is_configured else "DISABLED" if not self.openrouter.enabled else "UNAVAILABLE"
         return {
             "status": "ok",
             "historical_model": "READY",
             "online_model": "READY",
             "rl_policy": "READY",
-            "openrouter": openrouter_status,
+            "openrouter": gemini_status,
             "model_version": "nirikshak-ai-v1.0.0",
         }
 

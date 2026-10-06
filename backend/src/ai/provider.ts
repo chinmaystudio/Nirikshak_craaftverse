@@ -66,13 +66,13 @@ export function sanitizeContext(data: any): any {
 }
 
 export class OpenRouterProvider implements LLMProvider {
-  readonly name = 'OpenRouter (Nemotron)';
+  readonly name = 'Google Gemini 3.1 Pro';
   private apiKey: string;
   private model: string;
 
   constructor() {
-    this.apiKey = process.env.OPENROUTER_API_KEY || '';
-    this.model = process.env.OPENROUTER_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free';
+    this.apiKey = process.env.GEMINI_API_KEY || '';
+    this.model = process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
   }
 
   async analyzeProject(prompt: string, context: Record<string, unknown>): Promise<ProjectRiskAnalysis> {
@@ -80,7 +80,7 @@ export class OpenRouterProvider implements LLMProvider {
 
     // Rule 62: Never return fabricated insight when API key or provider is unavailable
     if (!this.apiKey) {
-      throw new Error('AI_ANALYSIS_UNAVAILABLE: OPENROUTER_API_KEY is not configured on this server');
+      throw new Error('AI_ANALYSIS_UNAVAILABLE: GEMINI_API_KEY is not configured on this server');
     }
 
     const systemPrompt = `You are NIRIKSHAK AI, an infrastructure project analysis assistant.
@@ -121,37 +121,31 @@ Respond with VALID JSON ONLY. No markdown fences, no conversational prose.`;
     while (attempts < maxAttempts) {
       attempts++;
       try {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.apiKey}`,
-            'HTTP-Referer': 'https://nirikshak.gov.in',
-            'X-Title': 'NIRIKSHAK Infrastructure Audit',
+            'x-goog-api-key': this.apiKey,
           },
           body: JSON.stringify({
-            model: this.model,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt },
-            ],
-            response_format: { type: 'json_object' },
-            temperature: 0.2,
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+            generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
           }),
         });
 
         if (!response.ok) {
-          throw new Error(`OpenRouter HTTP ${response.status}: ${response.statusText}`);
+          throw new Error(`Gemini HTTP ${response.status}: ${response.statusText}`);
         }
 
         const data = await response.json();
-        const rawContent = data.choices[0]?.message?.content || '{}';
+        const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
         const parsed = JSON.parse(rawContent);
         const validated = ProjectRiskAnalysisSchema.parse(parsed);
 
         const latency = Date.now() - startTime;
         // Rule 64: Log only metadata, never raw sensitive prompts
-        console.info(`[AI_LOG] provider=OpenRouter model=${this.model} latency=${latency}ms tokens=${data.usage?.total_tokens ?? 0} status=SUCCESS promptHash=${promptHash}`);
+        console.info(`[AI_LOG] provider=Google Gemini model=${this.model} latency=${latency}ms status=SUCCESS promptHash=${promptHash}`);
 
         return validated;
       } catch (err: any) {
@@ -161,7 +155,7 @@ Respond with VALID JSON ONLY. No markdown fences, no conversational prose.`;
     }
 
     const latency = Date.now() - startTime;
-    console.error(`[AI_LOG] provider=OpenRouter model=${this.model} latency=${latency}ms status=FAILED promptHash=${promptHash} error=${lastError?.message}`);
+    console.error(`[AI_LOG] provider=Google Gemini model=${this.model} latency=${latency}ms status=FAILED promptHash=${promptHash} error=${lastError?.message}`);
     throw new Error(`AI_ANALYSIS_FAILED: Provider output failed schema validation: ${lastError?.message}`);
   }
 }
