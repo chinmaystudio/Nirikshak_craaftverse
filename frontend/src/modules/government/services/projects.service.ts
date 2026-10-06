@@ -113,6 +113,7 @@ export const projectsService = {
       .from('government_project_summary_view')
       .select('*')
       .or('record_scope.is.null,record_scope.neq.DEMO')
+      .order('created_at', { ascending: false, nullsFirst: false })
       .order('total_cost_inr_crore', { ascending: false, nullsFirst: false })
       .limit(1000);
 
@@ -143,6 +144,7 @@ export const projectsService = {
     }
 
     const { data, count, error } = await query
+      .order('created_at', { ascending: false, nullsFirst: false })
       .order('total_cost_inr_crore', { ascending: false, nullsFirst: false })
       .range(from, to);
 
