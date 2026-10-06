@@ -49,8 +49,8 @@ export const insightsApi = {
   async all() {
     return governmentAiService.all();
   },
-  async evaluateContractor(_id: string) {
-    return undefined;
+  async evaluateContractor(projectId: string) {
+    return governmentAiService.evaluateContractor(projectId);
   },
 };
 

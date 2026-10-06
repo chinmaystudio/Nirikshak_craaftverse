@@ -30,3 +30,11 @@ aiRouter.post(
   requireAuth,
   (req, res, next) => aiController.outcome(req, res, next)
 );
+
+// POST /api/ai/assistant - NIRIKSHAK Civic Assistant powered by Google Gemini 3.1 Pro
+aiRouter.post(
+  '/assistant',
+  rateLimit({ windowMs: 60 * 1000, max: 40 }),
+  (req, res, next) => aiController.assistant(req, res, next)
+);
+

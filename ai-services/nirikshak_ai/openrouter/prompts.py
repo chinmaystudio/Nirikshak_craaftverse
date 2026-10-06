@@ -58,6 +58,15 @@ JSON SCHEMA REQUIREMENTS:
       "responsible_party": "GOVERNMENT | CONTRACTOR | BOTH"
     }}
   ],
+  "contractor_evaluation": {{
+    "contractor_name": "Name of assigned contractor if present in snapshot",
+    "performance_rating": "LOW | MODERATE | HIGH | EXCELLENT",
+    "risk_band": "LOW | MEDIUM | HIGH | CRITICAL",
+    "strengths": ["Key contractor execution capabilities and demonstrated strengths"],
+    "risk_factors": ["Specific contractor risks, defects, or workload exposure to watch"],
+    "compliance_notes": ["Statutory tax, bank guarantee, and labor compliance observations"],
+    "recommendation": "Objective contractor performance recommendation for designated officers"
+  }},
   "missing_information": ["List of unverified or missing data points needed for complete assessment"],
   "government_review_notes": ["Specific points for government engineers to verify during review or site inspection"],
   "contractor_followups": ["Specific clarifications or documentation the contractor should provide"],

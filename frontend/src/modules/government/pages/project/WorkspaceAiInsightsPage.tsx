@@ -260,6 +260,7 @@ export function WorkspaceAiInsightsPage() {
             <p className="mt-1 text-fg">
               Review Priority Band: <strong>{aiResult?.review_priority_band || (project.riskLevel === 'high' ? 'VERY_UNUSUAL' : project.delayDays > 30 ? 'UNUSUAL' : 'TYPICAL')}</strong>
               {aiResult?.input_quality ? ` • Input Completeness: ${Math.round(aiResult.input_quality.completeness_score * 100)}%` : ''}
+              <span> • Engine: <strong>Google Gemini 3.1 Pro</strong></span>
             </p>
             <p className="mt-1 text-fg-muted">
               {aiResult?.llm?.summary || 'No live Gemini result is available yet.'}

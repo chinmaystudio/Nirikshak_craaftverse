@@ -67,42 +67,53 @@ class OpenRouterClient:
             "contents": contents,
             "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
         }
-        url = f"{self.base_url}/models/{self.model}:generateContent"
 
-        for attempt in range(2):  # initial + 1 retry for transient server codes
-            resp = None
-            try:
-                async with httpx.AsyncClient(timeout=self.timeout) as client:
-                    resp = await client.post(url, headers=headers, json=payload)
-                
-                if resp.status_code in (429, 500, 502, 503, 504) and attempt == 0:
-                    logger.warning("Gemini transient status %s, retrying once...", resp.status_code)
-                    await asyncio.sleep(0.5)
-                    continue
+        candidate_models = list(dict.fromkeys([self.model, "gemini-3.1-pro", "gemini-2.5-pro", "gemini-pro"]))
+        last_error = None
 
-                resp.raise_for_status()
-                data = resp.json()
-                candidates = data.get("candidates", [])
-                if not candidates:
-                    raise ValueError("Gemini returned empty candidates list")
-                content = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                return content
-            except httpx.TimeoutException:
-                logger.warning("Gemini timed out after %ss; fast-failing to preserve ML response", self.timeout)
-                raise
-            except httpx.HTTPStatusError as exc:
-                status_code = exc.response.status_code
-                if attempt == 0 and status_code in (429, 500, 502, 503, 504):
-                    logger.warning("Gemini HTTP %s, retrying once...", status_code)
-                    await asyncio.sleep(0.5)
-                    continue
-                # Do not retry 400, 401, 403, 404
-                raise
-            except (httpx.ConnectError, httpx.RequestError) as exc:
-                logger.warning("Gemini network request error (%s)", exc)
-                raise
+        for model_candidate in candidate_models:
+            url = f"{self.base_url}/models/{model_candidate}:generateContent"
+            for attempt in range(2):
+                try:
+                    async with httpx.AsyncClient(timeout=self.timeout) as client:
+                        resp = await client.post(url, headers=headers, json=payload)
+                    
+                    if resp.status_code in (429, 500, 502, 503, 504) and attempt == 0:
+                        logger.warning("Gemini transient status %s, retrying once...", resp.status_code)
+                        await asyncio.sleep(0.5)
+                        continue
 
-        raise RuntimeError("Gemini failed after retries")
+                    if resp.status_code == 404:
+                        logger.warning("Gemini model %s returned 404, attempting fallback...", model_candidate)
+                        break
+
+                    resp.raise_for_status()
+                    data = resp.json()
+                    candidates = data.get("candidates", [])
+                    if not candidates:
+                        raise ValueError("Gemini returned empty candidates list")
+                    content = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                    return content
+                except httpx.TimeoutException:
+                    logger.warning("Gemini timed out after %ss for model %s", self.timeout, model_candidate)
+                    last_error = httpx.TimeoutException("Gemini timed out")
+                    break
+                except httpx.HTTPStatusError as exc:
+                    status_code = exc.response.status_code
+                    last_error = exc
+                    if status_code == 404:
+                        break
+                    if attempt == 0 and status_code in (429, 500, 502, 503, 504):
+                        logger.warning("Gemini HTTP %s, retrying once...", status_code)
+                        await asyncio.sleep(0.5)
+                        continue
+                    break
+                except (httpx.ConnectError, httpx.RequestError) as exc:
+                    logger.warning("Gemini network request error (%s)", exc)
+                    last_error = exc
+                    break
+
+        raise last_error or RuntimeError("Gemini failed after trying candidate models")
 
     async def explain(
         self,
@@ -172,11 +183,12 @@ class OpenRouterClient:
 
         return LLMExplanationResult(
             status="READY",
-            provider="Google Gemini",
+            provider="Google Gemini 3.1 Pro",
             model=self.model,
             summary=validated.summary,
             key_findings=validated.key_findings,
             recommended_actions=validated.recommended_actions,
+            contractor_evaluation=validated.contractor_evaluation,
             missing_information=validated.missing_information,
             government_review_notes=validated.government_review_notes,
             contractor_followups=validated.contractor_followups,

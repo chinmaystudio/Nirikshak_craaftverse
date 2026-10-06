@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { supabaseAdmin, createAuthenticatedClient } from '../../core/database/supabase.js';
 import { aiClient, AiClientAnalysisResult } from './ai.client.js';
 import { buildProjectSnapshot } from './ai.context.js';
+import { GeminiProvider } from '../../ai/provider.js';
 import { UserContext } from '../../core/auth/userContext.js';
 import { AuthorizationError, NotFoundError, BadRequestError } from '../../core/http/errors.js';
 
@@ -98,8 +99,15 @@ export class AiService {
       contractorOrganizationId: userContext.organizationId,
     });
 
-    // 4. Dispatch to Python AI Microservice
-    const result = await aiClient.analyzeProject(snapshot, 3, true);
+    // 4. Dispatch to Python AI Microservice or direct Google Gemini 3.1 Pro
+    let result: AiClientAnalysisResult;
+    try {
+      result = await aiClient.analyzeProject(snapshot, 3, true);
+    } catch (aiErr: any) {
+      console.warn('[AI SERVICE] Python AI microservice unavailable, routing directly to Google Gemini 3.1 Pro:', aiErr.message);
+      const geminiProvider = new GeminiProvider();
+      result = (await geminiProvider.analyzeProjectDetailed(snapshot)) as any;
+    }
 
     // 5. Database V2 Runtime Persistence
     const contextHash = crypto.createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
@@ -460,6 +468,11 @@ export class AiService {
 
   async getHealth() {
     return await aiClient.healthCheck();
+  }
+
+  async assistantChat(message: string, context?: Record<string, any>) {
+    const geminiProvider = new GeminiProvider();
+    return geminiProvider.chatAssistant(message, context);
   }
 }
 

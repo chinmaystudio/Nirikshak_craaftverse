@@ -70,6 +70,16 @@ export const SubmitBidSchema = z.object({
 
 export const RiskLevelEnum = z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL', 'UNKNOWN']);
 
+export const ContractorEvaluationSchema = z.object({
+  contractor_name: z.string().optional(),
+  performance_rating: z.enum(['LOW', 'MODERATE', 'HIGH', 'EXCELLENT']).default('MODERATE'),
+  risk_band: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).default('MEDIUM'),
+  strengths: z.array(z.string()).default([]),
+  risk_factors: z.array(z.string()).default([]),
+  compliance_notes: z.array(z.string()).default([]),
+  recommendation: z.string().optional(),
+});
+
 export const ProjectRiskAnalysisSchema = z.object({
   risk_score: z.number().min(0).max(100).nullable().optional(),
   risk_level: RiskLevelEnum,
@@ -88,6 +98,13 @@ export const ProjectRiskAnalysisSchema = z.object({
   }),
   evidence: z.array(z.string()),
   recommended_actions: z.array(z.string()),
+  contractor_evaluation: ContractorEvaluationSchema.optional(),
 });
 
 export type ProjectRiskAnalysis = z.infer<typeof ProjectRiskAnalysisSchema>;
+
+export const AssistantChatSchema = z.object({
+  message: z.string().min(1).max(2000),
+  context: z.record(z.unknown()).optional(),
+});
+

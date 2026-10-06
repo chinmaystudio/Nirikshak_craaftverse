@@ -43,6 +43,18 @@ export class AiController {
       next(err);
     }
   }
+
+  async assistant(req: any, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const message = String(req.body?.message || req.body?.text || '').trim();
+      const context = req.body?.context;
+      const result = await aiService.assistantChat(message, context);
+      ApiResponseHelper.success(res, result);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const aiController = new AiController();
+

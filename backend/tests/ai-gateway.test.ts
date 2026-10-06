@@ -133,6 +133,20 @@ async function runAiTests() {
       }
     });
 
+    // 6. Gemini Civic Assistant: Publicly reachable and returns structured civic response
+    await test('Civic Assistant: POST /api/ai/assistant responds with Gemini structure', async () => {
+      const res = await fetch(`${baseUrl}/api/ai/assistant`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'What projects are happening near me?' }),
+      });
+      assert.strictEqual(res.status, 200, `Expected 200, got ${res.status}`);
+      const body: any = await res.json();
+      assert(body.success, 'Expected success response');
+      assert(body.data?.text, 'Expected response text');
+      assert(Array.isArray(body.data?.chips) || body.data?.chips === undefined, 'Expected chips array');
+    });
+
     console.log(`\nResults: ${passed} passed, ${failed} failed`);
   } finally {
     server.close();

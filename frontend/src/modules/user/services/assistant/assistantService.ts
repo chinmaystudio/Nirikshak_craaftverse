@@ -22,6 +22,34 @@ function nearbySummary(): Array<{ name: string; sub: string; id: string; progres
 }
 
 export async function respond(text: string, ctx: AssistantContext | null): Promise<AssistantReply> {
+  // 1. Live Google Gemini 3.1 Pro Civic Assistant
+  try {
+    const backendUrl = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
+    const endpoint = `${backendUrl}/api/ai/assistant`;
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, context: ctx || {} }),
+    });
+    if (res.ok) {
+      const payload = await res.json();
+      if (payload?.data?.text) {
+        return {
+          text: payload.data.text,
+          actions: payload.data.actions || undefined,
+          chips: payload.data.chips || [
+            'What projects are near me?',
+            'I want to report a pothole',
+            'Show my complaints',
+            'Why is a project delayed?',
+          ],
+        };
+      }
+    }
+  } catch (_err) {
+    // Graceful offline fallback if backend unavailable
+  }
+
   const q = text.toLowerCase();
   const user = currentUser();
   const delay = 700 + Math.random() * 700;

@@ -100,9 +100,10 @@ export function WorkspaceContractorEvalPage() {
     { name: 'Cost anomaly', score: Math.round(Number(evaluation.data.historical_analysis.cost_anomaly_score) * 100), weight: 25, evidence: 'Calculated from persisted expenditure and payment-claim records.' },
     { name: 'Operational drift', score: Math.round(Number(evaluation.data.operational_drift?.drift_percentile || 0)), weight: 20, evidence: 'Calculated from verified project execution history.' },
   ] : []
+  const contractorEval = (evaluation.data?.llm as any)?.contractor_evaluation;
   const displayScore = liveScore ?? assigned.aiScore
   const displayBand = liveBand as Contractor['scoreBand']
-  const liveRecommendation = evaluation.data?.llm?.summary || 'Run live Gemini analysis to generate the contractor recommendation.'
+  const liveRecommendation = contractorEval?.recommendation || evaluation.data?.llm?.summary || 'Run live Gemini analysis to generate the contractor recommendation.'
 
   const factors = liveFactors
   const rec = recommendationFor(displayBand)
@@ -111,7 +112,7 @@ export function WorkspaceContractorEvalPage() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title="AI Contractor Evaluation"
-        description={`AI-assisted capability and risk analysis for ${assigned.name} — the contractor executing this project. Decision support only; the award decision always remains with the authorized officer.`}
+        description={`AI-assisted capability and risk analysis for ${assigned.name} — evaluated with Google Gemini 3.1 Pro. Decision support only; the award decision always remains with the authorized officer.`}
         actions={
           <Button
             variant="outline"
@@ -136,7 +137,7 @@ export function WorkspaceContractorEvalPage() {
             {rec.label}
           </Badge>
           <span className="ml-auto text-caption text-fg-subtle">
-            AI confidence: <strong className="text-fg">{evaluation.data?.input_quality ? `${Math.round(Number(evaluation.data.input_quality.completeness_score) * 100)}% input completeness` : '—'}</strong> · evaluated {evaluation.data ? 'from live records' : '—'}
+            AI Engine: <strong className="text-fg">Google Gemini 3.1 Pro</strong> · {evaluation.data?.input_quality ? `${Math.round(Number(evaluation.data.input_quality.completeness_score) * 100)}% completeness` : 'live analysis'}
           </span>
         </div>
       </Panel>
@@ -204,19 +205,22 @@ export function WorkspaceContractorEvalPage() {
 
       {/* AI recommendation + factors */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Panel title="AI Recommendation" icon="auto_awesome">
+        <Panel title="AI Recommendation (Google Gemini 3.1 Pro)" icon="auto_awesome">
           <p className="rounded-control border border-primary-border bg-primary-soft p-3 text-body-small text-fg">
             <strong>{rec.label}:</strong> {liveRecommendation}
           </p>
-          <p className="mt-3 text-caption text-fg-subtle">Factors supporting this recommendation: on-time completion (20%), quality (18%), defect liability (12%) and litigation exposure (12%) carry the largest weights.</p>
+          <p className="mt-3 text-caption text-fg-subtle">Factors evaluated by Gemini: on-time milestone delivery, verified quality index, cost variance signals and statutory compliance.</p>
         </Panel>
         <Panel title="Risk & Positive Factors" icon="balance">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <p className="nk-label">Positive factors</p>
               <ul className="mt-2 flex flex-col gap-1">
-                {(evaluation.data?.llm?.recommended_actions ?? []).map((s) => (
-                  <li key={s} className="flex items-start gap-1.5 text-body-small text-fg">
+                {(contractorEval?.strengths?.length
+                  ? contractorEval.strengths.map((strength: string, idx: number) => ({ action: 'Strength', reason: strength, idx }))
+                  : (evaluation.data?.llm?.recommended_actions ?? []).map((s, idx) => ({ action: s.action, reason: s.reason, idx }))
+                ).map((s: { action: string; reason: string; idx: number }) => (
+                  <li key={`${s.action}-${s.idx}`} className="flex items-start gap-1.5 text-body-small text-fg">
                     <span className="material-symbols-outlined text-[16px] text-success-strong" aria-hidden="true">check_circle</span>
                     {s.action}: {s.reason}
                   </li>
@@ -226,8 +230,11 @@ export function WorkspaceContractorEvalPage() {
             <div>
               <p className="nk-label">Risk factors</p>
               <ul className="mt-2 flex flex-col gap-1">
-                {(evaluation.data?.llm?.key_findings ?? []).map((s) => (
-                  <li key={s} className="flex items-start gap-1.5 text-body-small text-fg">
+                {(contractorEval?.risk_factors?.length
+                  ? contractorEval.risk_factors.map((rf: string, idx: number) => ({ title: 'Risk Factor', reason: rf, idx }))
+                  : (evaluation.data?.llm?.key_findings ?? []).map((s, idx) => ({ title: s.title, reason: s.reason, idx }))
+                ).map((s: { title: string; reason: string; idx: number }) => (
+                  <li key={`${s.title}-${s.idx}`} className="flex items-start gap-1.5 text-body-small text-fg">
                     <span className="material-symbols-outlined text-[16px] text-warning-strong" aria-hidden="true">warning</span>
                     {s.title}: {s.reason}
                   </li>
