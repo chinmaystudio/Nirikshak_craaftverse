@@ -97,6 +97,12 @@ export default function BidSubmission({ tenderId }: { tenderId: string }) {
     return () => { active = false; };
   }, [tenderId]);
 
+  const missingDocs = useMemo(() => {
+    const names = data.docs.map((d) => d.name.toLowerCase());
+    const keys = REQUIRED_DOCS.map((r) => r.toLowerCase().split(' ')[0]);
+    return REQUIRED_DOCS.filter((_, i) => !names.some((n) => n.includes(keys[i])));
+  }, [data.docs]);
+
   if (!tender) {
     return (
       <div className="p-6 max-w-3xl mx-auto pt-10">
@@ -159,12 +165,6 @@ export default function BidSubmission({ tenderId }: { tenderId: string }) {
       default: return false;
     }
   };
-
-  const missingDocs = useMemo(() => {
-    const names = data.docs.map((d) => d.name.toLowerCase());
-    const keys = REQUIRED_DOCS.map((r) => r.toLowerCase().split(' ')[0]); // experience, equipment, emd, turnover
-    return REQUIRED_DOCS.filter((_, i) => !names.some((n) => n.includes(keys[i])));
-  }, [data.docs]);
 
   const saveDraft = (silent?: boolean) => {
     saveBidDraft(tender.id, step, data as unknown as Record<string, unknown>);
