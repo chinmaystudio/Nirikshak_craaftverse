@@ -1,5 +1,6 @@
 import { supabase } from '@/core/supabase/client';
 import { realtimeService } from '@/core/realtime/realtime.service';
+import { apiClient } from '@/lib/api/apiClient';
 import type { Tender } from '../lib/data';
 
 export interface DbTender {
@@ -140,13 +141,11 @@ export class ContractorTenderService {
     technicalProposal: string;
   }): Promise<DbBid> {
     const { tenderId, bidAmount, technicalProposal } = payload;
-    const { data: bid, error: insertErr } = await supabase
-      .rpc('save_tender_bid', { p_tender_id: tenderId, p_bid_amount: bidAmount, p_technical_proposal: technicalProposal, p_status: 'SUBMITTED' });
-
-    if (insertErr) {
-      console.error('Error submitting bid:', insertErr);
-      throw insertErr;
-    }
+    const bid = await apiClient.post<any>(`/api/tenders/${tenderId}/bids`, {
+      bid_amount: bidAmount,
+      technical_proposal: technicalProposal,
+      status: 'SUBMITTED',
+    });
 
     const savedBid = (Array.isArray(bid) ? bid[0] : bid) as unknown as DbBid | null;
     if (!savedBid?.id || !savedBid.bid_reference) {
@@ -173,10 +172,11 @@ export class ContractorTenderService {
     technicalProposal: string;
   }): Promise<DbBid> {
     const { tenderId, bidAmount, technicalProposal } = payload;
-    const { data: bid, error } = await supabase
-      .rpc('save_tender_bid', { p_tender_id: tenderId, p_bid_amount: bidAmount, p_technical_proposal: technicalProposal, p_status: 'DRAFT' });
-
-    if (error) throw error;
+    const bid = await apiClient.post<any>(`/api/tenders/${tenderId}/bids`, {
+      bid_amount: bidAmount,
+      technical_proposal: technicalProposal,
+      status: 'DRAFT',
+    });
     const savedBid = (Array.isArray(bid) ? bid[0] : bid) as unknown as DbBid | null;
     if (!savedBid?.id) throw new Error('The bid draft confirmation could not be loaded.');
     return savedBid;

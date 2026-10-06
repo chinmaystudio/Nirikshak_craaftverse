@@ -7,6 +7,18 @@ import { AuthorizationError, NotFoundError, ValidationError } from '../../core/h
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export class ProcurementService {
+  async saveTenderBid(input: { tender_id: string; bid_amount: number; technical_proposal: string; status: 'DRAFT' | 'SUBMITTED' }, token: string): Promise<any> {
+    const scopedClient = await createAuthenticatedClient(token);
+    const { data, error } = await scopedClient.rpc('save_tender_bid', {
+      p_tender_id: input.tender_id,
+      p_bid_amount: input.bid_amount,
+      p_technical_proposal: input.technical_proposal,
+      p_status: input.status,
+    });
+    if (error || !data) throw new ValidationError(`Bid submission failed: ${error?.message || 'No bid was returned.'}`);
+    return Array.isArray(data) ? data[0] : data;
+  }
+
   async publishTender(
     input: CreateTenderInput,
     userContext: UserContext,

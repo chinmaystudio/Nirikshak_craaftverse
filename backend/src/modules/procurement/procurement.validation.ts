@@ -15,6 +15,13 @@ export const SubmitBidSchema = z.object({
   validity_days: z.number().int().min(30).max(365).default(120),
 });
 
+export const SaveTenderBidSchema = z.object({
+  tender_id: z.string().uuid(),
+  bid_amount: z.number().positive(),
+  technical_proposal: z.string().trim().min(1).max(20000),
+  status: z.enum(['DRAFT', 'SUBMITTED']).default('SUBMITTED'),
+});
+
 export const AwardContractSchema = z.object({
   tender_id: z.string().uuid(),
   selected_bid_id: z.string().uuid(),
