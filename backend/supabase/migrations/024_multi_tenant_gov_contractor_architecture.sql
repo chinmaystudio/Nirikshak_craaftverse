@@ -53,6 +53,9 @@ SET gstin = '27AABCC9012H1Z9', registration_number = 'U45202MH2019PTC328912', st
 WHERE id = '6ec8475f-bdac-43a6-a085-751b68601db3' OR lower(name) = 'crestline infra projects pvt ltd';
 
 -- 3. Organization Members - Enforce One Active Organization per User
+ALTER TABLE public.organization_members
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_org_members_one_active_per_user
     ON public.organization_members (user_id)
     WHERE status = 'active';
