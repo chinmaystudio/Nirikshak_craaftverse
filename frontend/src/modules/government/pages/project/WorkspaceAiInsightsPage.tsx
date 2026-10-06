@@ -35,7 +35,7 @@ export function WorkspaceAiInsightsPage() {
     if (!project || aiLoading) return
     setAiLoading(true)
     try {
-      const result = await insightsApi.analyzeProject(project.id)
+      const result = await insightsApi.analyzeProject(project.databaseId || project.id)
       setAiResult(result)
       setReportOpen(true)
       showToast('Live AI analysis completed and saved to the project audit trail.', 'success')
@@ -48,13 +48,14 @@ export function WorkspaceAiInsightsPage() {
 
   if (!project) return null
 
-  // Deterministic health model consistent with the register.
-  const scheduleRisk = Math.min(100, project.delayDays * 4 + 12)
-  const financialRisk = Math.min(100, Math.round((project.financialProgressPct - project.physicalProgressPct) ** 2 * 2.2 + (bills.some((b) => b.flag) ? 34 : 12)))
-  const qualityRisk = project.riskLevel === 'high' ? 62 : project.riskLevel === 'medium' ? 38 : 18
-  const contractorRisk = 100 - (project.contractor ? 78 : 60)
-  const complianceRisk = Math.min(100, 10 + insights.length * 9)
-  const health = Math.max(0, Math.round(100 - (scheduleRisk + financialRisk + qualityRisk + contractorRisk + complianceRisk) / 5))
+  const historical = aiResult?.historical_analysis
+  const scheduleRisk = historical?.review_priority_score != null ? Math.round(Number(historical.review_priority_score) * 100) : null
+  const financialRisk = historical?.cost_anomaly_score != null ? Math.round(Number(historical.cost_anomaly_score) * 100) : null
+  const qualityRisk = historical?.structural_anomaly_score != null ? Math.round(Number(historical.structural_anomaly_score) * 100) : null
+  const contractorRisk = historical?.neighborhood_anomaly_score != null ? Math.round(Number(historical.neighborhood_anomaly_score) * 100) : null
+  const complianceRisk = historical?.cluster_distance_score != null ? Math.round(Number(historical.cluster_distance_score) * 100) : null
+  const riskValues = [scheduleRisk, financialRisk, qualityRisk, contractorRisk, complianceRisk].filter((value): value is number => value !== null)
+  const health = riskValues.length ? Math.max(0, Math.round(100 - riskValues.reduce((sum, value) => sum + value, 0) / riskValues.length)) : null
 
   const flaggedBills = bills.filter((b) => b.flag)
 
@@ -78,11 +79,11 @@ export function WorkspaceAiInsightsPage() {
               ariaLabel="Project health score"
               size={168}
               thickness={18}
-              centerValue={`${health}`}
+              centerValue={health == null ? '—' : `${health}`}
               centerLabel="/ 100"
               segments={[
-                { label: 'Health', value: health, color: health > 70 ? 'var(--color-success)' : health > 45 ? 'var(--color-warning)' : 'var(--color-danger)' },
-                { label: 'Risk load', value: 100 - health, color: 'var(--color-surface-3)' },
+                { label: 'Health', value: health ?? 0, color: health == null ? 'var(--color-surface-3)' : health > 70 ? 'var(--color-success)' : health > 45 ? 'var(--color-warning)' : 'var(--color-danger)' },
+                { label: 'Risk load', value: health == null ? 100 : 100 - health, color: 'var(--color-surface-3)' },
               ]}
             />
           </div>
@@ -93,18 +94,18 @@ export function WorkspaceAiInsightsPage() {
         <Panel title="Risk Dimensions" icon="stacked_line_chart" className="lg:col-span-2">
           <div className="flex flex-col gap-3">
             {[
-              { label: 'Schedule Risk', value: scheduleRisk, tone: scheduleRisk > 60 ? 'danger' : 'warning' },
-              { label: 'Financial Risk', value: financialRisk, tone: financialRisk > 55 ? 'danger' : 'warning' },
-              { label: 'Quality Risk', value: qualityRisk, tone: qualityRisk > 50 ? 'warning' : 'success' },
-              { label: 'Contractor Risk', value: contractorRisk, tone: 'success' },
-              { label: 'Compliance Risk', value: complianceRisk, tone: complianceRisk > 45 ? 'warning' : 'success' },
+              { label: 'Schedule / review risk', value: scheduleRisk },
+              { label: 'Cost anomaly', value: financialRisk },
+              { label: 'Structural anomaly', value: qualityRisk },
+              { label: 'Neighborhood anomaly', value: contractorRisk },
+              { label: 'Cluster distance', value: complianceRisk },
             ].map((r) => (
               <div key={r.label}>
                 <div className="mb-1 flex items-center justify-between text-body-small">
                   <span className="text-fg">{r.label}</span>
-                  <span className="tabular-nums text-fg-muted">{r.value}/100 — {r.value > 60 ? 'High' : r.value > 35 ? 'Moderate' : 'Low'}</span>
+                  <span className="tabular-nums text-fg-muted">{r.value == null ? 'Not analyzed' : `${r.value}/100 — ${r.value > 60 ? 'High' : r.value > 35 ? 'Moderate' : 'Low'}`}</span>
                 </div>
-                <Progress value={r.value} label={r.label} size="sm" showValue={false} />
+                <Progress value={r.value ?? 0} label={r.label} size="sm" showValue={false} />
               </div>
             ))}
           </div>
@@ -118,10 +119,10 @@ export function WorkspaceAiInsightsPage() {
           <div>
             <p className="nk-label">Review Priority</p>
             <p className="tabular-nums text-body-small text-fg">
-              {aiResult?.review_priority_band || (project.riskLevel === 'high' ? 'VERY_UNUSUAL' : project.delayDays > 30 ? 'UNUSUAL' : 'TYPICAL')}
+              {historical?.review_band || 'Not analyzed'}
             </p>
             <p className="text-caption text-fg-subtle">
-              {aiResult?.review_priority_score !== undefined ? `Score: ${Math.round(aiResult.review_priority_score * 100)}/100` : 'Calibrated ML classification'}
+              {historical?.review_priority_score !== undefined ? `Score: ${Math.round(Number(historical.review_priority_score) * 100)}/100` : 'Run live analysis to calculate'}
             </p>
           </div>
         </Card>
@@ -130,7 +131,7 @@ export function WorkspaceAiInsightsPage() {
           <div>
             <p className="nk-label">Structural Anomaly</p>
             <p className="text-body-small text-fg">
-              {aiResult?.structural_anomaly_score !== undefined ? `${Math.round(aiResult.structural_anomaly_score * 100)}% anomaly load` : 'Operational pattern'}
+              {historical?.structural_anomaly_score !== undefined ? `${Math.round(Number(historical.structural_anomaly_score) * 100)}% anomaly load` : 'Not analyzed'}
             </p>
             <p className="text-caption text-fg-subtle">Isolation Forest pattern evaluation</p>
           </div>
@@ -140,7 +141,7 @@ export function WorkspaceAiInsightsPage() {
           <div>
             <p className="nk-label">Cost Anomaly</p>
             <p className="text-body-small text-fg">
-              {aiResult?.cost_anomaly_score !== undefined ? `${Math.round(aiResult.cost_anomaly_score * 100)}% variance signal` : 'Financial trajectory'}
+              {historical?.cost_anomaly_score !== undefined ? `${Math.round(Number(historical.cost_anomaly_score) * 100)}% variance signal` : 'Not analyzed'}
             </p>
             <p className="text-caption text-fg-subtle">Expenditure vs verified progress</p>
           </div>
@@ -150,7 +151,7 @@ export function WorkspaceAiInsightsPage() {
           <div>
             <p className="nk-label">Operational Drift</p>
             <p className="text-body-small text-fg">
-              {aiResult?.drift_percentile !== undefined ? `${Math.round(aiResult.drift_percentile)}th percentile` : 'Baseline cohort'}
+              {aiResult?.operational_drift?.drift_percentile !== undefined ? `${Math.round(Number(aiResult.operational_drift.drift_percentile))}th percentile` : 'Not analyzed'}
             </p>
             <p className="text-caption text-fg-subtle">Streaming drift monitoring</p>
           </div>

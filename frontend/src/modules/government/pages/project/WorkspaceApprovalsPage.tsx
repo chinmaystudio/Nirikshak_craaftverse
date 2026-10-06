@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '@/context/I18nContext'
 import { useProjectWorkspace } from '@/context/ProjectWorkspaceContext'
@@ -30,6 +30,10 @@ export function WorkspaceApprovalsPage() {
   const { approvals } = useProjectWorkspace()
   const [state, setState] = useState<ApprovalItem[]>(approvals)
   const [confirm, setConfirm] = useState<{ title: string; message: string; run: () => void } | null>(null)
+
+  useEffect(() => {
+    setState(approvals)
+  }, [approvals])
 
   const rows = useMemo(() => state, [state])
   const pending = state.filter((a) => a.status === 'pending')

@@ -27,6 +27,8 @@ import {
   financeApi,
 } from '@/api'
 import { contractsService, type ProjectContract } from '../services/contracts.service'
+import { progressService } from '../services/progress.service'
+import type { ProgressUpdate } from '@/demo/government/workspace'
 import { useApiData } from '@/hooks/useApiData'
 
 /**
@@ -50,6 +52,7 @@ export interface ProjectWorkspaceValue {
   tenders: Tender[]
   bills: BillItem[]
   contracts: ProjectContract[]
+  progressUpdates: ProgressUpdate[]
 }
 
 const ProjectWorkspaceContext = createContext<ProjectWorkspaceValue | null>(null)
@@ -78,6 +81,10 @@ export function ProjectWorkspaceProvider({
     () => project?.databaseId ? contractsService.getProjectContracts(project.databaseId) : Promise.resolve([]),
     [project?.databaseId],
   )
+  const { data: progressUpdates } = useApiData(
+    () => project?.databaseId ? progressService.forProject(project.databaseId) : Promise.resolve([]),
+    [project?.databaseId],
+  )
 
   const value = useMemo<ProjectWorkspaceValue>(() => {
     const id = projectId
@@ -96,8 +103,9 @@ export function ProjectWorkspaceProvider({
       tenders: (tendersAll ?? []).filter((x) => x.projectId === id),
       bills: (billsAll ?? []).filter((x) => x.projectId === id),
       contracts: contracts ?? [],
+      progressUpdates: progressUpdates ?? [],
     }
-  }, [projectId, project, loading, workOrders, inspectionsAll, litigationAll, grievancesAll, documentsAll, approvalsAll, insightsAll, findingsAll, alertsAll, tendersAll, billsAll, contracts])
+  }, [projectId, project, loading, workOrders, inspectionsAll, litigationAll, grievancesAll, documentsAll, approvalsAll, insightsAll, findingsAll, alertsAll, tendersAll, billsAll, contracts, progressUpdates])
 
   return <ProjectWorkspaceContext.Provider value={value}>{children}</ProjectWorkspaceContext.Provider>
 }

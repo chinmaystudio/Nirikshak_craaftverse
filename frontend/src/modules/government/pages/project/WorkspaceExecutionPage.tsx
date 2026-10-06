@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useI18n } from '@/context/I18nContext'
 import { useProjectWorkspace } from '@/context/ProjectWorkspaceContext'
 import { useToast } from '@/context/ToastContext'
@@ -32,7 +32,7 @@ const CONTRACT_STAGES = [
 export function WorkspaceExecutionPage() {
   const { t } = useI18n()
   const { showToast } = useToast()
-  const { project, workOrder, inspections, litigation, insights, bills } = useProjectWorkspace()
+  const { project, workOrder, inspections, litigation, insights, bills, progressUpdates } = useProjectWorkspace()
   const [updates, setUpdates] = useState<ProgressUpdate[]>([])
   const [updateSearch, setUpdateSearch] = useState('')
   const [updateFilter, setUpdateFilter] = useState('')
@@ -44,8 +44,12 @@ export function WorkspaceExecutionPage() {
   const [confirm, setConfirm] = useState<{ title: string; message: string; run: () => void } | null>(null)
   const [reportOpen, setReportOpen] = useState(false)
 
+  useEffect(() => {
+    setUpdates(progressUpdates)
+  }, [progressUpdates])
+
   const peopleBills = useMemo(() => bills.filter((b) => b.type === 'Labour Bill'), [bills])
-  const projectUpdates = updates
+  const projectUpdates = updates.length ? updates : progressUpdates
   const projectMigrations: any[] = []
   const projectSettlements: any[] = []
   const projectActivity: any[] = []

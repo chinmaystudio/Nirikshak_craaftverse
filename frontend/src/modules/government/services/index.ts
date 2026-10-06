@@ -12,6 +12,7 @@ export * from './work.service';
 export * from './citizenPublic.service';
 export * from './ai.service';
 export * from './contracts.service';
+export * from './progress.service';
 export * from './milestones.service';
 export * from './resources.service';
 export * from './inspections.service';
