@@ -14,7 +14,8 @@ export default function ContractorForgotPasswordPage() {
     setBusy(true);
     setErrorMsg(null);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+      const redirectTo = `${window.location.origin}/contractor/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
       if (error) throw error;
       setSent(true);
     } catch (err: any) {

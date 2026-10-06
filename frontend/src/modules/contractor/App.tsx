@@ -21,6 +21,7 @@ import ProjectLayout from './pages/project/ProjectLayout';
 import ContractorLoginPage from './pages/auth/ContractorLoginPage';
 import ContractorRegisterPage from './pages/auth/ContractorRegisterPage';
 import ContractorForgotPasswordPage from './pages/auth/ContractorForgotPasswordPage';
+import ContractorResetPasswordPage from './pages/auth/ContractorResetPasswordPage';
 
 const PROJECT_SECTIONS = ['details', 'resources', 'finance', 'ai-guide', 'bills', 'analytics', 'inspection', 'update', 'ai-analysis', 'ai-completion', 'communication'];
 
@@ -45,6 +46,9 @@ function Router() {
   }
   if (activePath === '/forgot-password' || activePath.endsWith('/forgot-password')) {
     return <ContractorForgotPasswordPage />;
+  }
+  if (activePath === '/reset-password' || activePath.endsWith('/reset-password')) {
+    return <ContractorResetPasswordPage />;
   }
 
   // Authentication & Role clearance check
