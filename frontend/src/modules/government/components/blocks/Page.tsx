@@ -56,16 +56,16 @@ export interface FilterSelect {
  * filters slot in as children (rendered on a second row if given).
  */
 export function FilterBar({
-  search,
-  onSearch,
+  search = '',
+  onSearch = () => {},
   searchPlaceholder,
   selects = [],
   onClear,
   children,
   className,
 }: {
-  search: string
-  onSearch: (v: string) => void
+  search?: string
+  onSearch?: (v: string) => void
   searchPlaceholder?: string
   selects?: FilterSelect[]
   onClear?: () => void

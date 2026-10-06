@@ -42,6 +42,7 @@ const WHITELIST = new Set([
   'modules/government/services/finance.service.ts',
   'modules/government/pages/dashboard/DashboardPage.tsx',
   'modules/contractor/pages/auth/ContractorForgotPasswordPage.tsx',
+  'modules/contractor/pages/auth/ContractorResetPasswordPage.tsx',
   'modules/government/pages/access-requests/AccessRequestsPage.tsx',
   'core/realtime/RealtimeStatusIndicator.tsx',
   'modules/user/landing/components/ReportsSection.tsx',

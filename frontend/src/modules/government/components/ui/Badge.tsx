@@ -13,6 +13,7 @@ const TONE: Record<BadgeTone, string> = {
 
 interface BadgeProps {
   tone?: BadgeTone
+  size?: 'sm' | 'md' | 'lg' | string
   /** Material Symbols ligature — status is never color-only: pair icon+text. */
   icon?: string
   children: React.ReactNode
@@ -21,7 +22,7 @@ interface BadgeProps {
   dot?: boolean
 }
 
-export function Badge({ tone = 'neutral', icon, children, className, dot }: BadgeProps) {
+export function Badge({ tone = 'neutral', size = 'sm', icon, children, className, dot }: BadgeProps) {
   return (
     <span
       className={cn(

@@ -139,6 +139,8 @@ export function WorkspaceTendersPage() {
                   target || {
                     id: `TND-${projectId.slice(0, 8)}`,
                     title: `${project?.name || 'Project'} Civil Works Tender`,
+                    department: project?.department || 'Infrastructure',
+                    district: project?.district || 'Pune',
                     estimatedCostCr: project?.financials?.sanctionedAmountCr || 10,
                     bidsReceived: 3,
                     status: 'under_evaluation',
