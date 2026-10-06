@@ -43,6 +43,37 @@ financeRouter.post(
 
 // GET /api/finance/project/:projectId/summary - Get project finance summary
 financeRouter.get(
+  '/claims',
+  requireAuth,
+  requireGovernment,
+  (req, res, next) => financeController.listAllClaims(req, res, next)
+);
+
+financeRouter.post(
+  '/project/:projectId/claims',
+  rateLimit({ windowMs: 60 * 1000, max: 20 }),
+  requireAuth,
+  requireContractor,
+  (req, res, next) => financeController.submitClaim(req, res, next)
+);
+
+financeRouter.post(
+  '/claims/:claimId/review',
+  rateLimit({ windowMs: 60 * 1000, max: 30 }),
+  requireAuth,
+  requireGovernment,
+  (req, res, next) => { req.body.claim_id = req.params.claimId; financeController.reviewClaim(req, res, next); }
+);
+
+financeRouter.post(
+  '/claims/:claimId/pay',
+  rateLimit({ windowMs: 60 * 1000, max: 30 }),
+  requireAuth,
+  requireGovernment,
+  (req, res, next) => { req.body.claim_id = req.params.claimId; financeController.recordPayment(req, res, next); }
+);
+
+financeRouter.get(
   '/project/:projectId/summary',
   requireAuth,
   (req, res, next) => financeController.getFinanceSummary(req, res, next)

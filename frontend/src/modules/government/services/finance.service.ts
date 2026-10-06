@@ -78,23 +78,20 @@ export const financeService = {
 
   async bills(): Promise<BillItem[]> {
     try {
-      const { data, error } = await supabase
-        .from('payment_claims')
-        .select('*, projects(project_name), organizations(name)')
-        .order('submission_date', { ascending: false });
+      const data = await apiClient.get<any[]>('/api/finance/claims');
 
-      if (!error && data && data.length > 0) {
+      if (data && data.length > 0) {
         return data.map((c: any) => ({
           id: c.id,
           projectId: c.project_id,
           contractor: c.organizations?.name || 'Assigned Contractor',
           billNo: c.claim_number,
           type: 'RA Bill',
-          amountCr: Number(c.claim_amount_inr_crore) || 0,
-          submittedOn: c.submission_date || c.created_at?.slice(0, 10),
+          amountCr: Number(c.claimed_amount) || 0,
+          submittedOn: c.submitted_at || c.created_at?.slice(0, 10),
           mbEntry: `e-MB-${c.claim_number}`,
           status: c.status === 'PAID' ? 'paid' : c.status === 'APPROVED' ? 'approved' : c.status === 'REJECTED' ? 'returned' : 'submitted',
-          approvedBy: c.reviewed_by || undefined,
+          approvedBy: c.approved_by || c.reviewed_by || undefined,
         }));
       }
     } catch (err) {
@@ -129,14 +126,22 @@ export const financeService = {
     claimId: string,
     payload: { approved_amount_inr_crore: number; status: 'APPROVED' | 'REJECTED'; remarks?: string }
   ): Promise<PaymentClaim> {
-    return apiClient.post<PaymentClaim>(`/api/finance/claims/${claimId}/review`, payload);
+    return apiClient.post<PaymentClaim>(`/api/finance/claims/${claimId}/review`, {
+      decision: payload.status,
+      approved_amount: payload.approved_amount_inr_crore,
+      review_notes: payload.remarks,
+    });
   },
 
   async recordPayment(
     claimId: string,
     payload: { amount_paid_inr_crore: number; payment_reference: string; payment_mode?: string }
   ): Promise<any> {
-    return apiClient.post(`/api/finance/claims/${claimId}/pay`, payload);
+    return apiClient.post(`/api/finance/claims/${claimId}/pay`, {
+      amount_paid: payload.amount_paid_inr_crore,
+      payment_reference: payload.payment_reference,
+      payment_method: payload.payment_mode || 'PFMS_RTGS',
+    });
   },
 
   async getFinanceSummary(projectId: string): Promise<ProjectFinanceSummary> {

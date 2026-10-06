@@ -70,6 +70,13 @@ export class FinanceController {
     }
   }
 
+  async listAllClaims(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const claims = await financeService.listClaims(undefined, req.userContext!, req.token!);
+      ApiResponseHelper.success(res, claims);
+    } catch (err) { next(err); }
+  }
+
   async listPayments(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { projectId } = req.params;

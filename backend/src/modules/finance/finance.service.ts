@@ -30,7 +30,7 @@ export class FinanceService {
       p_project_id: input.project_id,
       p_claimed_amount: input.claimed_amount,
       p_milestone_id: input.milestone_id || undefined,
-      p_claim_type: input.claim_type || 'PROGRESS_INTERIM',
+      p_claim_type: input.claim_type || 'RA_BILL',
       p_description: input.description || undefined,
     });
 
@@ -169,16 +169,16 @@ export class FinanceService {
   }
 
   async listClaims(
-    projectId: string,
+    projectId: string | undefined,
     userContext: UserContext,
     token: string
   ): Promise<any[]> {
     const scopedClient = await createAuthenticatedClient(token);
-    const { data, error } = await scopedClient
-      .from('payment_claims')
-      .select('*')
-      .eq('project_id', projectId)
-      .order('submitted_at', { ascending: false });
+    const query = projectId
+      ? await scopedClient.from('payment_claims').select('*, organizations:contractor_organization_id(name)').eq('project_id', projectId).order('submitted_at', { ascending: false })
+      : await scopedClient.from('payment_claims').select('*, organizations:contractor_organization_id(name)').order('submitted_at', { ascending: false });
+
+    const { data, error } = query;
 
     if (error) {
       throw new ValidationError(`Failed to fetch payment claims: ${error.message}`);

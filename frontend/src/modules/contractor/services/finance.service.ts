@@ -6,19 +6,20 @@ export interface PaymentClaim {
   contract_id: string;
   claim_number: string;
   contractor_organization_id: string;
-  claim_amount_inr_crore: number;
-  approved_amount_inr_crore: number | null;
+  claimed_amount: number;
+  approved_amount: number | null;
   status: string;
-  submission_date: string;
+  submitted_at: string;
   reviewed_at: string | null;
   reviewed_by: string | null;
-  remarks: string | null;
+  description: string | null;
+  claim_type?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface SubmitPaymentClaimPayload {
-  claim_amount_inr_crore: number;
+  claimed_amount: number;
   remarks?: string;
 }
 
@@ -43,7 +44,12 @@ export class ContractorFinanceService {
   }
 
   static async submitPaymentClaim(projectId: string, payload: SubmitPaymentClaimPayload): Promise<PaymentClaim> {
-    return apiClient.post<PaymentClaim>(`/api/finance/project/${projectId}/claims`, payload);
+    return apiClient.post<PaymentClaim>(`/api/finance/project/${projectId}/claims`, {
+      project_id: projectId,
+      claimed_amount: payload.claimed_amount,
+      claim_type: 'RA_BILL',
+      description: payload.remarks,
+    });
   }
 
   static async getFinanceSummary(projectId: string): Promise<ProjectFinanceSummary> {

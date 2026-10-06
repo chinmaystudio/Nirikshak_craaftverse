@@ -98,6 +98,8 @@ export async function buildProjectSnapshot(
     { data: progressUpdates },
     { data: delayEvents },
     { data: financialUpdates },
+    { data: paymentClaims },
+    { data: payments },
     { data: inspections },
     { count: unresolvedFindingsCount },
     { data: latestVerifiedResource },
@@ -108,6 +110,8 @@ export async function buildProjectSnapshot(
     supabaseAdmin.from('progress_updates').select('reported_progress, verified_progress, verification_status, submitted_at, description').eq('project_id', realProjectId).order('submitted_at', { ascending: false }).limit(5),
     supabaseAdmin.from('delay_events').select('delay_days, reason, delay_type, created_at').eq('project_id', realProjectId),
     supabaseAdmin.from('financial_updates').select('planned_expenditure_inr_crore, actual_expenditure_inr_crore, cost_variance_percent, observation_date, verification_status').eq('project_id', realProjectId).order('observation_date', { ascending: false }).limit(1),
+    supabaseAdmin.from('payment_claims').select('claimed_amount, approved_amount, status, submitted_at, reviewed_at').eq('project_id', realProjectId).order('submitted_at', { ascending: false }),
+    supabaseAdmin.from('payments').select('amount_paid, payment_date').eq('project_id', realProjectId).order('payment_date', { ascending: false }),
     supabaseAdmin.from('inspections').select('id, inspection_type, status, summary, inspection_date').eq('project_id', realProjectId),
     supabaseAdmin.from('inspection_findings').select('id', { count: 'exact', head: true }).eq('project_id', realProjectId).in('status', ['OPEN', 'ACTION_REQUIRED']),
     supabaseAdmin.from('resource_usage_updates').select('shortage_ratio, verification_status, created_at').eq('project_id', realProjectId).eq('verification_status', 'VERIFIED').order('created_at', { ascending: false }).limit(1),
@@ -143,6 +147,11 @@ export async function buildProjectSnapshot(
   const latestSpent = latestFin?.actual_expenditure_inr_crore !== null && latestFin?.actual_expenditure_inr_crore !== undefined
     ? Number(latestFin.actual_expenditure_inr_crore)
     : 0;
+  const submittedClaims = (paymentClaims || []).filter((c) => ['SUBMITTED', 'UNDER_REVIEW', 'VERIFIED'].includes(c.status));
+  const approvedClaims = (paymentClaims || []).filter((c) => ['APPROVED', 'PAID'].includes(c.status));
+  const claimedAmount = (paymentClaims || []).reduce((sum, c) => sum + Number(c.claimed_amount || 0), 0);
+  const approvedAmount = approvedClaims.reduce((sum, c) => sum + Number(c.approved_amount || 0), 0);
+  const paidAmount = (payments || []).reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
 
   // Verified resource shortage
   const verifiedResourceShortage = latestVerifiedResource && latestVerifiedResource.length > 0 && latestVerifiedResource[0].shortage_ratio !== null
@@ -197,7 +206,12 @@ export async function buildProjectSnapshot(
       sanctioned_amount: totalCost > 0 ? totalCost : null,
       amount_spent: latestSpent > 0 ? latestSpent : null,
       cost_variance_pct: costVariancePct,
-      payment_delay_days: null,
+      payment_delay_days: submittedClaims.length > 0 ? Math.max(0, Math.round((Date.now() - new Date(submittedClaims[0].submitted_at).getTime()) / 86400000)) : null,
+      payment_claims_count: paymentClaims?.length || 0,
+      pending_payment_claims_count: submittedClaims.length,
+      claimed_amount_inr_crore: claimedAmount,
+      approved_amount_inr_crore: approvedAmount,
+      paid_amount_inr_crore: paidAmount,
     },
     complaints: {
       provenance: 'AGGREGATED_EXTERNAL',

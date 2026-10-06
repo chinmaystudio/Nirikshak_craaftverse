@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Receipt, Plus, Send, Eye } from 'lucide-react';
 import { Card, SectionTitle, StatusBadge, Tabs, Field, Select, Modal } from '../../components/ui';
 import { DataTable } from '../../components/DataTable';
@@ -6,6 +6,7 @@ import { StepFlow } from '../../components/charts';
 import { useStore } from '../../lib/store';
 import type { Invoice, InvoiceStatus, Project } from '../../lib/data';
 import { fmtDate, money } from '../../lib/utils';
+import { ContractorFinanceService, type PaymentClaim } from '../../services/finance.service';
 
 const GROUPS: { key: string; label: string; statuses: InvoiceStatus[] }[] = [
   { key: 'all', label: 'All', statuses: ['Draft', 'Submitted', 'Under Verification', 'Approved', 'Rejected', 'Paid'] },
@@ -18,10 +19,31 @@ const GROUPS: { key: string; label: string; statuses: InvoiceStatus[] }[] = [
 
 export default function Bills({ project }: { project: Project }) {
   const { projects, invoices, addInvoice, submitInvoice, toast } = useStore();
+  const [remoteClaims, setRemoteClaims] = useState<PaymentClaim[]>([]);
+  const [loadingClaims, setLoadingClaims] = useState(true);
   const [group, setGroup] = useState('all');
   const [createOpen, setCreateOpen] = useState(false);
 
-  const mine = useMemo(() => invoices.filter((i) => i.projectId === project.id), [invoices, project.id]);
+  useEffect(() => {
+    let active = true;
+    setLoadingClaims(true);
+    ContractorFinanceService.getPaymentClaims(project.id)
+      .then((claims) => { if (active) setRemoteClaims(claims); })
+      .catch((err) => toast('warn', 'Bills could not be loaded', err?.message || 'Please refresh and try again.'))
+      .finally(() => { if (active) setLoadingClaims(false); });
+    return () => { active = false; };
+  }, [project.id]);
+
+  const mine = useMemo(() => remoteClaims.map((c) => ({
+    id: c.id,
+    no: c.claim_number,
+    projectId: c.project_id,
+    milestone: c.description || c.claim_type,
+    amount: Number(c.claimed_amount) || 0,
+    date: c.submitted_at,
+    status: c.status === 'PAID' ? 'Paid' : c.status === 'APPROVED' ? 'Approved' : c.status === 'REJECTED' ? 'Rejected' : c.status === 'UNDER_REVIEW' ? 'Under Verification' : 'Submitted',
+    verification: c.status,
+  } as Invoice)), [remoteClaims]);
   const rows = useMemo(() => mine.filter((i) => GROUPS.find((g) => g.key === group)!.statuses.includes(i.status)), [mine, group]);
 
   const totals = useMemo(
@@ -128,9 +150,17 @@ export default function Bills({ project }: { project: Project }) {
         onClose={() => setCreateOpen(false)}
         nextNo={nextNo}
         defaultProject={project.id}
-        onSubmit={(inv) => {
-          addInvoice(inv);
-          toast('success', 'Draft invoice created', `${inv.no} saved as draft. Submit when ready.`);
+          onSubmit={async (inv) => {
+          try {
+            const claim = await ContractorFinanceService.submitPaymentClaim(project.id, {
+              claimed_amount: inv.amount,
+              remarks: `${inv.milestone}${inv.note ? ` — ${inv.note}` : ''}`,
+            });
+            setRemoteClaims((current) => [claim, ...current]);
+            toast('success', 'Bill submitted', `${claim.claim_number} is now visible to Government for review.`);
+          } catch (err: any) {
+            toast('error', 'Bill submission failed', err?.message || 'Please try again.');
+          }
           setCreateOpen(false);
         }}
       />
