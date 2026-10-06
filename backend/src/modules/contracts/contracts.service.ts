@@ -22,7 +22,10 @@ export class ContractsService {
     const scopedClient = await createAuthenticatedClient(token);
     const { data, error } = await scopedClient.rpc('award_contract', {
       p_tender_id: input.tender_id,
-      p_bid_id: input.bid_id,
+      // The deployed Supabase RPC uses the database argument name
+      // p_selected_bid_id. Using p_bid_id makes PostgREST report that the
+      // function is missing from the schema cache.
+      p_selected_bid_id: input.bid_id,
     });
 
     if (error) {
