@@ -54,24 +54,25 @@ export const procurementService = {
             submissionDeadline: t.bid_due_date || '',
             openingDate: bidOpeningAllowed ? t.bid_opening_date || t.bid_due_date || '' : '',
             bidsReceived: bids.filter((bid) => bid.status !== 'DRAFT' && bid.status !== 'WITHDRAWN').length,
-            lots: bidOpeningAllowed
-              ? bids
-                  .filter((bid) => bid.status !== 'DRAFT' && bid.status !== 'WITHDRAWN')
-                  .map((bid) => ({
-                    bidId: bid.id,
-                    bidder: bid.organizations?.name || 'Registered contractor',
-                    quotedAmountCr: Number(bid.bid_amount) || 0,
-                    technicalScore: Number(bid.technical_score) || 0,
-                    financialScore: Number(bid.financial_score) || 0,
-                    bidValidityDays: 120,
-                    bidStatus:
-                      bid.status === 'SELECTED'
-                        ? 'accepted'
-                        : bid.status === 'REJECTED' || bid.status === 'DISQUALIFIED'
-                        ? 'rejected'
-                        : 'under_review',
-                  }))
-              : undefined,
+            // Government users must be able to review and award a submitted bid
+            // before the deadline. The API is already government-scoped, so do
+            // not hide submitted bids merely because the opening date is later.
+            lots: bids
+              .filter((bid) => bid.status !== 'DRAFT' && bid.status !== 'WITHDRAWN')
+              .map((bid) => ({
+                bidId: bid.id,
+                bidder: bid.organizations?.name || 'Registered contractor',
+                quotedAmountCr: Number(bid.bid_amount) || 0,
+                technicalScore: Number(bid.technical_score) || 0,
+                financialScore: Number(bid.financial_score) || 0,
+                bidValidityDays: 120,
+                bidStatus:
+                  bid.status === 'SELECTED'
+                    ? 'accepted'
+                    : bid.status === 'REJECTED' || bid.status === 'DISQUALIFIED'
+                    ? 'rejected'
+                    : 'under_review',
+              })),
             category: t.projects?.sector || 'Infrastructure',
             mode: 'e-Tender' as const,
             projectId: t.projects?.nirikshak_project_id || t.project_id,
