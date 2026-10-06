@@ -15,7 +15,21 @@ export class ProcurementService {
       p_technical_proposal: input.technical_proposal,
       p_status: input.status,
     });
-    if (error || !data) throw new ValidationError(`Bid submission failed: ${error?.message || 'No bid was returned.'}`);
+    if (error || !data) {
+      // A retry after a successful submission is safe and idempotent. The RPC
+      // intentionally refuses to mutate submitted bids; return the existing
+      // submitted record so the UI can show its confirmation instead.
+      if (error?.message?.toLowerCase().includes('only draft bids can be changed')) {
+        const existing = await scopedClient
+          .from('tender_bids')
+          .select('*')
+          .eq('tender_id', input.tender_id)
+          .eq('status', 'SUBMITTED')
+          .maybeSingle();
+        if (existing.data) return existing.data;
+      }
+      throw new ValidationError(`Bid submission failed: ${error?.message || 'No bid was returned.'}`);
+    }
     return Array.isArray(data) ? data[0] : data;
   }
 
